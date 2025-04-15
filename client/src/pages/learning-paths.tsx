@@ -36,22 +36,22 @@ export default function LearningPaths() {
   const { user } = useAuth();
   const { toast } = useToast();
 
-  // Загрузка учебных планов
   useEffect(() => {
     const fetchLearningPaths = async () => {
+      if (!user?.id) return;
+
       try {
         setIsLoading(true);
-        // Загружаем учебные планы, созданные для текущего пользователя
-        const response = await fetch(`/api/learning-paths?userId=${user?.id}`, {
+        const response = await fetch(`/api/learning-paths?userId=${user.id}`, {
           credentials: 'include'
         });
 
         if (!response.ok) {
-          throw new Error(`Ошибка загрузки: ${response.status}`);
+          throw new Error(`Error: ${response.status}`);
         }
 
         const data = await response.json();
-        setLearningPaths(data);
+        setLearningPaths(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching learning paths:', error);
         toast({
@@ -64,51 +64,11 @@ export default function LearningPaths() {
       }
     };
 
-    if (user?.id) {
-      fetchLearningPaths();
-    } else {
-      // Если пользователь не определен, устанавливаем пустой массив и убираем загрузку
-      setLearningPaths([]);
-      setIsLoading(false);
-    }
+    fetchLearningPaths();
   }, [user, toast]);
 
-  // Получаем данные каждого учебного плана
-  useEffect(() => {
-    const fetchLearningPathDetails = async () => {
-      try {
-        const updatedPaths = await Promise.all(
-          learningPaths.map(async (path) => {
-            // Для каждого учебного плана загружаем детали (курсы)
-            const response = await fetch(`/api/learning-paths/${path.id}`, {
-              credentials: 'include'
-            });
-
-            if (!response.ok) {
-              throw new Error(`Ошибка загрузки деталей: ${response.status}`);
-            }
-
-            return await response.json();
-          })
-        );
-        setLearningPaths(updatedPaths);
-      } catch (error) {
-        console.error('Error fetching learning path details:', error);
-        toast({
-          title: 'Ошибка загрузки деталей',
-          description: 'Не удалось загрузить детали учебных планов.',
-          variant: 'destructive',
-        });
-      }
-    };
-
-    if (learningPaths.length > 0 && !learningPaths[0].courses) {
-      fetchLearningPathDetails();
-    }
-  }, [learningPaths, toast]);
-
   const getLevelColor = (level: string) => {
-    switch (level) {
+    switch (level.toLowerCase()) {
       case 'junior':
         return 'green';
       case 'middle':
@@ -121,7 +81,7 @@ export default function LearningPaths() {
   };
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    switch (status.toLowerCase()) {
       case 'active':
         return 'green';
       case 'completed':
