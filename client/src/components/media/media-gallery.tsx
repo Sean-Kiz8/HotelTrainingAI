@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { getQueryFn } from "@/lib/queryClient";
 import { Input } from "@/components/ui/input";
@@ -7,8 +7,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { MediaFile } from "@shared/schema";
+import { MediaFile as DBMediaFile } from "@shared/schema";
 import { Search } from "lucide-react";
+
+// Пользовательский тип для работы с медиа-файлами
+interface MediaFile extends DBMediaFile {
+  name: string; // Алиас для originalFilename
+}
 
 interface MediaGalleryProps {
   userId?: number;
@@ -26,10 +31,16 @@ export function MediaGallery({
   const [searchQuery, setSearchQuery] = useState("");
   
   // Получаем все медиафайлы
-  const { data: mediaFiles = [], isLoading } = useQuery<MediaFile[]>({
+  const { data: rawMediaFiles = [], isLoading } = useQuery<DBMediaFile[]>({
     queryKey: ["/api/media", { mediaType: mediaTypeFilter }],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
+  
+  // Добавляем виртуальное поле name
+  const mediaFiles: MediaFile[] = rawMediaFiles.map(file => ({
+    ...file,
+    name: file.originalFilename
+  }));
   
   // Фильтруем файлы по поисковому запросу
   const filteredFiles = mediaFiles.filter(file => 
@@ -86,32 +97,32 @@ export function MediaGallery({
                   <div className="aspect-square relative">
                     <img 
                       src={file.thumbnail || file.url} 
-                      alt={file.name}
+                      alt={file.originalFilename}
                       className="object-cover w-full h-full"
                     />
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                      <p className="text-white text-xs truncate">{file.name}</p>
+                      <p className="text-white text-xs truncate">{file.originalFilename}</p>
                     </div>
                   </div>
                 ) : file.mediaType === 'video' ? (
                   <div className="aspect-square relative bg-muted flex items-center justify-center">
                     <span className="material-icons text-3xl">movie</span>
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                      <p className="text-white text-xs truncate">{file.name}</p>
+                      <p className="text-white text-xs truncate">{file.originalFilename}</p>
                     </div>
                   </div>
                 ) : file.mediaType === 'audio' ? (
                   <div className="aspect-square relative bg-muted flex items-center justify-center">
                     <span className="material-icons text-3xl">audio_file</span>
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                      <p className="text-white text-xs truncate">{file.name}</p>
+                      <p className="text-white text-xs truncate">{file.originalFilename}</p>
                     </div>
                   </div>
                 ) : (
                   <div className="aspect-square relative bg-muted flex items-center justify-center">
                     <span className="material-icons text-3xl">description</span>
                     <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent p-2">
-                      <p className="text-white text-xs truncate">{file.name}</p>
+                      <p className="text-white text-xs truncate">{file.originalFilename}</p>
                     </div>
                   </div>
                 )}
