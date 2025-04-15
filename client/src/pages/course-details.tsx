@@ -226,7 +226,19 @@ export default function CourseDetailsPage() {
       if (!res.ok) {
         throw new Error("Failed to delete course");
       }
-      return await res.json();
+      
+      // Проверка на пустой ответ или ответ, не являющийся JSON
+      const text = await res.text();
+      if (!text || text.trim() === '') {
+        return { success: true };
+      }
+      
+      try {
+        return JSON.parse(text);
+      } catch (e) {
+        // Если ответ не является JSON, просто возвращаем успех
+        return { success: true };
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
