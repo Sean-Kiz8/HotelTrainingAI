@@ -539,7 +539,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mimeType: file.mimetype,
         path: file.path,
         uploadedById: parseInt(req.body.userId) || 1,
-        metadata: tags.length > 0 || description ? { tags, description } : undefined,
+        metadata: tags.length > 0 ? { tags } : undefined,
       });
       
       res.status(201).json(mediaFile);
@@ -596,7 +596,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         mediaFiles = await storage.listMediaFiles(limit, offset);
       }
       
-      res.json(mediaFiles);
+      // Добавляем виртуальное поле name для совместимости с клиентским кодом
+      const mediaFilesWithName = mediaFiles.map(file => ({
+        ...file,
+        name: file.originalFilename // Добавляем виртуальное поле name
+      }));
+      
+      res.json(mediaFilesWithName);
     } catch (error) {
       console.error("Error fetching media:", error);
       res.status(500).json({ message: "Failed to fetch media files" });
