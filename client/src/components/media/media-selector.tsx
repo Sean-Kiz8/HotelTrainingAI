@@ -3,7 +3,12 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { MediaGallery } from "./media-gallery";
 import { useAuth } from "@/context/auth-context";
-import { MediaFile } from "@shared/schema";
+import { MediaFile as DBMediaFile } from "@shared/schema";
+
+// Пользовательский тип для работы с медиа-файлами
+interface MediaFile extends DBMediaFile {
+  name: string; // Алиас для originalFilename
+}
 
 interface MediaSelectorProps {
   isOpen: boolean;

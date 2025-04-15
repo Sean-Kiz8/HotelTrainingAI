@@ -6,9 +6,14 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { insertCourseSchema, MediaFile } from "@shared/schema";
-
+import { insertCourseSchema, MediaFile as DBMediaFile } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+
+// Пользовательский тип для работы с медиа-файлами
+interface MediaFile extends DBMediaFile {
+  name: string; // Алиас для originalFilename
+}
+
 import {
   Form,
   FormControl,
