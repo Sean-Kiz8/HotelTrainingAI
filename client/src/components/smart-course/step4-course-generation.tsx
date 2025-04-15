@@ -92,7 +92,7 @@ export function Step4CourseGeneration({ generatedCourse }: Step4CourseGeneration
   
   // Переход к странице курса
   const goToCourse = () => {
-    setLocation(`/courses/${generatedCourse.id}`);
+    setLocation(`/course-details/${generatedCourse.id}`);
   };
   
   // Создание нового курса (перезапуск процесса)
