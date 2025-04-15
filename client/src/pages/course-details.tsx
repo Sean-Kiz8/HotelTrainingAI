@@ -89,34 +89,34 @@ export default function CourseDetailsPage() {
   const [showAddParticipantDialog, setShowAddParticipantDialog] = useState(false);
   const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const [activeModuleId, setActiveModuleId] = useState<number | null>(null);
-  
+
   // Fetch course by ID
   const { data: course, isLoading: isLoadingCourse, error } = useQuery<Course>({
     queryKey: [`/api/courses/${courseId}`],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!courseId
   });
-  
+
   // Fetch modules for this course
   const { data: modules = [], isLoading: isLoadingModules } = useQuery<IModule[]>({
     queryKey: [`/api/modules?courseId=${courseId}`],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!courseId
   });
-  
+
   // Fetch users for enrollment
   const { data: users = [], isLoading: isLoadingUsers } = useQuery<any[]>({
     queryKey: ['/api/users'],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
-  
+
   // Fetch enrollments for this course
   const { data: enrollments = [], isLoading: isLoadingEnrollments } = useQuery<any[]>({
     queryKey: [`/api/enrollments?courseId=${courseId}`],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!courseId
   });
-  
+
   // Create module mutation
   const createModuleMutation = useMutation({
     mutationFn: async (data: z.infer<typeof createModuleSchema>) => {
@@ -146,7 +146,7 @@ export default function CourseDetailsPage() {
       });
     }
   });
-  
+
   // Create lesson mutation
   const createLessonMutation = useMutation({
     mutationFn: async (data: z.infer<typeof createLessonSchema>) => {
@@ -155,10 +155,10 @@ export default function CourseDetailsPage() {
     },
     onSuccess: (createdLesson) => {
       queryClient.invalidateQueries({ queryKey: [`/api/modules?courseId=${courseId}`] });
-      
+
       // Найдем модуль, к которому относится урок
       const module = modules.find(mod => mod.id === createdLesson.moduleId);
-      
+
       toast({
         description: (
           <LessonToast 
@@ -170,7 +170,7 @@ export default function CourseDetailsPage() {
         duration: 5000,
         className: "group p-4"
       });
-      
+
       setShowAddLessonDialog(false);
       setActiveModuleId(null);
     },
@@ -182,7 +182,7 @@ export default function CourseDetailsPage() {
       });
     }
   });
-  
+
   // Создание записи на курс (enrollment)
   const enrollUserMutation = useMutation({
     mutationFn: async (userId: number) => {
@@ -212,13 +212,13 @@ export default function CourseDetailsPage() {
       });
     }
   });
-  
+
   // Добавить урок в модуль
   const handleAddLesson = (moduleId: number) => {
     setActiveModuleId(moduleId);
     setShowAddLessonDialog(true);
   };
-  
+
   // Мутация для удаления курса
   const deleteCourseMutation = useMutation({
     mutationFn: async () => {
@@ -244,22 +244,22 @@ export default function CourseDetailsPage() {
       });
     }
   });
-  
+
   // Обработчик удаления курса
   const handleDeleteCourse = () => {
     setShowDeleteConfirmDialog(true);
   };
-  
+
   // Подтверждение удаления курса
   const confirmDeleteCourse = () => {
     deleteCourseMutation.mutate();
   };
-  
+
   // Записать пользователя на курс
   const handleEnrollUser = (userId: number) => {
     enrollUserMutation.mutate(userId);
   };
-  
+
   // Handle loading state
   if (isLoadingCourse || isLoadingModules) {
     return (
@@ -278,7 +278,7 @@ export default function CourseDetailsPage() {
       </div>
     );
   }
-  
+
   // Handle error
   if (error || !course) {
     return (
@@ -292,7 +292,7 @@ export default function CourseDetailsPage() {
           <ChevronLeft className="mr-2 h-4 w-4" />
           Назад к курсам
         </Button>
-        
+
         <Card className="text-center p-8">
           <CardContent>
             <h2 className="text-xl font-semibold mb-2">Курс не найден</h2>
@@ -307,7 +307,7 @@ export default function CourseDetailsPage() {
       </div>
     );
   }
-  
+
   // Определение цветов для департамента
   const getDepartmentStyles = (department: string): { bg: string, text: string } => {
     switch (department) {
@@ -321,9 +321,9 @@ export default function CourseDetailsPage() {
         return { bg: "bg-neutral-200", text: "text-neutral-700" };
     }
   };
-  
+
   const { bg, text } = getDepartmentStyles(course.department);
-  
+
   return (
     <div className="p-4 md:p-6">
       <div className="flex justify-between items-center mb-4">
@@ -336,7 +336,7 @@ export default function CourseDetailsPage() {
             <ChevronLeft className="mr-2 h-4 w-4" />
             Назад к курсам
           </Button>
-          
+
           <Button 
             variant="destructive"
             size="sm"
@@ -346,13 +346,13 @@ export default function CourseDetailsPage() {
             Удалить курс
           </Button>
         </div>
-        
+
         <ShareWidget 
           courseId={course.id} 
           courseTitle={course.title} 
         />
       </div>
-      
+
       <PageHeader className="mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Badge variant="outline" className={`${bg} ${text} border-0 px-2 py-1 rounded-full`}>
@@ -362,7 +362,7 @@ export default function CourseDetailsPage() {
         <PageHeaderHeading>{course.title}</PageHeaderHeading>
         <PageHeaderDescription>{course.description}</PageHeaderDescription>
       </PageHeader>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>
           <CardContent className="p-6 flex items-center gap-3">
@@ -392,7 +392,7 @@ export default function CourseDetailsPage() {
           </CardContent>
         </Card>
       </div>
-      
+
       <Tabs defaultValue="content" className="mb-6">
         <TabsList>
           <TabsTrigger value="content">Содержание</TabsTrigger>
@@ -400,11 +400,11 @@ export default function CourseDetailsPage() {
           <TabsTrigger value="analytics">Аналитика</TabsTrigger>
           <TabsTrigger value="share">Поделиться</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="content" className="mt-4">
           <div className="bg-white p-6 rounded-lg shadow-sm mb-4">
             <h3 className="text-lg font-medium mb-4">Модули и уроки</h3>
-            
+
             {isLoadingModules ? (
               <div className="space-y-3">
                 <Skeleton className="h-12 w-full" />
@@ -512,7 +512,7 @@ export default function CourseDetailsPage() {
                     </AccordionItem>
                   ))}
                 </Accordion>
-                
+
                 <Button 
                   variant="outline" 
                   className="w-full"
@@ -536,7 +536,7 @@ export default function CourseDetailsPage() {
             )}
           </div>
         </TabsContent>
-        
+
         <TabsContent value="students" className="mt-4">
           <Card>
             <CardContent className="p-6">
@@ -551,7 +551,7 @@ export default function CourseDetailsPage() {
                   Добавить участников
                 </Button>
               </div>
-              
+
               {isLoadingEnrollments ? (
                 <div className="space-y-2">
                   <Skeleton className="h-12 w-full" />
@@ -594,30 +594,30 @@ export default function CourseDetailsPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="analytics" className="mt-4">
           <Card>
             <CardContent className="p-6">
               <h3 className="text-lg font-medium mb-4">Аналитика по курсу</h3>
-              
+
               <div className="text-center py-12 text-muted-foreground">
                 <p>Для просмотра аналитики нужно добавить участников в курс</p>
               </div>
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="share" className="mt-4">
           <Card>
             <CardContent className="p-6">
               <h3 className="text-lg font-medium mb-4">Поделиться курсом</h3>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <p className="text-sm text-muted-foreground mb-4">
                     Создайте ссылку для доступа к курсу. Вы можете поделиться ею со своей командой или отправить по электронной почте.
                   </p>
-                  
+
                   <div className="flex flex-col gap-4">
                     <div className="flex items-center gap-2">
                       <Input 
@@ -639,7 +639,7 @@ export default function CourseDetailsPage() {
                         <Copy className="h-4 w-4" />
                       </Button>
                     </div>
-                    
+
                     <Button 
                       variant="outline" 
                       className="w-full sm:w-auto"
@@ -655,7 +655,7 @@ export default function CourseDetailsPage() {
                     </Button>
                   </div>
                 </div>
-                
+
                 <SharePreviewCard 
                   id={course.id}
                   title={course.title} 
@@ -670,7 +670,7 @@ export default function CourseDetailsPage() {
           </Card>
         </TabsContent>
       </Tabs>
-      
+
       {/* Диалог для добавления нового модуля */}
       <Dialog open={showAddModuleDialog} onOpenChange={setShowAddModuleDialog}>
         <DialogContent>
@@ -680,7 +680,7 @@ export default function CourseDetailsPage() {
               Модуль - это раздел курса, который объединяет связанные уроки.
             </DialogDescription>
           </DialogHeader>
-          
+
           <AddModuleForm
             courseId={courseId!}
             onSubmit={(data) => {
@@ -690,7 +690,7 @@ export default function CourseDetailsPage() {
           />
         </DialogContent>
       </Dialog>
-      
+
       {/* Диалог для добавления нового урока */}
       <Dialog open={showAddLessonDialog} onOpenChange={setShowAddLessonDialog}>
         <DialogContent>
@@ -700,7 +700,7 @@ export default function CourseDetailsPage() {
               Добавьте урок в выбранный модуль. Уроки - это единицы обучения, которые содержат обучающий контент.
             </DialogDescription>
           </DialogHeader>
-          
+
           <AddLessonForm
             moduleId={activeModuleId!}
             onSubmit={(data) => {
@@ -720,7 +720,7 @@ export default function CourseDetailsPage() {
               Выберите пользователей, которых вы хотите добавить на курс.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="py-4">
             <h4 className="text-sm font-medium mb-2">Доступные пользователи:</h4>
             {isLoadingUsers ? (
@@ -756,7 +756,7 @@ export default function CourseDetailsPage() {
               </div>
             )}
           </div>
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddParticipantDialog(false)}>
               Закрыть
@@ -764,7 +764,7 @@ export default function CourseDetailsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
+
       {/* Диалог подтверждения удаления курса */}
       <AlertDialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
         <AlertDialogContent>
@@ -777,11 +777,11 @@ export default function CourseDetailsPage() {
           <AlertDialogFooter>
             <AlertDialogCancel>Отмена</AlertDialogCancel>
             <AlertDialogAction 
-              onClick={confirmDeleteCourse}
-              disabled={deleteCourseМutation.isPending}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {deleteCourseМutation.isPending ? "Удаление..." : "Удалить"}
+                onClick={confirmDeleteCourse}
+                disabled={deleteCourseMutation.isPending}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                {deleteCourseMutation.isPending ? "Удаление..." : "Удалить"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
