@@ -457,6 +457,221 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Здесь были обработчики медиа-маршрутов, теперь они перемещены далее в файл
   
+  // ====================================================================
+  // API для модулей и уроков
+  // ====================================================================
+  
+  // Получить все модули для курса
+  app.get("/api/modules", async (req, res) => {
+    try {
+      const courseId = req.query.courseId ? parseInt(req.query.courseId as string) : undefined;
+      
+      if (!courseId) {
+        return res.status(400).json({ error: "Требуется ID курса" });
+      }
+      
+      // Получаем модули
+      const modules = await storage.listModulesByCourse(courseId);
+      
+      // Для каждого модуля получаем уроки
+      const modulesWithLessons = await Promise.all(modules.map(async (module) => {
+        const lessons = await storage.listLessonsByModule(module.id);
+        return { ...module, lessons };
+      }));
+      
+      res.json(modulesWithLessons);
+    } catch (error) {
+      console.error("Ошибка при получении модулей:", error);
+      res.status(500).json({ error: "Не удалось получить модули курса" });
+    }
+  });
+  
+  // Создать новый модуль
+  app.post("/api/modules", async (req, res) => {
+    try {
+      const parsedData = insertModuleSchema.parse(req.body);
+      
+      // Создаем модуль в базе данных
+      const module = await storage.createModule(parsedData);
+      
+      res.status(201).json(module);
+    } catch (error) {
+      console.error("Ошибка при создании модуля:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      res.status(500).json({ error: "Не удалось создать модуль" });
+    }
+  });
+  
+  // Получить модуль по ID
+  app.get("/api/modules/:id", async (req, res) => {
+    try {
+      const moduleId = parseInt(req.params.id);
+      
+      // Получаем модуль из базы данных
+      const module = await storage.getModule(moduleId);
+      
+      if (!module) {
+        return res.status(404).json({ error: "Модуль не найден" });
+      }
+      
+      // Получаем уроки для модуля
+      const lessons = await storage.listLessonsByModule(moduleId);
+      
+      res.json({ ...module, lessons });
+    } catch (error) {
+      console.error("Ошибка при получении модуля:", error);
+      res.status(500).json({ error: "Не удалось получить модуль" });
+    }
+  });
+  
+  // Обновить модуль
+  app.patch("/api/modules/:id", async (req, res) => {
+    try {
+      const moduleId = parseInt(req.params.id);
+      
+      // Проверяем существование модуля
+      const existingModule = await storage.getModule(moduleId);
+      if (!existingModule) {
+        return res.status(404).json({ error: "Модуль не найден" });
+      }
+      
+      // Обновляем модуль
+      const updatedModule = await storage.updateModule(moduleId, req.body);
+      
+      res.json(updatedModule);
+    } catch (error) {
+      console.error("Ошибка при обновлении модуля:", error);
+      res.status(500).json({ error: "Не удалось обновить модуль" });
+    }
+  });
+  
+  // Удалить модуль
+  app.delete("/api/modules/:id", async (req, res) => {
+    try {
+      const moduleId = parseInt(req.params.id);
+      
+      // Проверяем существование модуля
+      const existingModule = await storage.getModule(moduleId);
+      if (!existingModule) {
+        return res.status(404).json({ error: "Модуль не найден" });
+      }
+      
+      // Удаляем модуль
+      const success = await storage.deleteModule(moduleId);
+      
+      if (success) {
+        res.status(204).end();
+      } else {
+        res.status(500).json({ error: "Не удалось удалить модуль" });
+      }
+    } catch (error) {
+      console.error("Ошибка при удалении модуля:", error);
+      res.status(500).json({ error: "Не удалось удалить модуль" });
+    }
+  });
+  
+  // API для уроков
+  
+  // Создать новый урок
+  app.post("/api/lessons", async (req, res) => {
+    try {
+      const parsedData = insertLessonSchema.parse(req.body);
+      
+      // Проверяем существование модуля
+      const module = await storage.getModule(parsedData.moduleId);
+      if (!module) {
+        return res.status(404).json({ error: "Модуль не найден" });
+      }
+      
+      // Получаем существующие уроки для определения порядка
+      const existingLessons = await storage.listLessonsByModule(parsedData.moduleId);
+      if (!parsedData.orderIndex) {
+        parsedData.orderIndex = existingLessons.length + 1;
+      }
+      
+      // Создаем урок
+      const lesson = await storage.createLesson(parsedData);
+      
+      res.status(201).json(lesson);
+    } catch (error) {
+      console.error("Ошибка при создании урока:", error);
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ errors: error.errors });
+      }
+      res.status(500).json({ error: "Не удалось создать урок" });
+    }
+  });
+  
+  // Получить урок по ID
+  app.get("/api/lessons/:id", async (req, res) => {
+    try {
+      const lessonId = parseInt(req.params.id);
+      
+      // Получаем урок из базы данных
+      const lesson = await storage.getLesson(lessonId);
+      
+      if (!lesson) {
+        return res.status(404).json({ error: "Урок не найден" });
+      }
+      
+      // Получаем медиа для урока
+      const media = await storage.listMediaByLesson(lessonId);
+      
+      res.json({ ...lesson, media });
+    } catch (error) {
+      console.error("Ошибка при получении урока:", error);
+      res.status(500).json({ error: "Не удалось получить урок" });
+    }
+  });
+  
+  // Обновить урок
+  app.patch("/api/lessons/:id", async (req, res) => {
+    try {
+      const lessonId = parseInt(req.params.id);
+      
+      // Проверяем существование урока
+      const existingLesson = await storage.getLesson(lessonId);
+      if (!existingLesson) {
+        return res.status(404).json({ error: "Урок не найден" });
+      }
+      
+      // Обновляем урок
+      const updatedLesson = await storage.updateLesson(lessonId, req.body);
+      
+      res.json(updatedLesson);
+    } catch (error) {
+      console.error("Ошибка при обновлении урока:", error);
+      res.status(500).json({ error: "Не удалось обновить урок" });
+    }
+  });
+  
+  // Удалить урок
+  app.delete("/api/lessons/:id", async (req, res) => {
+    try {
+      const lessonId = parseInt(req.params.id);
+      
+      // Проверяем существование урока
+      const existingLesson = await storage.getLesson(lessonId);
+      if (!existingLesson) {
+        return res.status(404).json({ error: "Урок не найден" });
+      }
+      
+      // Удаляем урок
+      const success = await storage.deleteLesson(lessonId);
+      
+      if (success) {
+        res.status(204).end();
+      } else {
+        res.status(500).json({ error: "Не удалось удалить урок" });
+      }
+    } catch (error) {
+      console.error("Ошибка при удалении урока:", error);
+      res.status(500).json({ error: "Не удалось удалить урок" });
+    }
+  });
+  
   // Onboarding progress for dashboard
   app.get("/api/onboarding", async (req, res) => {
     try {

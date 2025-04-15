@@ -41,35 +41,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
-import * as z from "zod";
 
-// Схема для создания нового модуля
-const createModuleSchema = z.object({
-  title: z.string().min(3, "Название должно содержать минимум 3 символа"),
-  description: z.string().min(10, "Описание должно содержать минимум 10 символов"),
-  orderIndex: z.number().optional(),
-});
-
-// Схема для создания нового урока
-const createLessonSchema = z.object({
-  title: z.string().min(3, "Название должно содержать минимум 3 символа"),
-  description: z.string().min(10, "Описание должно содержать минимум 10 символов"),
-  content: z.string().min(20, "Содержимое урока должно содержать минимум 20 символов"),
-  durationMinutes: z.number().min(1, "Длительность урока должна быть не менее 1 минуты"),
-  moduleId: z.number(),
-  orderIndex: z.number().optional(),
-});
+// Импортируем формы для модулей и уроков
+import { AddModuleForm, createModuleSchema } from "@/components/course/module-form";
+import { AddLessonForm, createLessonSchema } from "@/components/course/lesson-form";
+import { z } from "zod";
 
 // Интерфейсы для модулей и уроков
 interface IModule {
@@ -433,10 +409,10 @@ export default function CourseDetailsPage() {
         <TabsContent value="analytics" className="mt-4">
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-medium mb-4">Аналитика курса</h3>
+              <h3 className="text-lg font-medium mb-4">Аналитика по курсу</h3>
               
               <div className="text-center py-12 text-muted-foreground">
-                <p>Аналитика будет доступна, когда курс начнут проходить участники</p>
+                <p>Для просмотра аналитики нужно добавить участников в курс</p>
               </div>
             </CardContent>
           </Card>
@@ -448,136 +424,36 @@ export default function CourseDetailsPage() {
               <h3 className="text-lg font-medium mb-4">Поделиться курсом</h3>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="space-y-6">
-                  <div>
-                    <h4 className="text-sm font-medium mb-2">Предпросмотр курса</h4>
-                    <SharePreviewCard 
-                      id={course.id}
-                      title={course.title}
-                      description={course.description}
-                      department={course.department}
-                      image={course.image}
-                      instructor={{
-                        name: "Иван Петров",
-                      }}
-                    />
-                  </div>
+                <div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Создайте ссылку для доступа к курсу. Вы можете поделиться ею со своей командой или отправить по электронной почте.
+                  </p>
                   
-                  <div className="space-y-2">
-                    <h4 className="text-sm font-medium">QR-код для быстрого доступа</h4>
-                    <div className="w-40 h-40 bg-neutral-100 flex items-center justify-center">
-                      <span className="text-neutral-500 text-sm">QR код</span>
-                    </div>
-                    <p className="text-xs text-muted-foreground">
-                      Отсканируйте этот QR-код, чтобы получить доступ к курсу на мобильном устройстве
-                    </p>
-                  </div>
-                </div>
-                
-                <div className="space-y-6">
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium">Пригласить участников по email</h4>
-                    <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-4">
+                    <div className="flex items-center gap-2">
                       <Input 
-                        placeholder="Введите email адрес" 
-                        type="email" 
-                        id="email-1"
+                        readOnly 
+                        value={`https://lms.hotel-training.com/course/${course.id}`} 
+                        className="flex-1" 
                       />
-                      <Input 
-                        placeholder="Добавить еще email адрес" 
-                        type="email"
-                        id="email-2" 
-                      />
-                      <Button 
-                        className="w-full md:w-fit"
-                        onClick={() => {
-                          const email1 = (document.getElementById('email-1') as HTMLInputElement)?.value;
-                          const email2 = (document.getElementById('email-2') as HTMLInputElement)?.value;
-                          
-                          const emails = [email1, email2].filter(email => 
-                            email && email.includes('@') && email.includes('.')
-                          );
-                          
-                          if (emails.length === 0) {
-                            toast({
-                              title: "Ошибка отправки",
-                              description: "Пожалуйста, введите хотя бы один корректный email",
-                              variant: "destructive",
-                            });
-                            return;
-                          }
-                          
-                          // В реальном приложении здесь был бы API запрос
-                          toast({
-                            title: "Приглашения отправлены",
-                            description: `Приглашения на курс "${course.title}" отправлены на ${emails.join(', ')}`,
-                          });
-                          
-                          // Очищаем поля
-                          if (document.getElementById('email-1')) {
-                            (document.getElementById('email-1') as HTMLInputElement).value = '';
-                          }
-                          if (document.getElementById('email-2')) {
-                            (document.getElementById('email-2') as HTMLInputElement).value = '';
-                          }
-                        }}
-                      >
-                        <Mail className="h-4 w-4 mr-2" /> Отправить приглашения
-                      </Button>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium">Ссылка на курс</h4>
-                    <div className="flex">
-                      <Input 
-                        value={`${window.location.origin}/course-details/${course.id}`}
-                        readOnly
-                        className="rounded-r-none"
-                      />
-                      <Button
-                        className="rounded-l-none"
-                        variant="secondary"
-                        onClick={() => {
-                          navigator.clipboard.writeText(`${window.location.origin}/course-details/${course.id}`);
-                          toast({
-                            title: "Ссылка скопирована",
-                            description: "Ссылка на курс скопирована в буфер обмена",
-                          });
-                        }}
-                      >
+                      <Button variant="outline" size="icon">
                         <Copy className="h-4 w-4" />
                       </Button>
                     </div>
-                  </div>
-                  
-                  <div className="space-y-3">
-                    <h4 className="text-sm font-medium">Поделиться в социальных сетях</h4>
-                    <div className="flex gap-2">
-                      <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={() => {
-                          const text = encodeURIComponent(`Приглашаю на курс: ${course.title}`);
-                          const url = encodeURIComponent(`${window.location.origin}/course-details/${course.id}`);
-                          window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
-                        }}
-                      >
-                        Telegram
-                      </Button>
-                      <Button 
-                        variant="outline" 
-                        className="w-full"
-                        onClick={() => {
-                          const text = encodeURIComponent(`Приглашаю на курс: ${course.title} ${window.location.origin}/course-details/${course.id}`);
-                          window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
-                        }}
-                      >
-                        WhatsApp
-                      </Button>
-                    </div>
+                    
+                    <Button variant="outline" className="w-full sm:w-auto">
+                      <Mail className="mr-2 h-4 w-4" />
+                      Отправить по email
+                    </Button>
                   </div>
                 </div>
+                
+                <SharePreviewCard 
+                  title={course.title} 
+                  description={course.description}
+                  author="Ваше Имя"
+                  department={course.department}
+                />
               </div>
             </CardContent>
           </Card>
@@ -624,176 +500,5 @@ export default function CourseDetailsPage() {
         </DialogContent>
       </Dialog>
     </div>
-  );
-}
-
-// Форма для добавления модуля
-function AddModuleForm({ 
-  courseId, 
-  onSubmit, 
-  isPending = false 
-}: { 
-  courseId: number; 
-  onSubmit: (data: z.infer<typeof createModuleSchema>) => void;
-  isPending?: boolean;
-}) {
-  const form = useForm<z.infer<typeof createModuleSchema>>({
-    resolver: zodResolver(createModuleSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-    },
-  });
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Название модуля</FormLabel>
-              <FormControl>
-                <Input placeholder="Введите название модуля" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Описание модуля</FormLabel>
-              <FormControl>
-                <Input placeholder="Введите описание модуля" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <DialogFooter>
-          <Button type="submit" disabled={isPending}>
-            {isPending && <span className="mr-2">
-              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </span>}
-            Добавить модуль
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
-  );
-}
-
-// Форма для добавления урока
-function AddLessonForm({ 
-  moduleId, 
-  onSubmit, 
-  isPending = false 
-}: { 
-  moduleId: number; 
-  onSubmit: (data: z.infer<typeof createLessonSchema>) => void;
-  isPending?: boolean;
-}) {
-  const form = useForm<z.infer<typeof createLessonSchema>>({
-    resolver: zodResolver(createLessonSchema),
-    defaultValues: {
-      title: "",
-      description: "",
-      content: "",
-      durationMinutes: 30,
-      moduleId: moduleId,
-    },
-  });
-
-  return (
-    <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-        <FormField
-          control={form.control}
-          name="title"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Название урока</FormLabel>
-              <FormControl>
-                <Input placeholder="Введите название урока" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="description"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Краткое описание</FormLabel>
-              <FormControl>
-                <Input placeholder="Введите краткое описание урока" {...field} />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="content"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Содержимое урока</FormLabel>
-              <FormControl>
-                <textarea 
-                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  placeholder="Введите содержимое урока" 
-                  {...field} 
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <FormField
-          control={form.control}
-          name="durationMinutes"
-          render={({ field }) => (
-            <FormItem>
-              <FormLabel>Длительность (в минутах)</FormLabel>
-              <FormControl>
-                <Input 
-                  type="number" 
-                  min="1" 
-                  placeholder="Длительность в минутах" 
-                  {...field}
-                  onChange={(e) => field.onChange(parseInt(e.target.value))}
-                />
-              </FormControl>
-              <FormMessage />
-            </FormItem>
-          )}
-        />
-        
-        <DialogFooter>
-          <Button type="submit" disabled={isPending}>
-            {isPending && <span className="mr-2">
-              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            </span>}
-            Добавить урок
-          </Button>
-        </DialogFooter>
-      </form>
-    </Form>
   );
 }
