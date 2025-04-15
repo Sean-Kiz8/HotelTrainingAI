@@ -39,7 +39,7 @@ export default function LearningPathGenerator() {
   // Получаем список пользователей (сотрудников)
   const { data: users, isLoading: usersLoading } = useQuery({
     queryKey: ["/api/users"],
-    enabled: !!user?.id, // Запрос будет выполнен только если пользователь авторизован
+    enabled: true, // В режиме разработки всегда разрешаем запрос пользователей
   });
 
   // Настраиваем форму
