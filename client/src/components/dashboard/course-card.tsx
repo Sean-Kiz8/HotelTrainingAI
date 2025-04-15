@@ -1,8 +1,10 @@
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useLocation } from "wouter";
 
 interface CourseCardProps {
+  id: number;
   title: string;
   description: string;
   department: string;
@@ -44,6 +46,7 @@ function getDepartmentStyles(department: string): { bg: string, text: string } {
 }
 
 export function CourseCard({ 
+  id,
   title, 
   description, 
   department, 
@@ -54,6 +57,21 @@ export function CourseCard({
   onClick 
 }: CourseCardProps) {
   const { bg, text } = getDepartmentStyles(department);
+  const [, setLocation] = useLocation();
+  
+  const handleClick = () => {
+    if (onClick) {
+      onClick();
+    } else {
+      // Переход на страницу деталей курса
+      setLocation(`/course-details/${id}`);
+    }
+  };
+  
+  const handleTitleClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setLocation(`/course-details/${id}`);
+  };
   
   return (
     <Card className="overflow-hidden">
@@ -75,11 +93,16 @@ export function CourseCard({
           </Badge>
           <span className="text-neutral-500 text-xs">{participantCount} участников</span>
         </div>
-        <h4 className="font-sans font-medium text-lg mt-2">{title}</h4>
+        <h4 
+          className="font-sans font-medium text-lg mt-2 hover:text-primary cursor-pointer" 
+          onClick={handleTitleClick}
+        >
+          {title}
+        </h4>
         <p className="text-neutral-600 text-sm mt-1">{description}</p>
         <div className="mt-3 flex justify-between items-center">
           <Stars rating={rating} count={ratingCount} />
-          <Button variant="link" className="text-primary text-sm hover:text-primary-dark" onClick={onClick}>
+          <Button variant="link" className="text-primary text-sm hover:text-primary-dark" onClick={handleClick}>
             Подробнее
           </Button>
         </div>

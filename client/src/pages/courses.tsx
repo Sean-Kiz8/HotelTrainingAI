@@ -80,6 +80,7 @@ export default function Courses() {
                       {departmentCourses.map((course: Course) => (
                         <CourseCard
                           key={course.id}
+                          id={course.id}
                           title={course.title}
                           description={course.description}
                           department={course.department}
@@ -87,10 +88,12 @@ export default function Courses() {
                           image={course.image}
                           rating={4}
                           ratingCount={16}
-                          onClick={() => toast({
-                            title: "Просмотр курса",
-                            description: `Выбран курс: ${course.title}`,
-                          })}
+                          onClick={() => {
+                            toast({
+                              title: "Просмотр курса",
+                              description: `Выбран курс: ${course.title}`,
+                            });
+                          }}
                         />
                       ))}
                     </div>

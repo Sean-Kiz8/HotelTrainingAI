@@ -100,6 +100,7 @@ export default function Dashboard() {
             courses?.slice(0, 3).map((course: any) => (
               <CourseCard
                 key={course.id}
+                id={course.id}
                 title={course.title}
                 description={course.description}
                 department={course.department}
