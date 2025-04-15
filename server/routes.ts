@@ -511,7 +511,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const file = req.file;
-      const mediaType = getMediaTypeFromMimeType(file.mimetype);
+      const mediaType: "image" | "video" | "audio" | "document" | "presentation" = getMediaTypeFromMimeType(file.mimetype);
       const fileName = req.body.name || file.originalname;
       const description = req.body.description || "";
       const tags = req.body.tags ? req.body.tags.split(",").map((tag: string) => tag.trim()) : [];
@@ -530,15 +530,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       const mediaFile = await storage.createMediaFile({
-        name: fileName,
-        description,
+        filename: file.filename,
+        originalFilename: fileName,
         mediaType,
         url: `/uploads/media/${file.filename}`,
         thumbnail: thumbnailUrl,
-        size: file.size,
+        fileSize: file.size,
         mimeType: file.mimetype,
+        path: file.path,
         uploadedById: parseInt(req.body.userId) || 1,
-        tags,
+        metadata: tags.length > 0 || description ? { tags, description } : undefined,
       });
       
       res.status(201).json(mediaFile);
