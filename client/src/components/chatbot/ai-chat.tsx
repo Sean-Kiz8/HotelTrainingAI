@@ -13,7 +13,8 @@ export function AIChat() {
     toggleChatbot, 
     messages, 
     sendMessage,
-    isLoading
+    isLoading,
+    addMessage
   } = useChatbot();
   const { user } = useAuth();
   const [inputValue, setInputValue] = useState("");
@@ -115,8 +116,15 @@ export function AIChat() {
               <FileUploadButton 
                 userId={user?.id || 1} 
                 onUploadComplete={(chatMessage) => {
-                  // Добавляем полученное сообщение в чат
-                  setMessages(prev => [...prev, chatMessage]);
+                  // Используем контекст чатбота для добавления сообщения
+                  const userId = user?.id || 1;
+                  const fileMessage = { 
+                    ...chatMessage,
+                    userId 
+                  };
+                  
+                  // Добавляем сообщение через контекст чат-бота
+                  addMessage(fileMessage);
                 }}
                 disabled={isLoading}
               />
