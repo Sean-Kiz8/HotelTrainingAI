@@ -58,22 +58,24 @@ export function Sidebar() {
           </p>
           <nav className="flex-1 px-2 space-y-1">
             {adminNavItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a className={cn(
-                  "flex items-center px-2 py-2 rounded-md group transition-colors",
-                  location === item.href 
-                    ? "bg-primary text-white" 
-                    : "text-neutral-700 hover:bg-neutral-100"
-                )}>
-                  <span className={cn(
-                    "material-icons mr-3 text-lg",
-                    location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
+              <div key={item.href}>
+                <Link href={item.href}>
+                  <div className={cn(
+                    "flex items-center px-2 py-2 rounded-md group transition-colors cursor-pointer",
+                    location === item.href 
+                      ? "bg-primary text-white" 
+                      : "text-neutral-700 hover:bg-neutral-100"
                   )}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </a>
-              </Link>
+                    <span className={cn(
+                      "material-icons mr-3 text-lg",
+                      location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
+                    )}>
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </div>
+                </Link>
+              </div>
             ))}
           </nav>
           
@@ -82,22 +84,24 @@ export function Sidebar() {
           </p>
           <nav className="flex-1 px-2 space-y-1">
             {staffNavItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a className={cn(
-                  "flex items-center px-2 py-2 rounded-md group transition-colors",
-                  location === item.href 
-                    ? "bg-primary text-white" 
-                    : "text-neutral-700 hover:bg-neutral-100"
-                )}>
-                  <span className={cn(
-                    "material-icons mr-3 text-lg",
-                    location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
+              <div key={item.href}>
+                <Link href={item.href}>
+                  <div className={cn(
+                    "flex items-center px-2 py-2 rounded-md group transition-colors cursor-pointer",
+                    location === item.href 
+                      ? "bg-primary text-white" 
+                      : "text-neutral-700 hover:bg-neutral-100"
                   )}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </a>
-              </Link>
+                    <span className={cn(
+                      "material-icons mr-3 text-lg",
+                      location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
+                    )}>
+                      {item.icon}
+                    </span>
+                    {item.label}
+                  </div>
+                </Link>
+              </div>
             ))}
           </nav>
         </div>
