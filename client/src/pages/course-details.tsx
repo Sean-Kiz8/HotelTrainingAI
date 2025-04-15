@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
-import { useQuery } from "@tanstack/react-query";
-import { getQueryFn } from "@/lib/queryClient";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { Course } from "@shared/schema";
 import { PageHeader, PageHeaderHeading, PageHeaderDescription } from "@/components/page-header";
 import { Separator } from "@/components/ui/separator";
@@ -11,10 +11,48 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, Users, Clock, Award, BookOpen, Copy, Mail } from "lucide-react";
+import { 
+  ChevronLeft, Users, Clock, Award, BookOpen, Copy, Mail, 
+  Plus, Edit, Eye, Trash2, MoreHorizontal 
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ShareWidget } from "@/components/course/share-widget";
 import { SharePreviewCard } from "@/components/course/share-preview-card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useForm } from "react-hook-form";
+import * as z from "zod";
 
 export default function CourseDetailsPage() {
   const params = useParams();
@@ -163,12 +201,113 @@ export default function CourseDetailsPage() {
           <div className="bg-white p-6 rounded-lg shadow-sm mb-4">
             <h3 className="text-lg font-medium mb-4">Модули и уроки</h3>
             
-            <div className="text-center py-12 text-muted-foreground">
-              <p>У этого курса пока нет модулей</p>
-              <Button className="mt-3" variant="outline">
-                Добавить модуль
-              </Button>
-            </div>
+            {isLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-12 w-full" />
+                <Skeleton className="h-12 w-full" />
+              </div>
+            ) : modules && modules.length > 0 ? (
+              <div className="space-y-4">
+                <Accordion type="single" collapsible className="w-full">
+                  {modules.map((module) => (
+                    <AccordionItem key={module.id} value={`module-${module.id}`}>
+                      <AccordionTrigger className="hover:bg-muted/50 px-4 py-2 rounded-md">
+                        <div className="flex items-center justify-between w-full pr-4">
+                          <div className="flex items-center">
+                            <span className="material-icons mr-2 text-primary text-lg">folder</span>
+                            <span>{module.title}</span>
+                          </div>
+                          <Badge variant="outline" className="ml-2">
+                            {module.lessons?.length || 0} уроков
+                          </Badge>
+                        </div>
+                      </AccordionTrigger>
+                      <AccordionContent className="pl-8 pr-2 pb-1">
+                        {module.lessons && module.lessons.length > 0 ? (
+                          <div className="space-y-2">
+                            {module.lessons.map((lesson) => (
+                              <div 
+                                key={lesson.id} 
+                                className="flex items-center justify-between border rounded-md p-3 hover:bg-muted/50"
+                              >
+                                <div className="flex items-center">
+                                  <span className="material-icons mr-2 text-muted-foreground">description</span>
+                                  <span>{lesson.title}</span>
+                                </div>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button variant="ghost" size="sm">
+                                      <MoreHorizontal className="h-4 w-4" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end">
+                                    <DropdownMenuItem>
+                                      <Edit className="h-4 w-4 mr-2" />
+                                      <span>Редактировать</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem>
+                                      <Eye className="h-4 w-4 mr-2" />
+                                      <span>Предпросмотр</span>
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem className="text-destructive">
+                                      <Trash2 className="h-4 w-4 mr-2" />
+                                      <span>Удалить</span>
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+                            ))}
+                            <Button 
+                              variant="ghost" 
+                              size="sm" 
+                              className="w-full justify-start mt-2"
+                              onClick={() => handleAddLesson(module.id)}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Добавить урок
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="text-center py-4 text-muted-foreground">
+                            <p className="text-sm">В этом модуле пока нет уроков</p>
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              className="mt-2"
+                              onClick={() => handleAddLesson(module.id)}
+                            >
+                              <Plus className="h-4 w-4 mr-2" />
+                              Добавить урок
+                            </Button>
+                          </div>
+                        )}
+                      </AccordionContent>
+                    </AccordionItem>
+                  ))}
+                </Accordion>
+                
+                <Button 
+                  variant="outline" 
+                  className="w-full"
+                  onClick={() => setShowAddModuleDialog(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Добавить модуль
+                </Button>
+              </div>
+            ) : (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>У этого курса пока нет модулей</p>
+                <Button 
+                  className="mt-3" 
+                  variant="outline"
+                  onClick={() => setShowAddModuleDialog(true)}
+                >
+                  Добавить модуль
+                </Button>
+              </div>
+            )}
           </div>
         </TabsContent>
         
