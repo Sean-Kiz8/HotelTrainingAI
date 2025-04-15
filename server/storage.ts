@@ -748,6 +748,211 @@ export class DatabaseStorage implements IStorage {
       .orderBy([desc(userLevels.level), desc(userLevels.points)])
       .limit(limit);
   }
+
+  // AI Personal Learning Path operations
+  async getLearningPath(id: number): Promise<LearningPath | undefined> {
+    const [learningPath] = await db.select().from(learningPaths).where(eq(learningPaths.id, id));
+    return learningPath;
+  }
+
+  async createLearningPath(learningPath: InsertLearningPath): Promise<LearningPath> {
+    const [newLearningPath] = await db.insert(learningPaths).values(learningPath).returning();
+    
+    // Создаем активность для создания персонального плана обучения
+    await this.createActivity({
+      userId: learningPath.createdById,
+      type: "created_learning_path"
+    });
+    
+    return newLearningPath;
+  }
+
+  async updateLearningPath(id: number, learningPathData: Partial<InsertLearningPath>): Promise<LearningPath | undefined> {
+    const [updatedLearningPath] = await db
+      .update(learningPaths)
+      .set({
+        ...learningPathData,
+        updatedAt: new Date()
+      })
+      .where(eq(learningPaths.id, id))
+      .returning();
+    return updatedLearningPath;
+  }
+
+  async completeLearningPath(id: number): Promise<LearningPath | undefined> {
+    const [learningPath] = await db
+      .select()
+      .from(learningPaths)
+      .where(eq(learningPaths.id, id));
+    
+    if (!learningPath) return undefined;
+    
+    const [completedLearningPath] = await db
+      .update(learningPaths)
+      .set({
+        status: "completed",
+        progress: 100,
+        updatedAt: new Date()
+      })
+      .where(eq(learningPaths.id, id))
+      .returning();
+    
+    // Создаем активность для завершения персонального плана обучения
+    await this.createActivity({
+      userId: learningPath.userId,
+      type: "completed_learning_path"
+    });
+    
+    return completedLearningPath;
+  }
+
+  async deleteLearningPath(id: number): Promise<boolean> {
+    // Сначала удаляем все связанные курсы
+    await db.delete(learningPathCourses).where(eq(learningPathCourses.learningPathId, id));
+    
+    // Затем удаляем сам план обучения
+    const result = await db.delete(learningPaths).where(eq(learningPaths.id, id));
+    return !!result;
+  }
+
+  async listLearningPathsByUser(userId: number): Promise<LearningPath[]> {
+    return await db
+      .select()
+      .from(learningPaths)
+      .where(eq(learningPaths.userId, userId))
+      .orderBy(desc(learningPaths.createdAt));
+  }
+
+  async listLearningPathsByCreator(createdById: number): Promise<LearningPath[]> {
+    return await db
+      .select()
+      .from(learningPaths)
+      .where(eq(learningPaths.createdById, createdById))
+      .orderBy(desc(learningPaths.createdAt));
+  }
+
+  // Learning Path Courses operations
+  async getLearningPathCourse(id: number): Promise<LearningPathCourse | undefined> {
+    const [learningPathCourse] = await db.select().from(learningPathCourses).where(eq(learningPathCourses.id, id));
+    return learningPathCourse;
+  }
+
+  async createLearningPathCourse(learningPathCourse: InsertLearningPathCourse): Promise<LearningPathCourse> {
+    const [newLearningPathCourse] = await db.insert(learningPathCourses).values(learningPathCourse).returning();
+    
+    // Обновляем статус плана обучения
+    await this.updateLearningPathProgress(learningPathCourse.learningPathId);
+    
+    return newLearningPathCourse;
+  }
+
+  async updateLearningPathCourse(id: number, learningPathCourseData: Partial<InsertLearningPathCourse>): Promise<LearningPathCourse | undefined> {
+    const [oldLearningPathCourse] = await db
+      .select()
+      .from(learningPathCourses)
+      .where(eq(learningPathCourses.id, id));
+      
+    if (!oldLearningPathCourse) return undefined;
+    
+    const [updatedLearningPathCourse] = await db
+      .update(learningPathCourses)
+      .set(learningPathCourseData)
+      .where(eq(learningPathCourses.id, id))
+      .returning();
+    
+    // Обновляем статус плана обучения
+    await this.updateLearningPathProgress(oldLearningPathCourse.learningPathId);
+    
+    return updatedLearningPathCourse;
+  }
+
+  async completeLearningPathCourse(id: number): Promise<LearningPathCourse | undefined> {
+    const [learningPathCourse] = await db
+      .select()
+      .from(learningPathCourses)
+      .where(eq(learningPathCourses.id, id));
+    
+    if (!learningPathCourse) return undefined;
+    
+    const [completedLearningPathCourse] = await db
+      .update(learningPathCourses)
+      .set({
+        completed: true
+      })
+      .where(eq(learningPathCourses.id, id))
+      .returning();
+    
+    // Обновляем статус плана обучения
+    await this.updateLearningPathProgress(learningPathCourse.learningPathId);
+    
+    return completedLearningPathCourse;
+  }
+
+  async deleteLearningPathCourse(id: number): Promise<boolean> {
+    const [learningPathCourse] = await db
+      .select()
+      .from(learningPathCourses)
+      .where(eq(learningPathCourses.id, id));
+      
+    if (!learningPathCourse) return false;
+    
+    const result = await db.delete(learningPathCourses).where(eq(learningPathCourses.id, id));
+    
+    // Обновляем статус плана обучения
+    await this.updateLearningPathProgress(learningPathCourse.learningPathId);
+    
+    return !!result;
+  }
+
+  async listCoursesByLearningPath(learningPathId: number): Promise<LearningPathCourse[]> {
+    return await db
+      .select()
+      .from(learningPathCourses)
+      .where(eq(learningPathCourses.learningPathId, learningPathId))
+      .orderBy(learningPathCourses.order);
+  }
+
+  async listDetailedCoursesByLearningPath(learningPathId: number): Promise<(LearningPathCourse & { course: Course })[]> {
+    const learningPathCourses = await db
+      .select()
+      .from(learningPathCourses)
+      .where(eq(learningPathCourses.learningPathId, learningPathId))
+      .orderBy(learningPathCourses.order);
+    
+    // Получаем подробную информацию о каждом курсе
+    const detailedCourses = await Promise.all(
+      learningPathCourses.map(async (lpc) => {
+        const course = await this.getCourse(lpc.courseId);
+        return {
+          ...lpc,
+          course: course!
+        };
+      })
+    );
+    
+    return detailedCourses;
+  }
+  
+  // Вспомогательный метод для обновления прогресса учебного плана
+  private async updateLearningPathProgress(learningPathId: number): Promise<void> {
+    const learningPathCourses = await this.listCoursesByLearningPath(learningPathId);
+    const totalCourses = learningPathCourses.length;
+    
+    if (totalCourses === 0) return;
+    
+    const completedCourses = learningPathCourses.filter(course => course.completed).length;
+    const progress = Math.floor((completedCourses / totalCourses) * 100);
+    
+    // Обновляем прогресс в плане обучения
+    await db
+      .update(learningPaths)
+      .set({
+        progress,
+        status: progress === 100 ? "completed" : "active",
+        updatedAt: new Date()
+      })
+      .where(eq(learningPaths.id, learningPathId));
+  }
 }
 
 // Use PostgreSQL database instead of in-memory storage
