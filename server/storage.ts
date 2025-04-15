@@ -17,7 +17,14 @@ import {
   userLevels, type UserLevel, type InsertUserLevel,
   // Импорты для персональных учебных путей
   learningPaths, type LearningPath, type InsertLearningPath,
-  learningPathCourses, type LearningPathCourse, type InsertLearningPathCourse
+  learningPathCourses, type LearningPathCourse, type InsertLearningPathCourse,
+  // Импорты для системы оценки навыков сотрудников
+  employeeRoles, type EmployeeRole, type InsertEmployeeRole,
+  competencies, type Competency, type InsertCompetency,
+  assessments, type Assessment, type InsertAssessment,
+  assessmentQuestions, type AssessmentQuestion, type InsertAssessmentQuestion,
+  assessmentSessions, type AssessmentSession, type InsertAssessmentSession,
+  assessmentAnswers, type AssessmentAnswer, type InsertAssessmentAnswer
 } from "@shared/schema";
 
 export interface IStorage {
@@ -140,6 +147,63 @@ export interface IStorage {
   deleteLearningPathCourse(id: number): Promise<boolean>;
   listCoursesByLearningPath(learningPathId: number): Promise<LearningPathCourse[]>;
   listDetailedCoursesByLearningPath(learningPathId: number): Promise<(LearningPathCourse & { course: Course })[]>;
+  
+  // ================ Операции с системой оценки навыков сотрудников ================
+  
+  // Операции с ролями сотрудников
+  getEmployeeRole(id: number): Promise<EmployeeRole | undefined>;
+  createEmployeeRole(role: InsertEmployeeRole): Promise<EmployeeRole>;
+  updateEmployeeRole(id: number, roleData: Partial<InsertEmployeeRole>): Promise<EmployeeRole | undefined>;
+  deleteEmployeeRole(id: number): Promise<boolean>;
+  listEmployeeRoles(): Promise<EmployeeRole[]>;
+  listEmployeeRolesByDepartment(department: string): Promise<EmployeeRole[]>;
+  
+  // Операции с компетенциями
+  getCompetency(id: number): Promise<Competency | undefined>;
+  createCompetency(competency: InsertCompetency): Promise<Competency>;
+  updateCompetency(id: number, competencyData: Partial<InsertCompetency>): Promise<Competency | undefined>;
+  deleteCompetency(id: number): Promise<boolean>;
+  listCompetencies(): Promise<Competency[]>;
+  listCompetenciesByCategory(category: string): Promise<Competency[]>;
+  
+  // Операции с ассесментами
+  getAssessment(id: number): Promise<Assessment | undefined>;
+  createAssessment(assessment: InsertAssessment): Promise<Assessment>;
+  updateAssessment(id: number, assessmentData: Partial<InsertAssessment>): Promise<Assessment | undefined>;
+  deleteAssessment(id: number): Promise<boolean>;
+  listAssessments(): Promise<Assessment[]>;
+  listAssessmentsByRole(roleId: number): Promise<Assessment[]>;
+  
+  // Операции с вопросами для ассесментов
+  getAssessmentQuestion(id: number): Promise<AssessmentQuestion | undefined>;
+  createAssessmentQuestion(question: InsertAssessmentQuestion): Promise<AssessmentQuestion>;
+  updateAssessmentQuestion(id: number, questionData: Partial<InsertAssessmentQuestion>): Promise<AssessmentQuestion | undefined>;
+  deleteAssessmentQuestion(id: number): Promise<boolean>;
+  listAssessmentQuestions(assessmentId: number): Promise<AssessmentQuestion[]>;
+  listAssessmentQuestionsByDifficulty(assessmentId: number, difficulty: string): Promise<AssessmentQuestion[]>;
+  listAssessmentQuestionsByCompetency(assessmentId: number, competencyId: number): Promise<AssessmentQuestion[]>;
+  
+  // Операции с сессиями прохождения ассесментов
+  getAssessmentSession(id: number): Promise<AssessmentSession | undefined>;
+  createAssessmentSession(session: InsertAssessmentSession): Promise<AssessmentSession>;
+  updateAssessmentSession(id: number, sessionData: Partial<InsertAssessmentSession>): Promise<AssessmentSession | undefined>;
+  completeAssessmentSession(id: number, results: any): Promise<AssessmentSession>;
+  listAssessmentSessionsByUser(userId: number): Promise<AssessmentSession[]>;
+  listAssessmentSessionsByAssessment(assessmentId: number): Promise<AssessmentSession[]>;
+  
+  // Операции с ответами пользователя
+  getAssessmentAnswer(id: number): Promise<AssessmentAnswer | undefined>;
+  createAssessmentAnswer(answer: InsertAssessmentAnswer): Promise<AssessmentAnswer>;
+  updateAssessmentAnswer(id: number, answerData: Partial<InsertAssessmentAnswer>): Promise<AssessmentAnswer | undefined>;
+  listAssessmentAnswersBySession(sessionId: number): Promise<AssessmentAnswer[]>;
+  
+  // Генерация умных ассесментов
+  generateAssessmentQuestions(assessmentId: number, count: number): Promise<AssessmentQuestion[]>;
+  
+  // Аналитика по ассесментам
+  getAssessmentStatistics(assessmentId: number): Promise<any>;
+  getUserAssessmentResults(userId: number): Promise<any>;
+  getDepartmentAssessmentResults(department: string): Promise<any>;
 }
 
 import { db } from "./db";

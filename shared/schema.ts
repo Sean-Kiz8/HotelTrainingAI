@@ -18,6 +18,28 @@ export const employeeLevelEnum = pgEnum("employee_level", [
   "senior"
 ]);
 
+// Enum для типов вопросов в ассесментах
+export const questionTypeEnum = pgEnum("question_type", [
+  "multiple_choice",
+  "true_false",
+  "text_answer",
+  "image_based"
+]);
+
+// Enum для уровней сложности вопросов
+export const difficultyLevelEnum = pgEnum("difficulty_level", [
+  "easy",
+  "medium",
+  "hard"
+]);
+
+// Enum для статусов ассесмента
+export const assessmentStatusEnum = pgEnum("assessment_status", [
+  "created",
+  "in_progress",
+  "completed"
+]);
+
 // Users table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -392,3 +414,149 @@ export type InsertLearningPath = z.infer<typeof insertLearningPathSchema>;
 
 export type LearningPathCourse = typeof learningPathCourses.$inferSelect;
 export type InsertLearningPathCourse = z.infer<typeof insertLearningPathCourseSchema>;
+
+// ================ Система оценки компетенций сотрудников ================
+
+// Таблица ролей сотрудников и их компетенций
+export const employeeRoles = pgTable("employee_roles", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(), // Название роли (например, "Администратор ресепшн", "Официант")
+  description: text("description"),
+  department: text("department").notNull(), // Отдел
+  requiredCompetencies: jsonb("required_competencies"), // Список необходимых компетенций и их уровень
+  createdById: integer("created_by_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  active: boolean("active").notNull().default(true),
+});
+
+export const insertEmployeeRoleSchema = createInsertSchema(employeeRoles).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Таблица компетенций (скилов)
+export const competencies = pgTable("competencies", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // Категория компетенции (технические, soft skills и т.д.)
+  createdById: integer("created_by_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertCompetencySchema = createInsertSchema(competencies).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Таблица ассесментов
+export const assessments = pgTable("assessments", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  description: text("description"),
+  roleId: integer("role_id").notNull(), // Для какой роли проводится ассесмент
+  status: assessmentStatusEnum("status").notNull().default("created"),
+  targetCompetencies: jsonb("target_competencies"), // Список оцениваемых компетенций
+  createdById: integer("created_by_id").notNull(),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  timeLimit: integer("time_limit"), // Ограничение по времени в минутах (null - без ограничения)
+  passingScore: integer("passing_score").notNull().default(70), // Проходной балл в процентах
+});
+
+export const insertAssessmentSchema = createInsertSchema(assessments).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Таблица вопросов для ассесментов
+export const assessmentQuestions = pgTable("assessment_questions", {
+  id: serial("id").primaryKey(),
+  assessmentId: integer("assessment_id").notNull(),
+  text: text("text").notNull(), // Текст вопроса
+  type: questionTypeEnum("type").notNull(), // Тип вопроса
+  options: jsonb("options"), // Варианты ответов для multiple_choice и true_false
+  correctAnswer: text("correct_answer"), // Правильный ответ
+  explanation: text("explanation"), // Объяснение правильного ответа
+  points: integer("points").notNull().default(1), // Количество баллов за правильный ответ
+  mediaId: integer("media_id"), // Связь с медиафайлом, если вопрос содержит изображение
+  competencyId: integer("competency_id").notNull(), // Какую компетенцию оценивает вопрос
+  difficulty: difficultyLevelEnum("difficulty").notNull(), // Уровень сложности
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertAssessmentQuestionSchema = createInsertSchema(assessmentQuestions).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Таблица сессий прохождения ассесментов
+export const assessmentSessions = pgTable("assessment_sessions", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  assessmentId: integer("assessment_id").notNull(),
+  startedAt: timestamp("started_at").notNull().defaultNow(),
+  completedAt: timestamp("completed_at"),
+  status: assessmentStatusEnum("status").notNull().default("in_progress"),
+  score: integer("score"), // Итоговый балл
+  scorePercentage: integer("score_percentage"), // Процент правильных ответов
+  timeSpent: integer("time_spent"), // Время в секундах, затраченное на прохождение
+  competenciesResult: jsonb("competencies_result"), // Детальный результат по компетенциям
+  level: employeeLevelEnum("level"), // Определенный уровень сотрудника
+  recommendedLearningPathId: integer("recommended_learning_path_id"), // Рекомендованный план обучения
+});
+
+export const insertAssessmentSessionSchema = createInsertSchema(assessmentSessions).omit({
+  id: true,
+  startedAt: true,
+  completedAt: true,
+  score: true,
+  scorePercentage: true,
+  timeSpent: true,
+  competenciesResult: true,
+  level: true,
+  recommendedLearningPathId: true,
+});
+
+// Таблица ответов пользователя на вопросы ассесмента
+export const assessmentAnswers = pgTable("assessment_answers", {
+  id: serial("id").primaryKey(),
+  sessionId: integer("session_id").notNull(),
+  questionId: integer("question_id").notNull(),
+  answer: text("answer").notNull(), // Ответ пользователя
+  isCorrect: boolean("is_correct"), // Правильный ли ответ
+  points: integer("points").default(0), // Полученные баллы
+  timeSpent: integer("time_spent"), // Время в секундах, затраченное на ответ
+  answeredAt: timestamp("answered_at").notNull().defaultNow(),
+});
+
+export const insertAssessmentAnswerSchema = createInsertSchema(assessmentAnswers).omit({
+  id: true,
+  answeredAt: true,
+});
+
+// Type definitions для новых таблиц
+export type EmployeeRole = typeof employeeRoles.$inferSelect;
+export type InsertEmployeeRole = z.infer<typeof insertEmployeeRoleSchema>;
+
+export type Competency = typeof competencies.$inferSelect;
+export type InsertCompetency = z.infer<typeof insertCompetencySchema>;
+
+export type Assessment = typeof assessments.$inferSelect;
+export type InsertAssessment = z.infer<typeof insertAssessmentSchema>;
+
+export type AssessmentQuestion = typeof assessmentQuestions.$inferSelect;
+export type InsertAssessmentQuestion = z.infer<typeof insertAssessmentQuestionSchema>;
+
+export type AssessmentSession = typeof assessmentSessions.$inferSelect;
+export type InsertAssessmentSession = z.infer<typeof insertAssessmentSessionSchema>;
+
+export type AssessmentAnswer = typeof assessmentAnswers.$inferSelect;
+export type InsertAssessmentAnswer = z.infer<typeof insertAssessmentAnswerSchema>;
