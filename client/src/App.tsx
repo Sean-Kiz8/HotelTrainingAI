@@ -10,6 +10,8 @@ import Analytics from "./pages/analytics";
 import Settings from "./pages/settings";
 import MyLearning from "./pages/my-learning";
 import Achievements from "./pages/achievements";
+import Leaderboard from "./pages/leaderboard";
+import Rewards from "./pages/rewards";
 import Discussions from "./pages/discussions";
 import MediaLibrary from "./pages/media-library";
 import DebugPage from "./pages/debug";

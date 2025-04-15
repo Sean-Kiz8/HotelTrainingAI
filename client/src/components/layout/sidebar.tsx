@@ -12,12 +12,15 @@ const adminNavItems = [
   { label: "Сотрудники", icon: "groups", href: "/employees" },
   { label: "Медиатека", icon: "collections", href: "/media" },
   { label: "Аналитика", icon: "insert_chart", href: "/analytics" },
+  { label: "Геймификация", icon: "emoji_events", href: "/achievements" },
   { label: "Настройки", icon: "settings", href: "/settings" },
 ];
 
 const staffNavItems = [
   { label: "Мое обучение", icon: "menu_book", href: "/my-learning" },
   { label: "Достижения", icon: "stars", href: "/achievements" },
+  { label: "Рейтинг", icon: "leaderboard", href: "/leaderboard" },
+  { label: "Награды", icon: "workspace_premium", href: "/rewards" },
   { label: "Обсуждения", icon: "forum", href: "/discussions" },
 ];
 

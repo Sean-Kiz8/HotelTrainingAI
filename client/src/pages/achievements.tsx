@@ -1,172 +1,273 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { PageHeader, SearchInput } from "@/components/layout/page-header";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogHeader, 
+  DialogTitle 
+} from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
+import { getQueryFn } from "@/lib/queryClient";
 import { useAuth } from "@/context/auth-context";
 
-interface AchievementCardProps {
-  title: string;
-  description: string;
-  date: string;
-  icon: string;
-  iconColor: string;
-  badgeText?: string;
-  badgeVariant?: "default" | "secondary" | "outline";
-  onClick?: () => void;
+function getAchievementIcon(type: string) {
+  switch (type) {
+    case "login":
+      return "login";
+    case "course_completion":
+      return "school";
+    case "lesson_completion":
+      return "menu_book";
+    case "quiz_score":
+      return "quiz";
+    case "activity":
+      return "local_activity";
+    case "social":
+      return "people";
+    default:
+      return "emoji_events";
+  }
 }
 
-function AchievementCard({
-  title,
-  description,
-  date,
-  icon,
-  iconColor,
-  badgeText,
-  badgeVariant = "default",
-  onClick,
-}: AchievementCardProps) {
+function AchievementCard({ achievement, userAchievements = [], showProgress = true }: any) {
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const { toast } = useToast();
+  
+  // Определяем, получено ли это достижение пользователем
+  const userAchievement = userAchievements.find((ua: any) => ua.achievementId === achievement.id);
+  const isUnlocked = !!userAchievement;
+  
+  // Определяем прогресс для достижений с требованиями по счетчику
+  const progressValue = isUnlocked 
+    ? 100 
+    : achievement.counterTarget > 0 
+      ? Math.min(100, Math.round((achievement.currentCounter || 0) / achievement.counterTarget * 100))
+      : 0;
+  
+  const icon = getAchievementIcon(achievement.type);
+  
   return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow duration-300">
-      <CardContent className="p-0">
-        <div className="p-5 flex items-start">
-          <div className={`h-12 w-12 rounded-full ${iconColor} bg-opacity-20 flex items-center justify-center mr-4`}>
-            <span className={`material-icons ${iconColor}`}>{icon}</span>
-          </div>
-          <div className="flex-1">
-            <div className="flex justify-between items-start">
-              <h3 className="font-medium text-lg">{title}</h3>
-              {badgeText && (
-                <Badge variant={badgeVariant}>{badgeText}</Badge>
-              )}
-            </div>
-            <p className="text-neutral-600 text-sm mt-1">{description}</p>
-            <div className="flex justify-between items-center mt-3">
-              <span className="text-neutral-500 text-xs">{date}</span>
-              {onClick && (
-                <Button variant="link" size="sm" className="text-primary p-0 h-auto" onClick={onClick}>
-                  Подробнее
-                </Button>
-              )}
+    <>
+      <Card className="h-full flex flex-col overflow-hidden">
+        <div className={`h-1 ${isUnlocked ? 'bg-success' : 'bg-primary'}`}></div>
+        
+        <CardContent className="p-5 flex-1">
+          <div className="flex justify-between items-start mb-4">
+            <Badge variant={isUnlocked ? "default" : "outline"}>
+              {achievement.type === "login" && "Активность"}
+              {achievement.type === "course_completion" && "Курсы"}
+              {achievement.type === "lesson_completion" && "Уроки"}
+              {achievement.type === "quiz_score" && "Тесты"}
+              {achievement.type === "activity" && "Активность"}
+              {achievement.type === "social" && "Социальное"}
+            </Badge>
+            
+            <div className={`p-1 rounded-full ${isUnlocked ? 'bg-success/10' : 'bg-muted'}`}>
+              <span className={`material-icons text-base ${isUnlocked ? 'text-success' : 'text-muted-foreground'}`}>
+                {isUnlocked ? "check_circle" : "lock"}
+              </span>
             </div>
           </div>
-        </div>
-      </CardContent>
-    </Card>
-  );
-}
-
-interface CertificateCardProps {
-  title: string;
-  issueDate: string;
-  department: string;
-  onClick: () => void;
-}
-
-function CertificateCard({
-  title,
-  issueDate,
-  department,
-  onClick,
-}: CertificateCardProps) {
-  return (
-    <Card className="overflow-hidden hover:shadow-md transition-shadow duration-300">
-      <CardContent className="p-5">
-        <div className="flex justify-between items-start mb-4">
-          <span className="material-icons text-primary text-3xl">workspace_premium</span>
-          <Badge variant="outline">{department}</Badge>
-        </div>
-        <h3 className="font-medium text-lg mb-2">{title}</h3>
-        <div className="flex justify-between items-center">
-          <span className="text-neutral-500 text-sm">Выдан: {issueDate}</span>
-          <Button variant="outline" size="sm" onClick={onClick}>
-            <span className="material-icons text-sm mr-1">download</span>
-            Скачать
+          
+          <div className="aspect-square bg-primary/10 rounded-lg mb-4 flex items-center justify-center">
+            <span className="material-icons text-5xl text-primary">{icon}</span>
+          </div>
+          
+          <h3 className="font-medium text-lg">{achievement.name}</h3>
+          <p className="text-neutral-600 text-sm mt-1 line-clamp-2">{achievement.description}</p>
+          
+          {showProgress && achievement.counterTarget > 0 && (
+            <div className="mt-3">
+              <div className="flex justify-between text-xs mb-1">
+                <span>{isUnlocked ? 'Выполнено' : `${achievement.currentCounter || 0}/${achievement.counterTarget}`}</span>
+                <span>{progressValue}%</span>
+              </div>
+              <Progress 
+                value={progressValue} 
+                className={isUnlocked ? 'bg-success' : undefined}
+              />
+            </div>
+          )}
+          
+          {isUnlocked && (
+            <p className="text-neutral-500 text-xs mt-3">
+              Получено: {new Date(userAchievement.earnedAt).toLocaleDateString('ru-RU')}
+            </p>
+          )}
+        </CardContent>
+        
+        <CardFooter className="p-5 pt-0">
+          <Button 
+            variant="outline" 
+            className="w-full" 
+            onClick={() => setDialogOpen(true)}
+          >
+            Подробнее
           </Button>
-        </div>
-      </CardContent>
-    </Card>
+        </CardFooter>
+      </Card>
+      
+      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{achievement.name}</DialogTitle>
+            <DialogDescription>
+              {achievement.description}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div className="flex items-center">
+              <div className="p-3 bg-primary/10 rounded-full mr-3">
+                <span className="material-icons text-primary">{icon}</span>
+              </div>
+              <div>
+                <div className="font-medium">Тип достижения</div>
+                <div className="text-sm text-neutral-600">
+                  {achievement.type === "login" && "Активность в системе"}
+                  {achievement.type === "course_completion" && "Прохождение курсов"}
+                  {achievement.type === "lesson_completion" && "Изучение уроков"}
+                  {achievement.type === "quiz_score" && "Прохождение тестов"}
+                  {achievement.type === "activity" && "Регулярная активность"}
+                  {achievement.type === "social" && "Социальная активность"}
+                </div>
+              </div>
+            </div>
+            
+            {achievement.counterTarget > 0 && (
+              <div className="flex items-center">
+                <div className="p-3 bg-primary/10 rounded-full mr-3">
+                  <span className="material-icons text-primary">trending_up</span>
+                </div>
+                <div>
+                  <div className="font-medium">Прогресс</div>
+                  <div className="text-sm text-neutral-600">
+                    {isUnlocked ? 'Достижение выполнено' : `${achievement.currentCounter || 0} из ${achievement.counterTarget}`}
+                  </div>
+                  <Progress 
+                    value={progressValue} 
+                    className={`mt-2 ${isUnlocked ? 'bg-success' : undefined}`}
+                  />
+                </div>
+              </div>
+            )}
+            
+            <div className="flex items-center">
+              <div className="p-3 bg-primary/10 rounded-full mr-3">
+                <span className="material-icons text-primary">stars</span>
+              </div>
+              <div>
+                <div className="font-medium">Награда</div>
+                <div className="text-sm text-neutral-600">
+                  {achievement.pointsAwarded} XP очков при выполнении
+                </div>
+              </div>
+            </div>
+            
+            {isUnlocked && (
+              <div className="flex items-center">
+                <div className="p-3 bg-success/10 rounded-full mr-3">
+                  <span className="material-icons text-success">check_circle</span>
+                </div>
+                <div>
+                  <div className="font-medium">Статус</div>
+                  <div className="text-sm text-neutral-600">
+                    Получено {new Date(userAchievement.earnedAt).toLocaleDateString('ru-RU')}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+          
+          <div className="mt-2">
+            <Button 
+              className="w-full"
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+            >
+              Закрыть
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 }
 
 export default function Achievements() {
-  const { toast } = useToast();
   const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Fetch user enrollments with completed courses
-  const { data: enrollments, isLoading: enrollmentsLoading } = useQuery({
-    queryKey: ["/api/enrollments", user?.id],
+  const [activeTab, setActiveTab] = useState("all");
+  const { toast } = useToast();
+  
+  // Получаем все достижения
+  const { data: achievements, isLoading: achievementsLoading } = useQuery({
+    queryKey: ['/api/achievements'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+  });
+  
+  // Получаем достижения пользователя
+  const { data: userAchievements, isLoading: userAchievementsLoading } = useQuery({
+    queryKey: ['/api/user-achievements', user?.id],
+    queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!user,
   });
-
-  // Fetch courses to get details for completed courses
-  const { data: courses, isLoading: coursesLoading } = useQuery({
-    queryKey: ["/api/courses"],
-  });
-
-  const isLoading = enrollmentsLoading || coursesLoading;
-
-  // Filter completed courses for certificates
-  const completedCourses = !isLoading && enrollments && courses
-    ? enrollments
-        .filter((enrollment: any) => enrollment.completed)
-        .map((enrollment: any) => {
-          const course = courses.find((c: any) => c.id === enrollment.courseId);
+  
+  const isLoading = achievementsLoading || userAchievementsLoading;
+  
+  // Фильтруем и сортируем достижения
+  const processedAchievements = !isLoading && achievements && userAchievements
+    ? achievements
+        .filter((achievement: any) => 
+          achievement.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          achievement.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          achievement.type.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+        .map((achievement: any) => {
+          // Добавляем информацию о прогрессе для пользователя
           return {
-            ...course,
-            completionDate: enrollment.completionDate,
+            ...achievement,
+            isUnlocked: userAchievements.some((ua: any) => ua.achievementId === achievement.id),
+            userAchievement: userAchievements.find((ua: any) => ua.achievementId === achievement.id)
           };
         })
-        .filter((course: any) => 
-          course?.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          course?.department?.toLowerCase().includes(searchQuery.toLowerCase())
-        )
     : [];
-
-  // Mock achievements (based on completed courses)
-  const achievements = !isLoading && completedCourses
-    ? [
-        ...completedCourses.map((course: any) => ({
-          id: `course-${course.id}`,
-          title: `Завершение курса: ${course.title}`,
-          description: `Вы успешно завершили курс "${course.title}" и получили сертификат`,
-          date: new Date(course.completionDate).toLocaleDateString('ru-RU'),
-          icon: "school",
-          iconColor: "text-success",
-          badgeText: "Сертификат",
-          badgeVariant: "default",
-          type: "course_completion",
-        })),
-        // Add department progress achievements if there are completed courses for a department
-        ...Array.from(new Set(completedCourses.map((c: any) => c.department)))
-          .map(department => {
-            const departmentCourses = completedCourses.filter((c: any) => c.department === department);
-            
-            // Only create department achievements if there are at least 2 completed courses
-            if (departmentCourses.length >= 2) {
-              return {
-                id: `dept-${department}`,
-                title: `Специалист отдела "${department}"`,
-                description: `Вы успешно завершили ${departmentCourses.length} курсов по направлению "${department}"`,
-                date: new Date(Math.max(...departmentCourses.map((c: any) => new Date(c.completionDate).getTime()))).toLocaleDateString('ru-RU'),
-                icon: "workspace_premium",
-                iconColor: "text-accent",
-                badgeText: "Достижение",
-                badgeVariant: "secondary",
-                type: "department_progress",
-              };
-            }
-            return null;
-          })
-          .filter(a => a !== null)
-      ]
+  
+  // Фильтруем по вкладкам
+  const filteredAchievements = !isLoading && processedAchievements
+    ? activeTab === "all" 
+      ? processedAchievements
+      : activeTab === "unlocked"
+        ? processedAchievements.filter((a: any) => a.isUnlocked)
+        : processedAchievements.filter((a: any) => !a.isUnlocked)
     : [];
-
+  
+  // Сортируем достижения: сначала разблокированные, затем по типу
+  const sortedAchievements = !isLoading && filteredAchievements
+    ? [...filteredAchievements].sort((a: any, b: any) => {
+        // Сначала сортируем по статусу разблокировки
+        if (a.isUnlocked !== b.isUnlocked) {
+          return a.isUnlocked ? -1 : 1;
+        }
+        
+        // Затем сортируем по типу
+        if (a.type !== b.type) {
+          return a.type.localeCompare(b.type);
+        }
+        
+        // Наконец, сортируем по имени
+        return a.name.localeCompare(b.name);
+      })
+    : [];
+  
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">
       <PageHeader title="Достижения">
@@ -176,135 +277,99 @@ export default function Achievements() {
           onChange={setSearchQuery}
         />
       </PageHeader>
-
-      <Tabs defaultValue="achievements" className="mb-6">
-        <TabsList>
-          <TabsTrigger value="achievements">Достижения</TabsTrigger>
-          <TabsTrigger value="certificates">Сертификаты</TabsTrigger>
+      
+      <Tabs defaultValue="all" value={activeTab} onValueChange={setActiveTab} className="mb-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="all">Все</TabsTrigger>
+          <TabsTrigger value="unlocked">Полученные</TabsTrigger>
+          <TabsTrigger value="locked">Не полученные</TabsTrigger>
         </TabsList>
-
-        <TabsContent value="achievements" className="mt-4">
-          {isLoading ? (
-            <div className="space-y-4">
-              {[...Array(3)].map((_, i) => (
-                <Skeleton key={i} className="h-32" />
-              ))}
-            </div>
-          ) : (
-            <>
-              {achievements.length > 0 ? (
-                <div className="space-y-4">
-                  {achievements.map((achievement: any) => (
-                    <AchievementCard
-                      key={achievement.id}
-                      title={achievement.title}
-                      description={achievement.description}
-                      date={achievement.date}
-                      icon={achievement.icon}
-                      iconColor={achievement.iconColor}
-                      badgeText={achievement.badgeText}
-                      badgeVariant={achievement.badgeVariant}
-                      onClick={() => toast({
-                        title: "Подробности достижения",
-                        description: achievement.title,
-                      })}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-neutral-500">
-                  {searchQuery ? (
-                    <p>Достижения по запросу "{searchQuery}" не найдены</p>
-                  ) : (
-                    <>
-                      <p>У вас пока нет достижений</p>
-                      <p className="text-sm mt-2">Завершите курсы, чтобы получить достижения и сертификаты</p>
-                    </>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </TabsContent>
-
-        <TabsContent value="certificates" className="mt-4">
-          {isLoading ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-40" />
-              ))}
-            </div>
-          ) : (
-            <>
-              {completedCourses.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {completedCourses.map((course: any) => (
-                    <CertificateCard
-                      key={course.id}
-                      title={`Сертификат: ${course.title}`}
-                      issueDate={new Date(course.completionDate).toLocaleDateString('ru-RU')}
-                      department={course.department}
-                      onClick={() => toast({
-                        title: "Скачивание сертификата",
-                        description: `Сертификат по курсу "${course.title}" будет скачан`,
-                      })}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12 text-neutral-500">
-                  {searchQuery ? (
-                    <p>Сертификаты по запросу "{searchQuery}" не найдены</p>
-                  ) : (
-                    <>
-                      <p>У вас пока нет сертификатов</p>
-                      <p className="text-sm mt-2">Завершите курсы, чтобы получить сертификаты</p>
-                    </>
-                  )}
-                </div>
-              )}
-            </>
-          )}
-        </TabsContent>
       </Tabs>
-
-      {/* Summary cards */}
-      <div className="mt-6">
-        <h3 className="font-sans font-semibold text-lg mb-4">Сводка достижений</h3>
+      
+      {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[...Array(6)].map((_, i) => (
+            <Skeleton key={i} className="h-64" />
+          ))}
+        </div>
+      ) : (
+        <>
+          {sortedAchievements.length > 0 ? (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {sortedAchievements.map((achievement: any) => (
+                <AchievementCard
+                  key={achievement.id}
+                  achievement={achievement}
+                  userAchievements={userAchievements}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="text-center py-12 text-neutral-500">
+              {searchQuery ? (
+                <p>Достижения по запросу "{searchQuery}" не найдены</p>
+              ) : activeTab === "unlocked" ? (
+                <>
+                  <p>У вас пока нет полученных достижений</p>
+                  <p className="text-sm mt-2">Продолжайте обучение, чтобы получить первые достижения</p>
+                </>
+              ) : activeTab === "locked" ? (
+                <p>Все доступные достижения уже получены</p>
+              ) : (
+                <p>Достижения не найдены</p>
+              )}
+            </div>
+          )}
+        </>
+      )}
+      
+      {/* Суммарная статистика */}
+      {!isLoading && achievements && userAchievements && (
+        <div className="mt-6">
+          <h3 className="font-sans font-semibold text-lg mb-4">Статистика достижений</h3>
           <Card>
-            <CardContent className="p-5 flex items-center">
-              <span className="material-icons text-primary text-3xl mr-3">workspace_premium</span>
-              <div>
-                <p className="text-sm text-neutral-600">Достижения</p>
-                <p className="text-2xl font-bold">{achievements?.length || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-5 flex items-center">
-              <span className="material-icons text-success text-3xl mr-3">school</span>
-              <div>
-                <p className="text-sm text-neutral-600">Сертификаты</p>
-                <p className="text-2xl font-bold">{completedCourses?.length || 0}</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-5 flex items-center">
-              <span className="material-icons text-accent text-3xl mr-3">trending_up</span>
-              <div>
-                <p className="text-sm text-neutral-600">Следующее достижение</p>
-                <p className="text-sm font-medium">
-                  {achievements?.length > 0 
-                    ? "Командная работа" 
-                    : "Первое завершение курса"}
-                </p>
+            <CardContent className="p-5">
+              <div className="flex flex-col md:flex-row md:items-center md:space-x-8">
+                <div className="flex items-center mb-4 md:mb-0">
+                  <div className="p-4 bg-primary bg-opacity-10 rounded-full mr-4">
+                    <span className="material-icons text-primary text-2xl">emoji_events</span>
+                  </div>
+                  <div>
+                    <div className="text-lg font-semibold">
+                      {userAchievements.length} / {achievements.length}
+                    </div>
+                    <p className="text-neutral-600 text-sm">достижений получено</p>
+                  </div>
+                </div>
+                
+                <div className="flex-1 mb-4 md:mb-0">
+                  <div className="flex justify-between text-xs mb-1">
+                    <span>{Math.round((userAchievements.length / achievements.length) * 100)}%</span>
+                    <span>Общий прогресс</span>
+                  </div>
+                  <Progress 
+                    value={(userAchievements.length / achievements.length) * 100} 
+                    className="bg-primary"
+                  />
+                </div>
+                
+                <div>
+                  <div className="flex items-center">
+                    <span className="material-icons text-primary text-base mr-2">stars</span>
+                    <div className="text-lg font-semibold">
+                      {userAchievements.reduce((total: number, ua: any) => {
+                        const achievement = achievements.find((a: any) => a.id === ua.achievementId);
+                        return total + (achievement?.pointsAwarded || 0);
+                      }, 0)} XP
+                    </div>
+                  </div>
+                  <p className="text-neutral-600 text-sm">получено очков</p>
+                </div>
               </div>
             </CardContent>
           </Card>
         </div>
-      </div>
+      )}
     </div>
   );
 }

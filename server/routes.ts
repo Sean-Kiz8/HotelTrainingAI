@@ -645,6 +645,178 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Serve static files from uploads directory
   app.use("/uploads", express.static(uploadDir));
+  
+  // Геймификация - Достижения
+  app.get("/api/achievements", async (req, res) => {
+    try {
+      const achievements = await storage.listAchievements();
+      res.json(achievements);
+    } catch (error) {
+      console.error("Error fetching achievements:", error);
+      res.status(500).json({ error: "Failed to fetch achievements" });
+    }
+  });
+  
+  app.get("/api/achievements/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const achievement = await storage.getAchievement(id);
+      
+      if (!achievement) {
+        return res.status(404).json({ error: "Achievement not found" });
+      }
+      
+      res.json(achievement);
+    } catch (error) {
+      console.error("Error fetching achievement:", error);
+      res.status(500).json({ error: "Failed to fetch achievement" });
+    }
+  });
+  
+  app.post("/api/achievements", async (req, res) => {
+    try {
+      const achievement = await storage.createAchievement(req.body);
+      res.status(201).json(achievement);
+    } catch (error) {
+      console.error("Error creating achievement:", error);
+      res.status(500).json({ error: "Failed to create achievement" });
+    }
+  });
+  
+  // Геймификация - Достижения пользователей
+  app.get("/api/user-achievements/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const userAchievements = await storage.listUserAchievementsByUser(userId);
+      res.json(userAchievements);
+    } catch (error) {
+      console.error("Error fetching user achievements:", error);
+      res.status(500).json({ error: "Failed to fetch user achievements" });
+    }
+  });
+  
+  app.post("/api/user-achievements", async (req, res) => {
+    try {
+      const userAchievement = await storage.createUserAchievement(req.body);
+      res.status(201).json(userAchievement);
+    } catch (error) {
+      console.error("Error creating user achievement:", error);
+      res.status(500).json({ error: "Failed to create user achievement" });
+    }
+  });
+  
+  // Геймификация - Вознаграждения
+  app.get("/api/rewards", async (req, res) => {
+    try {
+      const onlyActive = req.query.active === "true";
+      const rewards = onlyActive 
+        ? await storage.listActiveRewards()
+        : await storage.listRewards();
+      res.json(rewards);
+    } catch (error) {
+      console.error("Error fetching rewards:", error);
+      res.status(500).json({ error: "Failed to fetch rewards" });
+    }
+  });
+  
+  app.get("/api/rewards/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const reward = await storage.getReward(id);
+      
+      if (!reward) {
+        return res.status(404).json({ error: "Reward not found" });
+      }
+      
+      res.json(reward);
+    } catch (error) {
+      console.error("Error fetching reward:", error);
+      res.status(500).json({ error: "Failed to fetch reward" });
+    }
+  });
+  
+  app.post("/api/rewards", async (req, res) => {
+    try {
+      const reward = await storage.createReward(req.body);
+      res.status(201).json(reward);
+    } catch (error) {
+      console.error("Error creating reward:", error);
+      res.status(500).json({ error: "Failed to create reward" });
+    }
+  });
+  
+  // Геймификация - Вознаграждения пользователей
+  app.get("/api/user-rewards/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const userRewards = await storage.listUserRewardsByUser(userId);
+      res.json(userRewards);
+    } catch (error) {
+      console.error("Error fetching user rewards:", error);
+      res.status(500).json({ error: "Failed to fetch user rewards" });
+    }
+  });
+  
+  app.post("/api/user-rewards", async (req, res) => {
+    try {
+      const userReward = await storage.createUserReward(req.body);
+      res.status(201).json(userReward);
+    } catch (error) {
+      console.error("Error creating user reward:", error);
+      res.status(500).json({ error: "Failed to create user reward" });
+    }
+  });
+  
+  // Геймификация - Уровни пользователей
+  app.get("/api/user-level/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const userLevel = await storage.getUserLevel(userId);
+      
+      if (!userLevel) {
+        // Если уровень пользователя не найден, возвращаем базовый уровень
+        return res.json({
+          userId,
+          level: 1,
+          points: 0,
+          nextLevelPoints: 100,
+          lastActivity: new Date(),
+        });
+      }
+      
+      res.json(userLevel);
+    } catch (error) {
+      console.error("Error fetching user level:", error);
+      res.status(500).json({ error: "Failed to fetch user level" });
+    }
+  });
+  
+  app.post("/api/user-level/add-points", async (req, res) => {
+    try {
+      const { userId, points } = req.body;
+      
+      if (!userId || !points) {
+        return res.status(400).json({ error: "userId and points are required" });
+      }
+      
+      const userLevel = await storage.addUserPoints(userId, points);
+      res.json(userLevel);
+    } catch (error) {
+      console.error("Error adding points to user:", error);
+      res.status(500).json({ error: "Failed to add points to user" });
+    }
+  });
+  
+  app.get("/api/leaderboard", async (req, res) => {
+    try {
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+      const leaderboard = await storage.getLeaderboard(limit);
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      res.status(500).json({ error: "Failed to fetch leaderboard" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
