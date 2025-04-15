@@ -24,13 +24,15 @@ interface Step3CoursePreviewProps {
   settings: CourseSettings;
   isGenerating: boolean;
   onGenerateCourse: () => void;
+  fetchFilesFromServer?: () => Promise<void>;
 }
 
 export function Step3CoursePreview({ 
   files, 
   settings, 
   isGenerating,
-  onGenerateCourse 
+  onGenerateCourse,
+  fetchFilesFromServer
 }: Step3CoursePreviewProps) {
   // Получаем подходящую иконку для формата курса
   const getFormatIcon = (format: string) => {

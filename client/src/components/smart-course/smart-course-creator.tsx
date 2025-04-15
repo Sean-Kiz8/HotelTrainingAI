@@ -216,6 +216,7 @@ export function SmartCourseCreator() {
               settings={courseSettings} 
               isGenerating={isGenerating}
               onGenerateCourse={handleGenerateCourse}
+              fetchFilesFromServer={fetchFilesFromServer}
             />
           </TabsContent>
           
