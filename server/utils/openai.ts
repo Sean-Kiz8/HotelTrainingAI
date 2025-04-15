@@ -234,4 +234,89 @@ export async function generateCourseInsight(
   }
 }
 
+// Функция для генерации учебного плана на основе параметров из формы AI-генерации
+export async function generateAILearningPath(
+  userRole: string,
+  userLevel: string,
+  userDepartment: string,
+  targetSkills: string[],
+  availableCourses: any[]
+): Promise<{
+  name: string;
+  description: string;
+  targetSkills: string[];
+  recommendedCourses: {
+    courseId: number;
+    priority: string;
+    order: number;
+    rationale: string;
+  }[];
+}> {
+  try {
+    // Преобразуем целевые навыки в строку для запроса
+    const skillsText = targetSkills.join(", ");
+
+    // Формируем структурированный запрос к модели
+    const prompt = `
+    Ты - эксперт по обучению персонала отеля. Тебе нужно создать персонализированный учебный план для сотрудника.
+
+    Информация о сотруднике:
+    - Должность: ${userRole}
+    - Уровень: ${userLevel}
+    - Отдел: ${userDepartment}
+    - Целевые навыки для развития: ${skillsText}
+
+    Доступные курсы:
+    ${availableCourses.map(course => `- ID: ${course.id}, Название: "${course.title}", Описание: "${course.description || 'Нет описания'}", Отдел: "${course.department || 'Общий'}" ${course.duration ? `, Длительность: ${course.duration}` : ''}`).join('\n')}
+
+    Создай персонализированный учебный план, который поможет сотруднику развить указанные целевые навыки с учетом его должности, уровня и отдела.
+    
+    Ответ предоставь в виде JSON-объекта следующего формата:
+    {
+      "name": "Название учебного плана",
+      "description": "Подробное описание учебного плана и его целей",
+      "targetSkills": ["Навык 1", "Навык 2", "Навык 3"],
+      "recommendedCourses": [
+        {
+          "courseId": ID_курса,
+          "priority": "high|normal|low", 
+          "order": порядковый_номер_начиная_с_0,
+          "rationale": "Объяснение, почему этот курс важен"
+        }
+      ]
+    }
+
+    Важно: 
+    1. Рекомендуй только курсы из списка доступных курсов, используя их реальные ID
+    2. Приоритет должен быть строкой с одним из значений: "high" (высокий), "normal" (средний), "low" (низкий)
+    3. Order должен начинаться с 0 и указывать оптимальный порядок прохождения курсов
+    4. Рекомендуй от 3 до 5 курсов, в зависимости от их релевантности
+    5. Учитывай отдел сотрудника и целевые навыки при выборе курсов
+    6. Название и описание плана должны быть на русском языке и быть информативными
+    7. Дай краткое и чёткое обоснование каждого курса (rationale) - почему он важен для развития указанных навыков
+    `;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "Ты - AI-ассистент для системы обучения персонала отеля HotelLearn. Отвечай только валидным JSON." },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("Не удалось получить ответ от OpenAI");
+    }
+
+    // Парсим JSON из ответа
+    const learningPath = JSON.parse(content);
+    return learningPath;
+  } catch (error) {
+    console.error("Ошибка при генерации учебного плана с помощью AI:", error);
+    throw new Error("Не удалось сгенерировать персонализированный учебный план");
+  }
+}
+
 export default openai;
