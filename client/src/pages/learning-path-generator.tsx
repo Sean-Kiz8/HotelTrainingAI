@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
@@ -52,12 +52,28 @@ export default function LearningPathGenerator() {
     },
   });
 
+  // Проверяем, что пользователь залогинен
+  useEffect(() => {
+    if (!user || !user.id) {
+      toast({
+        title: "Необходима авторизация",
+        description: "Для создания учебного плана необходимо авторизоваться",
+        variant: "destructive",
+      });
+      navigate("/login");
+    }
+  }, [user, toast, navigate]);
+
   // Мутация для генерации учебного плана
   const generateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
+      if (!user || !user.id) {
+        throw new Error("Вы должны быть авторизованы для выполнения этой операции");
+      }
+
       const requestData = {
         userId: parseInt(data.userId),
-        createdById: user?.id,
+        createdById: user.id,
         position: data.position,
         level: data.level,
         targetSkills: data.targetSkills,

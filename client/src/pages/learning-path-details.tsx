@@ -127,9 +127,10 @@ export default function LearningPathDetails() {
   // Мутация для удаления плана обучения
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/learning-paths/${numericId}`, {
-        method: "DELETE"
-      });
+      return apiRequest(
+        "DELETE",
+        `/api/learning-paths/${numericId}`
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/learning-paths"] });
