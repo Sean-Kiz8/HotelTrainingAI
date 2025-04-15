@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
@@ -171,6 +171,18 @@ export default function LearningPaths() {
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("my");
+
+  // Проверяем, что пользователь залогинен
+  useEffect(() => {
+    if (!user || !user.id) {
+      toast({
+        title: "Необходима авторизация",
+        description: "Для просмотра учебных планов необходимо авторизоваться",
+        variant: "destructive",
+      });
+      navigate("/login");
+    }
+  }, [user, toast, navigate]);
 
   // Получаем список учебных планов текущего пользователя (если он админ, то это планы, созданные им)
   const isAdmin = user?.role === "admin";

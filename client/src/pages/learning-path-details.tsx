@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -82,6 +82,18 @@ export default function LearningPathDetails() {
   const [activeTab, setActiveTab] = useState("courses");
   const numericId = parseInt(id);
 
+  // Проверяем, что пользователь залогинен
+  useEffect(() => {
+    if (!user || !user.id) {
+      toast({
+        title: "Необходима авторизация",
+        description: "Для просмотра учебного плана необходимо авторизоваться",
+        variant: "destructive",
+      });
+      navigate("/login");
+    }
+  }, [user, toast, navigate]);
+
   // Получаем данные о плане обучения
   const { data: learningPath, isLoading } = useQuery({
     queryKey: ["/api/learning-paths", numericId],
@@ -152,9 +164,10 @@ export default function LearningPathDetails() {
   // Мутация для завершения курса в плане обучения
   const completeCourseInPathMutation = useMutation({
     mutationFn: async (courseId: number) => {
-      return apiRequest(`/api/learning-path-courses/${courseId}/complete`, {
-        method: "POST"
-      });
+      return apiRequest(
+        "POST", 
+        `/api/learning-path-courses/${courseId}/complete`
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/learning-paths", numericId] });
