@@ -54,21 +54,125 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 
+// Схема для создания нового модуля
+const createModuleSchema = z.object({
+  title: z.string().min(3, "Название должно содержать минимум 3 символа"),
+  description: z.string().min(10, "Описание должно содержать минимум 10 символов"),
+  orderIndex: z.number().optional(),
+});
+
+// Схема для создания нового урока
+const createLessonSchema = z.object({
+  title: z.string().min(3, "Название должно содержать минимум 3 символа"),
+  description: z.string().min(10, "Описание должно содержать минимум 10 символов"),
+  content: z.string().min(20, "Содержимое урока должно содержать минимум 20 символов"),
+  durationMinutes: z.number().min(1, "Длительность урока должна быть не менее 1 минуты"),
+  moduleId: z.number(),
+  orderIndex: z.number().optional(),
+});
+
+// Интерфейсы для модулей и уроков
+interface IModule {
+  id: number;
+  title: string;
+  description: string;
+  orderIndex: number;
+  courseId: number;
+  lessons?: ILesson[];
+}
+
+interface ILesson {
+  id: number;
+  title: string;
+  description: string;
+  content: string;
+  durationMinutes: number;
+  moduleId: number;
+  orderIndex: number;
+}
+
 export default function CourseDetailsPage() {
   const params = useParams();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const courseId = params.id ? parseInt(params.id) : undefined;
+  const [showAddModuleDialog, setShowAddModuleDialog] = useState(false);
+  const [showAddLessonDialog, setShowAddLessonDialog] = useState(false);
+  const [activeModuleId, setActiveModuleId] = useState<number | null>(null);
   
   // Fetch course by ID
-  const { data: course, isLoading, error } = useQuery<Course>({
+  const { data: course, isLoading: isLoadingCourse, error } = useQuery<Course>({
     queryKey: [`/api/courses/${courseId}`],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!courseId
   });
   
+  // Fetch modules for this course
+  const { data: modules = [], isLoading: isLoadingModules } = useQuery<IModule[]>({
+    queryKey: [`/api/modules`, { courseId }],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!courseId
+  });
+  
+  // Create module mutation
+  const createModuleMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof createModuleSchema>) => {
+      const res = await apiRequest("POST", "/api/modules", {
+        ...data,
+        courseId,
+        orderIndex: modules.length + 1
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/modules`] });
+      toast({
+        title: "Модуль создан",
+        description: "Новый модуль был успешно добавлен в курс",
+      });
+      setShowAddModuleDialog(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Ошибка при создании модуля",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Create lesson mutation
+  const createLessonMutation = useMutation({
+    mutationFn: async (data: z.infer<typeof createLessonSchema>) => {
+      const res = await apiRequest("POST", "/api/lessons", data);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/modules`] });
+      toast({
+        title: "Урок создан",
+        description: "Новый урок был успешно добавлен в модуль",
+      });
+      setShowAddLessonDialog(false);
+      setActiveModuleId(null);
+    },
+    onError: (error) => {
+      toast({
+        title: "Ошибка при создании урока",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Добавить урок в модуль
+  const handleAddLesson = (moduleId: number) => {
+    setActiveModuleId(moduleId);
+    setShowAddLessonDialog(true);
+  };
+  
   // Handle loading state
-  if (isLoading) {
+  if (isLoadingCourse || isLoadingModules) {
     return (
       <div className="p-4 md:p-6">
         <div className="flex items-center gap-2 mb-4">
@@ -201,7 +305,7 @@ export default function CourseDetailsPage() {
           <div className="bg-white p-6 rounded-lg shadow-sm mb-4">
             <h3 className="text-lg font-medium mb-4">Модули и уроки</h3>
             
-            {isLoading ? (
+            {isLoadingModules ? (
               <div className="space-y-3">
                 <Skeleton className="h-12 w-full" />
                 <Skeleton className="h-12 w-full" />
@@ -479,6 +583,217 @@ export default function CourseDetailsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+      
+      {/* Диалог для добавления нового модуля */}
+      <Dialog open={showAddModuleDialog} onOpenChange={setShowAddModuleDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить новый модуль</DialogTitle>
+            <DialogDescription>
+              Модуль - это раздел курса, который объединяет связанные уроки.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <AddModuleForm
+            courseId={courseId!}
+            onSubmit={(data) => {
+              createModuleMutation.mutate(data);
+            }}
+            isPending={createModuleMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
+      
+      {/* Диалог для добавления нового урока */}
+      <Dialog open={showAddLessonDialog} onOpenChange={setShowAddLessonDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить новый урок</DialogTitle>
+            <DialogDescription>
+              Добавьте урок в выбранный модуль. Уроки - это единицы обучения, которые содержат обучающий контент.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <AddLessonForm
+            moduleId={activeModuleId!}
+            onSubmit={(data) => {
+              createLessonMutation.mutate(data);
+            }}
+            isPending={createLessonMutation.isPending}
+          />
+        </DialogContent>
+      </Dialog>
     </div>
+  );
+}
+
+// Форма для добавления модуля
+function AddModuleForm({ 
+  courseId, 
+  onSubmit, 
+  isPending = false 
+}: { 
+  courseId: number; 
+  onSubmit: (data: z.infer<typeof createModuleSchema>) => void;
+  isPending?: boolean;
+}) {
+  const form = useForm<z.infer<typeof createModuleSchema>>({
+    resolver: zodResolver(createModuleSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+    },
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Название модуля</FormLabel>
+              <FormControl>
+                <Input placeholder="Введите название модуля" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Описание модуля</FormLabel>
+              <FormControl>
+                <Input placeholder="Введите описание модуля" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <DialogFooter>
+          <Button type="submit" disabled={isPending}>
+            {isPending && <span className="mr-2">
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>}
+            Добавить модуль
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
+  );
+}
+
+// Форма для добавления урока
+function AddLessonForm({ 
+  moduleId, 
+  onSubmit, 
+  isPending = false 
+}: { 
+  moduleId: number; 
+  onSubmit: (data: z.infer<typeof createLessonSchema>) => void;
+  isPending?: boolean;
+}) {
+  const form = useForm<z.infer<typeof createLessonSchema>>({
+    resolver: zodResolver(createLessonSchema),
+    defaultValues: {
+      title: "",
+      description: "",
+      content: "",
+      durationMinutes: 30,
+      moduleId: moduleId,
+    },
+  });
+
+  return (
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Название урока</FormLabel>
+              <FormControl>
+                <Input placeholder="Введите название урока" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="description"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Краткое описание</FormLabel>
+              <FormControl>
+                <Input placeholder="Введите краткое описание урока" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="content"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Содержимое урока</FormLabel>
+              <FormControl>
+                <textarea 
+                  className="flex min-h-[120px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  placeholder="Введите содержимое урока" 
+                  {...field} 
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={form.control}
+          name="durationMinutes"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Длительность (в минутах)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  min="1" 
+                  placeholder="Длительность в минутах" 
+                  {...field}
+                  onChange={(e) => field.onChange(parseInt(e.target.value))}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <DialogFooter>
+          <Button type="submit" disabled={isPending}>
+            {isPending && <span className="mr-2">
+              <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+            </span>}
+            Добавить урок
+          </Button>
+        </DialogFooter>
+      </form>
+    </Form>
   );
 }
