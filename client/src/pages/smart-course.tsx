@@ -6,7 +6,7 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 
 export default function SmartCoursePage() {
-  const { user, loading } = useAuth();
+  const { user, isLoading } = useAuth();
   const isAuthenticated = !!user;
   const [, setLocation] = useLocation();
 
@@ -33,17 +33,15 @@ export default function SmartCoursePage() {
   }
 
   return (
-    <Layout>
-      <Container className="py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold mb-2">SmartCourse - Интеллектуальный конструктор курсов</h1>
-          <p className="text-muted-foreground">
-            Загрузите ваши материалы, и ИИ создаст структурированный курс обучения для сотрудников отеля
-          </p>
-        </div>
-        
-        <SmartCourseCreator />
-      </Container>
-    </Layout>
+    <div className="py-8 px-6">
+      <div className="mb-8">
+        <h1 className="text-2xl font-bold mb-2">SmartCourse - Интеллектуальный конструктор курсов</h1>
+        <p className="text-muted-foreground">
+          Загрузите ваши материалы, и ИИ создаст структурированный курс обучения для сотрудников отеля
+        </p>
+      </div>
+      
+      <SmartCourseCreator />
+    </div>
   );
 }

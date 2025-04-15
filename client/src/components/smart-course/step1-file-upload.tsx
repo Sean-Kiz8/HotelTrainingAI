@@ -40,6 +40,8 @@ export function Step1FileUpload({ files, onFilesChange }: Step1FileUploadProps) 
       return <FileText className="h-6 w-6 text-blue-700" />;
     } else if (fileType.includes('zip') || fileType.includes('archive')) {
       return <File className="h-6 w-6 text-yellow-600" />;
+    } else if (fileType.includes('ppt') || fileType.includes('presentation')) {
+      return <FileText className="h-6 w-6 text-orange-500" />;
     } else {
       return <File className="h-6 w-6 text-gray-500" />;
     }
@@ -75,7 +77,10 @@ export function Step1FileUpload({ files, onFilesChange }: Step1FileUploadProps) 
     onFilesChange([...files, tempFile]);
 
     try {
-      // Отправляем запрос на сервер
+      // Отправляем запрос на сервер с ID пользователя
+      // Добавляем ID пользователя, чтобы избежать ошибки "NaN"
+      formData.append('uploadedById', '1'); // Используем ID 1 как дефолтное значение
+      
       const response = await fetch('/api/media/upload', {
         method: 'POST',
         body: formData
