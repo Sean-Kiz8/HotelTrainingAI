@@ -682,7 +682,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Onboarding progress for dashboard
-  app.get("/api/onboarding", async (req, res) => {
+  app.get("/api/onboarding-progress", async (req, res) => {
     try {
       // In a real app, this would pull actual onboarding data
       // For now, we'll return mock data for the UI
@@ -711,6 +711,72 @@ export async function registerRoutes(app: Express): Promise<Server> {
       ]);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch onboarding data" });
+    }
+  });
+  
+  // Onboarding steps for walk-through guide
+  app.get("/api/onboarding", async (req, res) => {
+    try {
+      res.json([
+        {
+          id: 1,
+          name: "Добро пожаловать в HotelLearn",
+          description: "Система обучения персонала гостиницы. Здесь вы найдете все необходимые учебные материалы, курсы и инструменты для эффективного обучения.", 
+          position: "bottom",
+          selector: ".logo-container",
+          action: "Давайте начнем знакомство с системой!"
+        },
+        {
+          id: 2,
+          name: "Дашборд",
+          description: "Это главная страница системы, где отображается статистика, ваш прогресс обучения и последние активности.",
+          position: "right",
+          selector: "[data-section='stats']",
+          action: "Здесь вы можете отслеживать эффективность обучения персонала."
+        },
+        {
+          id: 3,
+          name: "Навигация",
+          description: "Используйте боковое меню для перехода между разделами системы.",
+          position: "right",
+          selector: "aside nav",
+          action: "Нажмите на любой пункт меню, чтобы перейти в соответствующий раздел."
+        },
+        {
+          id: 4,
+          name: "Создание курсов",
+          description: "Как тренинг-менеджер, вы можете создавать новые курсы, добавлять модули и уроки.",
+          position: "bottom",
+          selector: "[data-section='quick-actions']",
+          action: "Нажмите 'Создать курс', чтобы приступить к созданию нового учебного материала."
+        },
+        {
+          id: 5,
+          name: "Чат-помощник",
+          description: "У вас есть доступ к AI-ассистенту, который поможет ответить на вопросы по работе системы и учебным материалам.",
+          position: "left",
+          selector: "aside button:has(.material-icons:contains('chat'))",
+          action: "Нажмите на кнопку чата, чтобы задать вопрос ассистенту."
+        },
+        {
+          id: 6,
+          name: "Геймификация",
+          description: "Система включает элементы геймификации — достижения, баллы и рейтинги, чтобы сделать обучение более увлекательным.",
+          position: "bottom",
+          selector: "aside nav div:contains('Достижения')",
+          action: "Исследуйте эти разделы, чтобы узнать больше о механиках игрофикации."
+        },
+        {
+          id: 7,
+          name: "Готово!",
+          description: "Теперь вы знакомы с основными функциями HotelLearn. Если у вас возникнут вопросы, всегда можно нажать кнопку помощи или обратиться к AI-ассистенту.",
+          position: "bottom",
+          selector: "aside button.onboarding-button",
+          action: "Нажмите на кнопку помощи (?), чтобы снова открыть это руководство в любое время."
+        }
+      ]);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch onboarding steps" });
     }
   });
 

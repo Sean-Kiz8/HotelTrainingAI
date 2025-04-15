@@ -34,7 +34,7 @@ function OnboardingItem({ name, department, progress, duration }: OnboardingItem
 
 export function OnboardingStatus() {
   const { data, isLoading } = useQuery({
-    queryKey: ["/api/onboarding"],
+    queryKey: ["/api/onboarding-progress"],
   });
   
   return (
