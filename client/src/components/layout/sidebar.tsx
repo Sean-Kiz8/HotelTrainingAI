@@ -26,10 +26,19 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const { openChatbot } = useChatbot();
   
-  if (!user) return null;
+  // Всегда отображаем боковое меню на десктопе, не проверяем user
+  // Используем заглушку для демонстрации
+  const mockUser = {
+    name: "Админ",
+    role: "admin",
+    position: "Менеджер",
+    avatar: ""
+  };
+  
+  const userInfo = user || mockUser;
   
   return (
-    <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r border-neutral-200 bg-white">
+    <aside className="md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r border-neutral-200 bg-white">
       <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
         {/* Logo */}
         <div className="flex items-center flex-shrink-0 px-4 mb-5">
@@ -41,12 +50,12 @@ export function Sidebar() {
         <div className="flex-shrink-0 px-4 pb-3 border-b border-neutral-200">
           <div className="flex items-center">
             <Avatar className="w-10 h-10 mr-3">
-              <AvatarImage src={user.avatar || ""} alt={user.name} />
-              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={userInfo.avatar || ""} alt={userInfo.name} />
+              <AvatarFallback>{userInfo.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium">{user.name}</p>
-              <p className="text-xs text-neutral-500">{user.role === "admin" ? "Тренинг-менеджер" : user.position}</p>
+              <p className="font-medium">{userInfo.name}</p>
+              <p className="text-xs text-neutral-500">{userInfo.role === "admin" ? "Тренинг-менеджер" : userInfo.position}</p>
             </div>
           </div>
         </div>

@@ -17,17 +17,19 @@ import Achievements from "./pages/achievements";
 import Discussions from "./pages/discussions";
 import MediaLibrary from "./pages/media-library";
 import NotFound from "./pages/not-found";
-import LoginForm from "./components/auth/login-form";
+// Форма логина временно отключена для работы с боковым меню
+// import LoginForm from "./components/auth/login-form";
 import { useAuth } from "./context/auth-context";
 
 // Компонент для роутинга
 function AppRoutes() {
   const { user } = useAuth();
   
+  // Временно отключаем проверку на наличие пользователя
   if (!user) {
     return (
       <div className="h-screen flex items-center justify-center bg-neutral-50">
-        <LoginForm />
+        <div>Загрузка...</div>
       </div>
     );
   }
