@@ -242,11 +242,21 @@ export default function CourseDetailsPage() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+      
+      // Отменяем все запросы, связанные с этим курсом
+      queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/modules?courseId=${courseId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/enrollments?courseId=${courseId}`] });
+      
       toast({
         title: "Успех",
         description: "Курс успешно удален",
       });
-      setLocation('/courses');
+      
+      // Используем setTimeout, чтобы дать время очистить кэш перед перенаправлением
+      setTimeout(() => {
+        window.location.href = '/courses';  // Используем прямое изменение URL вместо setLocation
+      }, 100);
     },
     onError: (error: Error) => {
       toast({
