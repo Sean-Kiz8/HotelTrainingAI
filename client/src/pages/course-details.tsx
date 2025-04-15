@@ -365,7 +365,8 @@ export default function CourseDetailsPage() {
                             {module.lessons.map((lesson) => (
                               <div 
                                 key={lesson.id} 
-                                className="flex items-center justify-between border rounded-md p-3 hover:bg-muted/50"
+                                className="flex items-center justify-between border rounded-md p-3 hover:bg-muted/50 cursor-pointer"
+                                onClick={() => setLocation(`/lesson/${lesson.id}`)}
                               >
                                 <div className="flex items-center">
                                   <span className="material-icons mr-2 text-muted-foreground">description</span>
@@ -373,21 +374,42 @@ export default function CourseDetailsPage() {
                                 </div>
                                 <DropdownMenu>
                                   <DropdownMenuTrigger asChild>
-                                    <Button variant="ghost" size="sm">
+                                    <Button variant="ghost" size="sm" onClick={(e) => e.stopPropagation()}>
                                       <MoreHorizontal className="h-4 w-4" />
                                     </Button>
                                   </DropdownMenuTrigger>
                                   <DropdownMenuContent align="end">
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => {
+                                      e.stopPropagation();
+                                      // Здесь в будущем будет редактирование
+                                      toast({
+                                        title: "Редактирование урока",
+                                        description: "Функция редактирования урока в разработке",
+                                      });
+                                    }}>
                                       <Edit className="h-4 w-4 mr-2" />
                                       <span>Редактировать</span>
                                     </DropdownMenuItem>
-                                    <DropdownMenuItem>
+                                    <DropdownMenuItem onClick={(e) => {
+                                      e.stopPropagation();
+                                      setLocation(`/lesson/${lesson.id}`);
+                                    }}>
                                       <Eye className="h-4 w-4 mr-2" />
                                       <span>Предпросмотр</span>
                                     </DropdownMenuItem>
                                     <DropdownMenuSeparator />
-                                    <DropdownMenuItem className="text-destructive">
+                                    <DropdownMenuItem 
+                                      className="text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        // Здесь в будущем будет удаление
+                                        toast({
+                                          title: "Удаление урока",
+                                          description: "Функция удаления урока в разработке",
+                                          variant: "destructive",
+                                        });
+                                      }}
+                                    >
                                       <Trash2 className="h-4 w-4 mr-2" />
                                       <span>Удалить</span>
                                     </DropdownMenuItem>

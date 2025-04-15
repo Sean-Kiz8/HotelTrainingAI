@@ -1,14 +1,15 @@
-import { useEffect, useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
+import { useQuery } from "@tanstack/react-query";
+import { getQueryFn } from "@/lib/queryClient";
 
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
-import { PageHeader, PageHeaderHeading, PageHeaderDescription } from "@/components/page-header";
 import { Button } from "@/components/ui/button";
+import { PageHeader, PageHeaderHeading, PageHeaderDescription } from "@/components/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { ChevronLeft, Video, File, ExternalLink, CheckCircle, Clock } from "lucide-react";
 
 export default function LessonViewPage() {
   const params = useParams();
@@ -16,41 +17,33 @@ export default function LessonViewPage() {
   const { toast } = useToast();
   const lessonId = params.id ? parseInt(params.id) : undefined;
   
-  // Fetch lesson by ID
-  const { data: lesson, isLoading, error } = useQuery<any>({
+  // Получаем урок
+  const { data: lesson, isLoading: isLoadingLesson, error } = useQuery({
     queryKey: [`/api/lessons/${lessonId}`],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!lessonId
   });
   
-  // Create lesson progress mutation
-  const markProgressMutation = useMutation({
-    mutationFn: async () => {
-      if (!lesson) return null;
-      
-      const res = await apiRequest("POST", "/api/lesson-progress", {
-        lessonId: lesson.id,
-        completed: true
-      });
-      return await res.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Прогресс обновлен",
-        description: "Урок отмечен как завершенный",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Ошибка при обновлении прогресса",
-        description: error.message,
-        variant: "destructive",
-      });
-    }
+  // Получаем модуль для этого урока
+  const { data: module, isLoading: isLoadingModule } = useQuery({
+    queryKey: [`/api/modules/${lesson?.moduleId}`],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!lesson?.moduleId
   });
   
-  // Handle loading state
-  if (isLoading) {
+  // Запоминаем id курса для возврата назад
+  const courseId = module?.courseId;
+  
+  // Отмечаем прогресс просмотра урока
+  useEffect(() => {
+    if (lesson && !isLoadingLesson) {
+      // В будущем здесь будет логика записи прогресса
+      console.log("Урок просмотрен:", lesson.id);
+    }
+  }, [lesson, isLoadingLesson]);
+  
+  // Отображаем состояние загрузки
+  if (isLoadingLesson || isLoadingModule) {
     return (
       <div className="p-4 md:p-6">
         <div className="flex items-center gap-2 mb-4">
@@ -63,7 +56,7 @@ export default function LessonViewPage() {
     );
   }
   
-  // Handle error or no lesson found
+  // Обрабатываем ошибку
   if (error || !lesson) {
     return (
       <div className="p-4 md:p-6">
@@ -71,10 +64,10 @@ export default function LessonViewPage() {
           variant="outline" 
           size="sm" 
           className="mb-4"
-          onClick={() => setLocation('/courses')}
+          onClick={() => setLocation(courseId ? `/course-details/${courseId}` : '/courses')}
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
-          Назад к курсам
+          Назад к курсу
         </Button>
         
         <Card className="text-center p-8">
@@ -83,8 +76,8 @@ export default function LessonViewPage() {
             <p className="text-muted-foreground mb-4">
               Урок с идентификатором {lessonId} не существует или был удален
             </p>
-            <Button onClick={() => setLocation('/courses')}>
-              Вернуться к списку курсов
+            <Button onClick={() => setLocation(courseId ? `/course-details/${courseId}` : '/courses')}>
+              Вернуться к курсу
             </Button>
           </CardContent>
         </Card>
@@ -98,13 +91,7 @@ export default function LessonViewPage() {
         <Button 
           variant="outline" 
           size="sm"
-          onClick={() => {
-            if (lesson.moduleId) {
-              setLocation(`/course-details/${lesson.courseId}`);
-            } else {
-              setLocation('/courses');
-            }
-          }}
+          onClick={() => setLocation(`/course-details/${courseId}`)}
         >
           <ChevronLeft className="mr-2 h-4 w-4" />
           Назад к курсу
@@ -113,24 +100,114 @@ export default function LessonViewPage() {
       
       <PageHeader className="mb-6">
         <PageHeaderHeading>{lesson.title}</PageHeaderHeading>
-        <PageHeaderDescription>{lesson.description}</PageHeaderDescription>
+        {lesson.description && (
+          <PageHeaderDescription>{lesson.description}</PageHeaderDescription>
+        )}
+        <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
+          {module && (
+            <div className="flex items-center">
+              <span>Модуль: {module.title}</span>
+            </div>
+          )}
+          {lesson.durationMinutes && (
+            <div className="flex items-center">
+              <Clock className="h-4 w-4 mr-1" />
+              <span>{lesson.durationMinutes} мин.</span>
+            </div>
+          )}
+        </div>
       </PageHeader>
       
-      <Card className="mb-6">
-        <CardContent className="p-6">
-          <div className="prose max-w-none">
-            <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
-          </div>
-        </CardContent>
-      </Card>
-      
-      <div className="flex justify-end">
-        <Button
-          onClick={() => markProgressMutation.mutate()}
-          disabled={markProgressMutation.isPending}
-        >
-          Отметить как завершенный
-        </Button>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Основной контент урока */}
+        <div className="col-span-1 lg:col-span-2">
+          <Card>
+            <CardContent className="p-6">
+              {/* Контент урока */}
+              <div className="prose max-w-none">
+                {lesson.content ? (
+                  <div dangerouslySetInnerHTML={{ __html: lesson.content }} />
+                ) : (
+                  <p className="text-muted-foreground">Содержимое урока отсутствует</p>
+                )}
+              </div>
+              
+              {/* Медиа-файлы урока */}
+              {lesson.media && lesson.media.length > 0 && (
+                <div className="mt-6">
+                  <h3 className="text-lg font-medium mb-3">Материалы урока</h3>
+                  <div className="space-y-3">
+                    {lesson.media.map((media: any) => (
+                      <div key={media.id} className="flex items-center p-3 border rounded-md">
+                        {media.mediaType === 'video' ? (
+                          <Video className="h-5 w-5 mr-3 text-blue-500" />
+                        ) : (
+                          <File className="h-5 w-5 mr-3 text-blue-500" />
+                        )}
+                        <div className="flex-1">
+                          <p className="font-medium">{media.title || media.filename}</p>
+                          <p className="text-sm text-muted-foreground">{media.description || ''}</p>
+                        </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => window.open(`/uploads/${media.path}`, '_blank')}
+                        >
+                          <ExternalLink className="h-4 w-4 mr-1" />
+                          Открыть
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {/* Кнопка "Завершить урок" */}
+              <div className="mt-8 flex justify-end">
+                <Button 
+                  className="flex items-center"
+                  onClick={() => {
+                    toast({
+                      title: "Урок завершен",
+                      description: "Ваш прогресс сохранен",
+                    });
+                    // В будущем отправка завершения на сервер
+                    setLocation(`/course-details/${courseId}`);
+                  }}
+                >
+                  <CheckCircle className="h-4 w-4 mr-2" />
+                  Отметить как завершенный
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        {/* Навигация и дополнительные материалы */}
+        <div className="col-span-1">
+          <Card className="sticky top-6">
+            <CardContent className="p-4">
+              <h3 className="font-medium mb-3">Навигация по курсу</h3>
+              
+              <div className="space-y-2">
+                <Button 
+                  variant="outline" 
+                  className="w-full justify-start text-left"
+                  onClick={() => setLocation(`/course-details/${courseId}`)}
+                >
+                  <span className="truncate">Вернуться к обзору курса</span>
+                </Button>
+                
+                {/* Здесь в будущем будет навигация по урокам */}
+                <Separator className="my-3" />
+                
+                <div className="text-sm text-muted-foreground">
+                  <p>Функция навигации между уроками находится в разработке</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
