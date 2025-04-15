@@ -226,37 +226,21 @@ export default function CourseDetailsPage() {
       if (!res.ok) {
         throw new Error("Failed to delete course");
       }
-      
-      // Проверка на пустой ответ или ответ, не являющийся JSON
-      const text = await res.text();
-      if (!text || text.trim() === '') {
-        return { success: true };
-      }
-      
-      try {
-        return JSON.parse(text);
-      } catch (e) {
-        // Если ответ не является JSON, просто возвращаем успех
-        return { success: true };
-      }
+      return;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
-      
-      // Отменяем все запросы, связанные с этим курсом
       queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/modules?courseId=${courseId}`] });
       queryClient.invalidateQueries({ queryKey: [`/api/enrollments?courseId=${courseId}`] });
-      
+
       toast({
         title: "Успех",
         description: "Курс успешно удален",
       });
-      
-      // Используем setTimeout, чтобы дать время очистить кэш перед перенаправлением
-      setTimeout(() => {
-        window.location.href = '/courses';  // Используем прямое изменение URL вместо setLocation
-      }, 100);
+
+      // Немедленно перенаправляем пользователя
+      setLocation('/courses');
     },
     onError: (error: Error) => {
       toast({
