@@ -269,14 +269,14 @@ export function MediaGallery({ userId, selectable = false, onSelect, mediaTypeFi
         </div>
         
         <Select
-          value={mediaTypeFilter || ""}
-          onValueChange={(value) => setMediaTypeFilter(value || null)}
+          value={mediaTypeFilter || "all"}
+          onValueChange={(value) => setMediaTypeFilter(value === "all" ? null : value)}
         >
           <SelectTrigger className="w-[180px]">
             <SelectValue placeholder="Тип файла" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">Все типы</SelectItem>
+            <SelectItem value="all">Все типы</SelectItem>
             <SelectItem value="image">Изображения</SelectItem>
             <SelectItem value="video">Видео</SelectItem>
             <SelectItem value="audio">Аудио</SelectItem>
