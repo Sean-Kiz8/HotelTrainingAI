@@ -99,6 +99,13 @@ export default function CourseDetailsPage() {
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
   
+  // Fetch enrollments for this course
+  const { data: enrollments = [], isLoading: isLoadingEnrollments } = useQuery<any[]>({
+    queryKey: [`/api/enrollments?courseId=${courseId}`],
+    queryFn: getQueryFn({ on401: "returnNull" }),
+    enabled: !!courseId
+  });
+  
   // Create module mutation
   const createModuleMutation = useMutation({
     mutationFn: async (data: z.infer<typeof createModuleSchema>) => {
@@ -177,7 +184,9 @@ export default function CourseDetailsPage() {
       return await res.json();
     },
     onSuccess: () => {
+      // Инвалидируем кэш курса и списка участников
       queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/enrollments?courseId=${courseId}`] });
       toast({
         title: "Успех",
         description: "Пользователь успешно добавлен на курс",
@@ -473,18 +482,57 @@ export default function CourseDetailsPage() {
         <TabsContent value="students" className="mt-4">
           <Card>
             <CardContent className="p-6">
-              <h3 className="text-lg font-medium mb-4">Участники курса</h3>
-              
-              <div className="text-center py-12 text-muted-foreground">
-                <p>У этого курса пока нет участников</p>
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-lg font-medium">Участники курса</h3>
                 <Button 
-                  className="mt-3" 
                   variant="outline"
+                  size="sm"
                   onClick={() => setShowAddParticipantDialog(true)}
                 >
+                  <Plus className="h-4 w-4 mr-2" />
                   Добавить участников
                 </Button>
               </div>
+              
+              {isLoadingEnrollments ? (
+                <div className="space-y-2">
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                  <Skeleton className="h-12 w-full" />
+                </div>
+              ) : enrollments && enrollments.length > 0 ? (
+                <div className="divide-y">
+                  {enrollments.map((enrollment) => (
+                    <div key={enrollment.id} className="py-3 flex items-center justify-between">
+                      <div className="flex items-center">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary mr-3">
+                          {enrollment.user?.username?.charAt(0).toUpperCase() || '?'}
+                        </div>
+                        <div>
+                          <p className="font-medium">{enrollment.user?.username || 'Неизвестный пользователь'}</p>
+                          <p className="text-sm text-muted-foreground">
+                            Прогресс: {enrollment.progress || 0}%
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant={enrollment.completed ? "success" : "secondary"}>
+                        {enrollment.completed ? "Завершено" : "В процессе"}
+                      </Badge>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-muted-foreground">
+                  <p>У этого курса пока нет участников</p>
+                  <Button 
+                    className="mt-3" 
+                    variant="outline"
+                    onClick={() => setShowAddParticipantDialog(true)}
+                  >
+                    Добавить участников
+                  </Button>
+                </div>
+              )}
             </CardContent>
           </Card>
         </TabsContent>
