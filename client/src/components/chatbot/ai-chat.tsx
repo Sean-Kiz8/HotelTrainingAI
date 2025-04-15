@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useChatbot } from "@/context/chatbot-context";
 import { useAuth } from "@/context/auth-context";
+import { FileUploadButton } from "./file-upload-button";
+import { Send } from "lucide-react";
 
 export function AIChat() {
   const { 
@@ -109,19 +111,30 @@ export function AIChat() {
         
         <div className="border-t border-neutral-200 p-3">
           <form onSubmit={handleSendMessage} className="flex">
+            <div className="flex items-center bg-background rounded-l-md border border-r-0 border-input pl-2">
+              <FileUploadButton 
+                userId={user?.id || 1} 
+                onUploadComplete={(chatMessage) => {
+                  // Добавляем полученное сообщение в чат
+                  setMessages(prev => [...prev, chatMessage]);
+                }}
+                disabled={isLoading}
+              />
+            </div>
             <Input
               type="text"
               placeholder="Введите ваш вопрос..."
-              className="flex-1 rounded-r-none"
+              className="flex-1 rounded-none border-l-0"
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
             />
             <Button 
               type="submit"
-              className="bg-primary text-white px-3 py-2 rounded-l-none" 
+              className="bg-primary text-white rounded-l-none" 
               disabled={!inputValue.trim() || isLoading}
+              size="icon"
             >
-              <span className="material-icons text-sm">send</span>
+              <Send className="h-4 w-4" />
             </Button>
           </form>
           <div className="mt-2 flex flex-wrap gap-1">

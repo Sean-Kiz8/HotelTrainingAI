@@ -392,7 +392,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 // Get lesson media to have more context about the content
                 const lessonMedia = await storage.listMediaByLesson(lesson.id);
                 if (lessonMedia.length > 0) {
-                  detailedCourseContent += `      Media: ${lessonMedia.map(m => m.title).join(', ')}\n`;
+                  // Получаем медиафайлы для каждого элемента lessonMedia
+                  const mediaDetails = await Promise.all(
+                    lessonMedia.map(async (lm) => {
+                      const mediaFile = await storage.getMediaFile(lm.mediaId);
+                      return mediaFile ? mediaFile.originalFilename : "Неизвестный файл";
+                    })
+                  );
+                  detailedCourseContent += `      Media: ${mediaDetails.join(', ')}\n`;
                 }
               }
             }
@@ -465,6 +472,132 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(chatHistory);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch chat history" });
+    }
+  });
+  
+  // Эндпоинт для загрузки файлов для анализа чат-ботом
+  app.post("/api/chat/upload", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "Файл не был загружен" });
+      }
+      
+      const { userId } = req.body;
+      if (!userId) {
+        return res.status(400).json({ message: "ID пользователя обязателен" });
+      }
+      
+      // Сохраняем информацию о файле в базе данных
+      const filePath = req.file.path;
+      const relativePath = `/uploads/media/${req.file.filename}`;
+      const fileType = getMediaTypeFromMimeType(req.file.mimetype);
+      
+      // Создаем запись о медиафайле
+      const mediaFile = await storage.createMediaFile({
+        originalFilename: req.file.originalname,
+        path: relativePath,
+        filename: req.file.filename,
+        mimeType: req.file.mimetype,
+        fileSize: req.file.size,
+        url: relativePath,
+        uploadedById: parseInt(userId),
+        mediaType: fileType,
+        metadata: { 
+          description: "Файл для анализа чат-ботом", 
+          uploadedFor: "chatbot"
+        }
+      });
+      
+      // Извлекаем текст или содержимое файла (зависит от типа файла)
+      let fileContent = "";
+      
+      if (fileType === "document" && (req.file.mimetype === "application/pdf" || req.file.mimetype.includes("text/plain"))) {
+        // Для PDF или текстовых файлов можно использовать библиотеку для извлечения текста
+        // Здесь упрощенный вариант для текстовых файлов
+        if (req.file.mimetype.includes("text/plain")) {
+          fileContent = fs.readFileSync(filePath, "utf8");
+        } else {
+          // Для PDF потребуется дополнительная обработка (в реальном проекте)
+          fileContent = "Содержимое PDF-файла. В реальном проекте здесь был бы извлеченный текст.";
+        }
+      }
+      
+      // Формируем сообщение от пользователя
+      const chatData = {
+        userId: parseInt(userId),
+        message: `Проанализируй файл: ${req.file.originalname}`,
+        metadata: {
+          fileId: mediaFile.id,
+          filePath: relativePath,
+          fileType: fileType,
+          fileContent: fileContent
+        }
+      };
+      
+      // Создаем запись о сообщении в чате
+      const chatMessage = await storage.createChatMessage(chatData);
+      
+      try {
+        // Получаем пользователя для контекста
+        const user = await storage.getUser(parseInt(userId));
+        
+        let systemPrompt = `
+          Ты помощник по обучению в системе HotelLearn.
+          Тебе предоставлен файл для анализа: ${req.file.originalname} (тип: ${fileType}).
+          
+          Пользователь ${user?.name || 'отель-менеджер'} просит проанализировать этот файл.
+        `;
+        
+        // Добавляем содержимое файла в контекст, если оно доступно
+        if (fileContent) {
+          systemPrompt += `\n\nСодержимое файла:\n"""${fileContent}"""\n`;
+        } else {
+          systemPrompt += `\n\nСодержимое файла не может быть извлечено автоматически.`;
+        }
+        
+        systemPrompt += `
+          Проанализируй файл и предоставь полезную информацию для обучения сотрудников отеля.
+          Если содержимое недоступно, предложи, как пользователь может предоставить информацию из файла
+          в текстовом формате для анализа.
+        `;
+        
+        // Запрос к OpenAI
+        const openaiResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: `Проанализируй файл "${req.file.originalname}" и предоставь полезную информацию.` }
+          ],
+        });
+        
+        const aiResponse = openaiResponse.choices[0].message.content || "Извините, не удалось проанализировать файл.";
+        
+        // Обновляем сообщение с ответом AI
+        const updatedChatMessage = await storage.updateChatResponse(chatMessage.id, aiResponse);
+        
+        res.json({
+          success: true,
+          message: "Файл успешно загружен и проанализирован",
+          chatMessage: updatedChatMessage,
+          mediaFile
+        });
+      } catch (aiError) {
+        console.error("OpenAI API error:", aiError);
+        
+        // Всё равно возвращаем сообщение, но с ошибкой
+        const errorResponse = "Извините, у меня возникли трудности с анализом файла. Пожалуйста, попробуйте позже или загрузите файл в другом формате.";
+        const updatedChatMessage = await storage.updateChatResponse(chatMessage.id, errorResponse);
+        
+        res.json({
+          success: true,
+          message: "Файл загружен, но возникли проблемы с анализом",
+          chatMessage: updatedChatMessage,
+          mediaFile
+        });
+      }
+    } catch (error) {
+      console.error("Ошибка при обработке файла:", error);
+      res.status(500).json({ message: "Не удалось обработать файл" });
     }
   });
   

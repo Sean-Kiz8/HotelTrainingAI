@@ -12,6 +12,8 @@ interface ChatbotContextType {
   sendMessage: (message: string, userId?: number) => Promise<void>;
   isLoading: boolean;
   loadUserChatHistory: (userId: number) => Promise<void>;
+  addMessage: (message: ChatMessage) => void;
+  historyLoaded: boolean;
 }
 
 // Create default context values
@@ -23,7 +25,9 @@ const defaultContextValue: ChatbotContextType = {
   messages: [],
   sendMessage: async () => {},
   isLoading: false,
-  loadUserChatHistory: async () => {}
+  loadUserChatHistory: async () => {},
+  addMessage: () => {},
+  historyLoaded: false
 };
 
 const ChatbotContext = createContext<ChatbotContextType>(defaultContextValue);
@@ -108,6 +112,11 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
     }
   };
   
+  // Функция для добавления внешнего сообщения (например, от загрузки файла)
+  const addMessage = (message: ChatMessage) => {
+    setMessages(prev => [...prev, message]);
+  };
+  
   return (
     <ChatbotContext.Provider 
       value={{ 
@@ -118,7 +127,9 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
         messages,
         sendMessage,
         isLoading,
-        loadUserChatHistory
+        loadUserChatHistory,
+        addMessage,
+        historyLoaded: hasLoadedHistory.current
       }}
     >
       {children}
