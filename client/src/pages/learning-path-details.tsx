@@ -103,9 +103,10 @@ export default function LearningPathDetails() {
   // Мутация для завершения плана обучения
   const completeMutation = useMutation({
     mutationFn: async () => {
-      return apiRequest(`/api/learning-paths/${numericId}/complete`, {
-        method: "POST"
-      });
+      return apiRequest(
+        "POST",
+        `/api/learning-paths/${numericId}/complete`
+      );
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/learning-paths", numericId] });

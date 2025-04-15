@@ -63,10 +63,11 @@ export default function LearningPathGenerator() {
         targetSkills: data.targetSkills,
       };
       
-      return apiRequest("/api/learning-paths/generate", {
-        method: "POST",
-        body: JSON.stringify(requestData),
-      });
+      return apiRequest(
+        "POST",
+        "/api/learning-paths/generate",
+        requestData
+      ).then(response => response.json());
     },
     onSuccess: (data) => {
       // Инвалидируем кеш для обновления списка учебных планов
