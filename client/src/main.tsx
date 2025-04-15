@@ -10,6 +10,7 @@ import { ChatbotButton } from "./components/chatbot/chatbot-button";
 import Mockup from "./mockup";
 import AllCourses from "./pages/all-courses";
 import CourseDetails from "./pages/course-details";
+import Analytics from "./pages/analytics";
 
 // Простая маршрутизация
 function AppRoutes() {
@@ -18,6 +19,7 @@ function AppRoutes() {
       <Route path="/" component={Mockup} />
       <Route path="/courses" component={AllCourses} />
       <Route path="/course/:id" component={CourseDetails} />
+      <Route path="/analytics" component={Analytics} />
       <Route path="/:rest*">
         {() => <Mockup />}
       </Route>
