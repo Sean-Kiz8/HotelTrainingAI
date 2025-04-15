@@ -150,16 +150,9 @@ export default function LearningPathDetails() {
   // Мутация для завершения курса в плане обучения
   const completeCourseInPathMutation = useMutation({
     mutationFn: async (courseId: number) => {
-      const response = await apiRequest(`/api/learning-path-courses/${courseId}/complete`, {
+      return apiRequest(`/api/learning-path-courses/${courseId}/complete`, {
         method: "POST"
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Не удалось завершить курс в плане обучения");
-      }
-      
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/learning-paths", numericId] });
