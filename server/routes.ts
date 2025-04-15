@@ -5,14 +5,108 @@ import { z } from "zod";
 import { 
   insertUserSchema, insertCourseSchema, 
   insertEnrollmentSchema, insertActivitySchema,
-  insertChatMessageSchema
+  insertChatMessageSchema, insertMediaFileSchema,
+  insertModuleSchema, insertLessonSchema, insertLessonMediaSchema,
+  mediaTypeEnum
 } from "@shared/schema";
 import OpenAI from "openai";
+import multer from "multer";
+import path from "path-browserify";
+import fs from "fs-extra";
+import sharp from "sharp";
 
 // Initialize OpenAI
 const openai = new OpenAI({ 
   apiKey: process.env.OPENAI_API_KEY || "sk-fakekey" 
 });
+
+// Configure multer storage
+const uploadDir = "./uploads";
+const mediaDir = "./uploads/media";
+const thumbnailsDir = "./uploads/thumbnails";
+
+// Ensure uploads directories exist
+fs.ensureDirSync(uploadDir);
+fs.ensureDirSync(mediaDir);
+fs.ensureDirSync(thumbnailsDir);
+
+// Set up multer for file uploads
+const uploadStorage = multer.diskStorage({
+  destination: function(req, file, cb) {
+    cb(null, mediaDir);
+  },
+  filename: function(req, file, cb) {
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
+    const ext = path.extname(file.originalname);
+    cb(null, uniqueSuffix + ext);
+  }
+});
+
+// File filter to check file types
+const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  // Check mime type
+  const allowedMimeTypes = [
+    // Images
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+    // Videos
+    'video/mp4', 'video/webm', 'video/quicktime',
+    // Audio
+    'audio/mpeg', 'audio/wav', 'audio/webm',
+    // Documents
+    'application/pdf', 'application/msword', 
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain', 'text/html'
+  ];
+  
+  if (allowedMimeTypes.includes(file.mimetype)) {
+    cb(null, true);
+  } else {
+    cb(new Error('Unsupported file type'));
+  }
+};
+
+const upload = multer({ 
+  storage, 
+  fileFilter,
+  limits: { fileSize: 50 * 1024 * 1024 } // 50MB max size
+});
+
+// Helper function to get media type from mime type
+function getMediaTypeFromMimeType(mimeType: string): string {
+  if (mimeType.startsWith('image/')) {
+    return 'image';
+  } else if (mimeType.startsWith('video/')) {
+    return 'video';
+  } else if (mimeType.startsWith('audio/')) {
+    return 'audio';
+  } else if (mimeType.startsWith('application/vnd.ms-powerpoint') ||
+             mimeType.startsWith('application/vnd.openxmlformats-officedocument.presentationml')) {
+    return 'presentation';
+  } else {
+    return 'document';
+  }
+}
+
+// Helper function to generate thumbnail for supported media types
+async function generateThumbnail(filePath: string, mediaType: string, thumbnailPath: string): Promise<string | null> {
+  try {
+    if (mediaType === 'image') {
+      await sharp(filePath)
+        .resize(300, 300, { fit: 'inside' })
+        .toFile(thumbnailPath);
+      return thumbnailPath;
+    }
+    
+    // For other media types, we would need more specific tools
+    // For now, just return null for non-image files
+    return null;
+  } catch (error) {
+    console.error('Error generating thumbnail:', error);
+    return null;
+  }
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
@@ -334,7 +428,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const users = await storage.listUsers();
       const courses = await storage.listCourses();
-      const enrollments = Array.from(courses).flatMap(([_, course]) => 
+      
+      // Create simulated enrollments for stats
+      const enrollments = courses.flatMap(course => 
         Array.from({ length: course.participantCount }, () => ({
           courseId: course.id,
           completed: Math.random() > 0.3  // Simulate some completed courses
