@@ -36,6 +36,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(mockUser);
   const [loading, setLoading] = useState(false);
   
+  // Принудительно устанавливаем mockUser для разработки
+  useEffect(() => {
+    if (!user) {
+      setUser(mockUser);
+    }
+  }, [user]);
+  
   const login = async (username: string, password: string) => {
     try {
       setLoading(true);
