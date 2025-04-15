@@ -167,22 +167,30 @@ function LearningPathSkeleton() {
 
 export default function LearningPaths() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("my");
 
-  // Проверяем, что пользователь залогинен
+  // Проверяем и обновляем данные пользователя при загрузке
   useEffect(() => {
-    if (!user || !user.id) {
-      toast({
-        title: "Необходима авторизация",
-        description: "Для просмотра учебных планов необходимо авторизоваться",
-        variant: "destructive",
-      });
-      navigate("/login");
-    }
-  }, [user, toast, navigate]);
+    const checkAuth = async () => {
+      // Обновляем информацию о пользователе с сервера
+      await refreshUser();
+      
+      // Теперь проверяем авторизацию
+      if (!user || !user.id) {
+        toast({
+          title: "Необходима авторизация",
+          description: "Для просмотра учебных планов необходимо авторизоваться",
+          variant: "destructive",
+        });
+        navigate("/login");
+      }
+    };
+    
+    checkAuth();
+  }, [refreshUser, toast, navigate]);
 
   // Получаем список учебных планов текущего пользователя (если он админ, то это планы, созданные им)
   const isAdmin = user?.role === "admin";

@@ -10,46 +10,56 @@ export interface AuthContextType {
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
+  refreshUser: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   login: async () => {},
-  logout: () => {}
+  logout: () => {},
+  refreshUser: async () => {}
 });
 
-// Mock user for development
-const mockUser: AuthUser = {
-  id: 1,
-  username: "training_manager",
-  name: "Елена Смирнова",
-  email: "elena@hoteltrainingapp.com",
-  role: "admin",
-  position: "Тренинг-менеджер",
-  department: "Обучение персонала",
-  avatar: ""
-};
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Initialize with mock user for ease of development
-  const [user, setUser] = useState<AuthUser | null>(mockUser);
-  const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
   
-  // Принудительно устанавливаем mockUser для разработки
-  useEffect(() => {
-    if (!user) {
-      setUser(mockUser);
+  // Функция для обновления данных пользователя с сервера
+  const refreshUser = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/user");
+      
+      if (response.status === 200) {
+        const userData = await response.json();
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+      } else {
+        setUser(null);
+        localStorage.removeItem("user");
+      }
+    } catch (error) {
+      console.error("Failed to refresh user:", error);
+      setUser(null);
+      localStorage.removeItem("user");
+    } finally {
+      setLoading(false);
     }
-  }, [user]);
+  };
   
   const login = async (username: string, password: string) => {
     try {
       setLoading(true);
-      const response = await apiRequest("POST", "/api/auth/login", { username, password });
-      const userData = await response.json();
-      setUser(userData);
-      localStorage.setItem("user", JSON.stringify(userData));
+      const response = await apiRequest("POST", "/api/login", { username, password });
+      
+      if (response.ok) {
+        const userData = await response.json();
+        setUser(userData);
+        localStorage.setItem("user", JSON.stringify(userData));
+      } else {
+        throw new Error("Неверное имя пользователя или пароль");
+      }
     } catch (error) {
       console.error("Login failed:", error);
       throw error;
@@ -58,37 +68,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
   
-  const logout = () => {
-    // Для тестирования не удаляем пользователя, а просто показываем сообщение
-    console.log("Logout clicked - для тестирования выход отключен");
-    // В реальном приложении:
-    // setUser(null);
-    // localStorage.removeItem("user");
+  const logout = async () => {
+    try {
+      await apiRequest("POST", "/api/logout");
+      setUser(null);
+      localStorage.removeItem("user");
+    } catch (error) {
+      console.error("Logout failed:", error);
+    }
   };
   
   useEffect(() => {
-    // При первом запуске приложения сохраняем тестового пользователя
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      try {
-        setUser(JSON.parse(storedUser));
-      } catch (error) {
-        console.error("Failed to parse stored user:", error);
-        localStorage.removeItem("user");
-        // После очистки используем тестового пользователя
-        setUser(mockUser);
-        localStorage.setItem("user", JSON.stringify(mockUser));
+    // При первом запуске приложения проверяем авторизацию
+    const loadUser = async () => {
+      const storedUser = localStorage.getItem("user");
+      
+      if (storedUser) {
+        try {
+          // Временно установим пользователя из localStorage
+          setUser(JSON.parse(storedUser));
+          
+          // И затем сделаем запрос на сервер для проверки сессии
+          await refreshUser();
+        } catch (error) {
+          console.error("Failed to parse stored user:", error);
+          localStorage.removeItem("user");
+          setUser(null);
+        }
+      } else {
+        await refreshUser();
       }
-    } else {
-      // Если в localStorage нет данных, используем тестового пользователя
-      setUser(mockUser);
-      localStorage.setItem("user", JSON.stringify(mockUser));
-    }
-    setLoading(false);
+      
+      setLoading(false);
+    };
+    
+    loadUser();
   }, []);
   
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
       {children}
     </AuthContext.Provider>
   );

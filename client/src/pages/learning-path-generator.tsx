@@ -32,7 +32,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function LearningPathGenerator() {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [, navigate] = useLocation();
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -53,17 +53,25 @@ export default function LearningPathGenerator() {
     },
   });
 
-  // Проверяем, что пользователь залогинен
+  // Проверяем и обновляем данные пользователя при загрузке
   useEffect(() => {
-    if (!user || !user.id) {
-      toast({
-        title: "Необходима авторизация",
-        description: "Для создания учебного плана необходимо авторизоваться",
-        variant: "destructive",
-      });
-      navigate("/login");
-    }
-  }, [user, toast, navigate]);
+    const checkAuth = async () => {
+      // Обновляем информацию о пользователе с сервера
+      await refreshUser();
+      
+      // Теперь проверяем авторизацию
+      if (!user || !user.id) {
+        toast({
+          title: "Необходима авторизация",
+          description: "Для создания учебного плана необходимо авторизоваться",
+          variant: "destructive",
+        });
+        navigate("/login");
+      }
+    };
+    
+    checkAuth();
+  }, [refreshUser, toast, navigate]);
 
   // Мутация для генерации учебного плана
   const generateMutation = useMutation({
