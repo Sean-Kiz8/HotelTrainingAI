@@ -217,12 +217,177 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const courseData = insertCourseSchema.parse(req.body);
       const course = await storage.createCourse(courseData);
+      
+      // Создаем запись в активити
+      await storage.createActivity({
+        userId: req.session.userId || 1,
+        courseId: course.id,
+        type: "created_course",
+        timestamp: new Date()
+      });
+      
       res.status(201).json(course);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid course data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create course" });
+    }
+  });
+  
+  // API для генерации курса с использованием ИИ
+  app.post("/api/courses/generate", async (req, res) => {
+    try {
+      const { files, settings } = req.body;
+      
+      // Проверяем обязательные поля
+      if (!settings || !settings.title || !settings.description) {
+        return res.status(400).json({ error: "Отсутствуют обязательные параметры курса" });
+      }
+      
+      // Получаем информацию о загруженных файлах
+      const mediaFiles = [];
+      if (files && files.length > 0) {
+        for (const fileId of files) {
+          const mediaFile = await storage.getMediaFile(parseInt(fileId));
+          if (mediaFile) {
+            mediaFiles.push(mediaFile);
+          }
+        }
+      }
+      
+      // Функции для генерации заголовков и содержимого уроков
+      const generateModuleTitle = (courseTitle: string, moduleIndex: number) => {
+        const moduleTitles = [
+          "Введение и основные концепции",
+          "Основные принципы и практики",
+          "Углубленное изучение",
+          "Практическое применение",
+          "Продвинутые техники"
+        ];
+        return moduleTitles[moduleIndex % moduleTitles.length];
+      };
+      
+      const generateLessonTitle = (courseTitle: string, moduleIndex: number, lessonIndex: number) => {
+        const lessonTitles = [
+          ["Обзор и введение", "Ключевые концепции", "Практические основы"],
+          ["Основные методики", "Рабочие процессы", "Решение типовых задач"],
+          ["Углубленный анализ", "Специализированные приемы", "Разбор сложных случаев"],
+          ["Практическое применение", "Работа с реальными примерами", "Интеграция в рабочий процесс"],
+          ["Оптимизация процессов", "Инновационные подходы", "Повышение эффективности"]
+        ];
+        
+        return lessonTitles[moduleIndex % lessonTitles.length][lessonIndex % 3];
+      };
+      
+      const generateLessonContent = (courseTitle: string, moduleIndex: number, lessonIndex: number) => {
+        const lorem = `
+Данный урок охватывает важные аспекты работы в гостиничном бизнесе. Рассмотрим ключевые принципы обслуживания гостей и обеспечения высокого уровня сервиса.
+
+## Основные положения
+
+1. Профессиональное взаимодействие с гостями
+2. Решение проблемных ситуаций
+3. Обеспечение комфорта и безопасности
+4. Командная работа в коллективе
+
+## Практические рекомендации
+
+- Всегда приветствуйте гостей с улыбкой
+- Предвосхищайте потребности клиентов
+- Оперативно реагируйте на запросы
+- Поддерживайте порядок в рабочей зоне
+
+> "Качественный сервис начинается с внимания к деталям"
+
+### Алгоритм действий в стандартных ситуациях
+
+1. Выслушать клиента
+2. Уточнить детали запроса
+3. Предложить оптимальное решение
+4. Реализовать решение
+5. Убедиться в удовлетворенности клиента
+
+Этот материал поможет вам эффективно выполнять свои обязанности и поддерживать высокий уровень сервиса, которым славится наш отель.
+`;
+        return lorem;
+      };
+      
+      // Создаем базовый курс в базе данных
+      const newCourse = await storage.createCourse({
+        title: settings.title,
+        description: settings.description,
+        authorId: req.session.userId || 1,
+        department: "training",
+        status: "published",
+        thumbnail: null,
+        createdAt: new Date(),
+        updatedAt: new Date()
+      });
+      
+      // Создаем модули курса
+      const modules = [];
+      for (let i = 0; i < settings.modulesCount; i++) {
+        const moduleNumber = i + 1;
+        const newModule = await storage.createModule({
+          courseId: newCourse.id,
+          title: `Модуль ${moduleNumber}: ${generateModuleTitle(settings.title, i)}`,
+          description: `Описание модуля ${moduleNumber} курса "${settings.title}"`,
+          orderIndex: i,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        });
+        
+        // Создаем уроки для каждого модуля
+        const lessons = [];
+        for (let j = 0; j < 3; j++) {
+          const lessonNumber = j + 1;
+          const newLesson = await storage.createLesson({
+            moduleId: newModule.id,
+            title: `Урок ${lessonNumber}: ${generateLessonTitle(settings.title, i, j)}`,
+            content: generateLessonContent(settings.title, i, j),
+            orderIndex: j,
+            duration: Math.floor(Math.random() * 10) + 10, // Случайное время от 10 до 20 минут
+            hasQuiz: settings.includeQuizzes && Math.random() > 0.5,
+            createdAt: new Date(),
+            updatedAt: new Date()
+          });
+          
+          lessons.push({
+            id: newLesson.id,
+            title: newLesson.title,
+            content: newLesson.content,
+            duration: newLesson.duration,
+            hasQuiz: newLesson.hasQuiz
+          });
+        }
+        
+        modules.push({
+          id: newModule.id,
+          title: newModule.title,
+          description: newModule.description,
+          lessons: lessons
+        });
+      }
+      
+      // Создаем запись в активити
+      await storage.createActivity({
+        userId: req.session.userId || 1,
+        courseId: newCourse.id,
+        type: "created_course",
+        timestamp: new Date()
+      });
+      
+      // Возвращаем сгенерированный курс
+      res.status(201).json({
+        id: newCourse.id,
+        title: newCourse.title,
+        description: newCourse.description,
+        modules: modules
+      });
+    } catch (error) {
+      console.error("Failed to generate course:", error);
+      res.status(500).json({ error: "Ошибка при генерации курса" });
     }
   });
   

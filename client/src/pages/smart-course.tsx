@@ -1,12 +1,13 @@
-import { Layout } from "@/components/layout";
-import { SmartCourseCreator } from "@/components/smart-course/smart-course-creator";
-import { Container } from "@/components/ui/container";
-import { useAuth } from "@/context/auth-context";
+import { Layout } from "../components/layout";
+import { SmartCourseCreator } from "../components/smart-course/smart-course-creator";
+import { Container } from "../components/ui/container";
+import { useAuth } from "../hooks/use-auth";
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 
 export default function SmartCoursePage() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, loading } = useAuth();
+  const isAuthenticated = !!user;
   const [, setLocation] = useLocation();
 
   useEffect(() => {
