@@ -317,12 +317,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCourse = await storage.createCourse({
         title: settings.title,
         description: settings.description,
-        authorId: req.session.userId || 1,
+        createdById: req.session?.userId || 1, // Используем сессию пользователя или 1 по умолчанию
         department: "training",
-        status: "published",
-        thumbnail: null,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        image: null, // Опциональное изображение
+        content: null, // Опциональный JSON-контент
+        active: true // Курс активен по умолчанию
       });
       
       // Создаем модули курса
@@ -333,9 +332,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           courseId: newCourse.id,
           title: `Модуль ${moduleNumber}: ${generateModuleTitle(settings.title, i)}`,
           description: `Описание модуля ${moduleNumber} курса "${settings.title}"`,
-          orderIndex: i,
-          createdAt: new Date(),
-          updatedAt: new Date()
+          order: i // Используем order вместо orderIndex
         });
         
         // Создаем уроки для каждого модуля
@@ -346,11 +343,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
             moduleId: newModule.id,
             title: `Урок ${lessonNumber}: ${generateLessonTitle(settings.title, i, j)}`,
             content: generateLessonContent(settings.title, i, j),
-            orderIndex: j,
-            duration: Math.floor(Math.random() * 10) + 10, // Случайное время от 10 до 20 минут
-            hasQuiz: settings.includeQuizzes && Math.random() > 0.5,
-            createdAt: new Date(),
-            updatedAt: new Date()
+            order: j, // Используем order вместо orderIndex
+            duration: (Math.floor(Math.random() * 10) + 10).toString(), // duration должен быть строкой
+            type: 'text' // Добавляем тип урока
           });
           
           lessons.push({
@@ -372,10 +367,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Создаем запись в активити
       await storage.createActivity({
-        userId: req.session.userId || 1,
+        userId: req.session?.userId || 1,
         courseId: newCourse.id,
-        type: "created_course",
-        timestamp: new Date()
+        type: "created_course"
       });
       
       // Возвращаем сгенерированный курс
