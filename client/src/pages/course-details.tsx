@@ -10,7 +10,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { ChevronLeft, Users, Clock, Award, BookOpen } from "lucide-react";
+import { ChevronLeft, Users, Clock, Award, BookOpen, Copy, Mail } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { ShareWidget } from "@/components/course/share-widget";
+import { SharePreviewCard } from "@/components/course/share-preview-card";
 
 export default function CourseDetailsPage() {
   const params = useParams();
@@ -90,15 +93,21 @@ export default function CourseDetailsPage() {
   
   return (
     <div className="p-4 md:p-6">
-      <Button 
-        variant="outline" 
-        size="sm" 
-        className="mb-4"
-        onClick={() => setLocation('/courses')}
-      >
-        <ChevronLeft className="mr-2 h-4 w-4" />
-        Назад к курсам
-      </Button>
+      <div className="flex justify-between items-center mb-4">
+        <Button 
+          variant="outline" 
+          size="sm"
+          onClick={() => setLocation('/courses')}
+        >
+          <ChevronLeft className="mr-2 h-4 w-4" />
+          Назад к курсам
+        </Button>
+        
+        <ShareWidget 
+          courseId={course.id} 
+          courseTitle={course.title} 
+        />
+      </div>
       
       <PageHeader className="mb-6">
         <div className="flex items-center gap-2 mb-2">
@@ -145,6 +154,7 @@ export default function CourseDetailsPage() {
           <TabsTrigger value="content">Содержание</TabsTrigger>
           <TabsTrigger value="students">Участники</TabsTrigger>
           <TabsTrigger value="analytics">Аналитика</TabsTrigger>
+          <TabsTrigger value="share">Поделиться</TabsTrigger>
         </TabsList>
         
         <TabsContent value="content" className="mt-4">
@@ -182,6 +192,87 @@ export default function CourseDetailsPage() {
               
               <div className="text-center py-12 text-muted-foreground">
                 <p>Аналитика будет доступна, когда курс начнут проходить участники</p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="share" className="mt-4">
+          <Card>
+            <CardContent className="p-6">
+              <h3 className="text-lg font-medium mb-4">Поделиться курсом</h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-sm font-medium mb-2">Предпросмотр курса</h4>
+                    <SharePreviewCard 
+                      id={course.id}
+                      title={course.title}
+                      description={course.description}
+                      department={course.department}
+                      image={course.image}
+                      instructor={{
+                        name: "Иван Петров",
+                      }}
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <h4 className="text-sm font-medium">QR-код для быстрого доступа</h4>
+                    <div className="w-40 h-40 bg-neutral-100 flex items-center justify-center">
+                      <span className="text-neutral-500 text-sm">QR код</span>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      Отсканируйте этот QR-код, чтобы получить доступ к курсу на мобильном устройстве
+                    </p>
+                  </div>
+                </div>
+                
+                <div className="space-y-6">
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium">Пригласить участников по email</h4>
+                    <div className="flex flex-col gap-3">
+                      <Input placeholder="Введите email адрес" type="email" />
+                      <Input placeholder="Добавить еще email адрес" type="email" />
+                      <Button className="w-full md:w-fit">
+                        <Mail className="h-4 w-4 mr-2" /> Отправить приглашения
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium">Ссылка на курс</h4>
+                    <div className="flex">
+                      <Input 
+                        value={`${window.location.origin}/course-details/${course.id}`}
+                        readOnly
+                        className="rounded-r-none"
+                      />
+                      <Button
+                        className="rounded-l-none"
+                        variant="secondary"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/course-details/${course.id}`);
+                          toast({
+                            title: "Ссылка скопирована",
+                            description: "Ссылка на курс скопирована в буфер обмена",
+                          });
+                        }}
+                      >
+                        <Copy className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3">
+                    <h4 className="text-sm font-medium">Поделиться в социальных сетях</h4>
+                    <div className="flex gap-2">
+                      <Button variant="outline" className="w-full">Telegram</Button>
+                      <Button variant="outline" className="w-full">WhatsApp</Button>
+                    </div>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
