@@ -220,9 +220,12 @@ export default function CourseDetailsPage() {
   };
   
   // Мутация для удаления курса
-  const deleteCourseМutation = useMutation({
+  const deleteCourseMutation = useMutation({
     mutationFn: async () => {
       const res = await apiRequest("DELETE", `/api/courses/${courseId}`);
+      if (!res.ok) {
+        throw new Error("Failed to delete course");
+      }
       return await res.json();
     },
     onSuccess: () => {
@@ -233,7 +236,7 @@ export default function CourseDetailsPage() {
       });
       setLocation('/courses');
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Ошибка при удалении курса",
         description: error.message,
@@ -249,7 +252,7 @@ export default function CourseDetailsPage() {
   
   // Подтверждение удаления курса
   const confirmDeleteCourse = () => {
-    deleteCourseМutation.mutate();
+    deleteCourseMutation.mutate();
   };
   
   // Записать пользователя на курс
