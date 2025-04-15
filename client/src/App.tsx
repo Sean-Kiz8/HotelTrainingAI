@@ -44,6 +44,8 @@ function Router() {
       {/* Staff routes */}
       <Route path="/my-learning" component={MyLearning} />
       <Route path="/achievements" component={Achievements} />
+      <Route path="/leaderboard" component={Leaderboard} />
+      <Route path="/rewards" component={Rewards} />
       <Route path="/discussions" component={Discussions} />
       
       {/* Debug route */}
