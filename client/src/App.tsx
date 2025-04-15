@@ -1,7 +1,4 @@
 import { Switch, Route } from "wouter";
-import { queryClient } from "./lib/queryClient";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import { MainLayout } from "./components/layout/main-layout";
 import Dashboard from "./pages/dashboard";
@@ -17,6 +14,7 @@ import { useEffect, useState } from "react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
+import { AIChat } from "./components/chatbot/ai-chat";
 
 function Router() {
   const { user } = useAuth();
@@ -109,8 +107,6 @@ function LoginForm() {
 }
 
 function App() {
-  const { user, loading } = useAuth();
-  
   // Add the Material Icons font
   useEffect(() => {
     const link = document.createElement('link');
@@ -135,25 +131,13 @@ function App() {
     };
   }, []);
   
-  if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary" />
-      </div>
-    );
-  }
-  
   return (
-    <QueryClientProvider client={queryClient}>
-      {user ? (
-        <MainLayout>
-          <Router />
-        </MainLayout>
-      ) : (
-        <LoginForm />
-      )}
-      <Toaster />
-    </QueryClientProvider>
+    <>
+      <MainLayout>
+        <Router />
+      </MainLayout>
+      <AIChat />
+    </>
   );
 }
 

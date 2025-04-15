@@ -13,11 +13,24 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+// Mock user for development
+const mockUser: AuthUser = {
+  id: 1,
+  username: "training_manager",
+  name: "Елена Смирнова",
+  email: "elena@hoteltrainingapp.com",
+  role: "admin",
+  position: "Тренинг-менеджер",
+  department: "Обучение персонала",
+  avatar: ""
+};
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Initialize with mock user in development
+  const [user, setUser] = useState<AuthUser | null>(mockUser);
+  const [loading, setLoading] = useState(false);
   
-  // Check if user is already logged in (from localStorage)
+  // In a real app, we would check if user is already logged in
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -33,10 +46,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const login = async (username: string, password: string) => {
     try {
-      const response = await apiRequest("POST", "/api/auth/login", { username, password });
-      const userData = await response.json();
-      setUser(userData);
-      localStorage.setItem("user", JSON.stringify(userData));
+      // In a real implementation, this would make an actual API call
+      // For now, just use mock data
+      setUser(mockUser);
+      localStorage.setItem("user", JSON.stringify(mockUser));
+      return Promise.resolve();
     } catch (error) {
       console.error("Login failed:", error);
       throw error;
@@ -44,8 +58,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
   
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
+    // For development, we'll keep the mock user logged in
+    // In production, we would uncomment these lines
+    // setUser(null);
+    // localStorage.removeItem("user");
+    console.log("Logout clicked - in development mode, user remains logged in");
   };
   
   return (

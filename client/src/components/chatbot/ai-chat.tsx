@@ -3,7 +3,6 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useChatbot } from "@/context/chatbot-context";
-import { useAuth } from "@/context/auth-context";
 
 export function AIChat() {
   const { 
@@ -13,7 +12,6 @@ export function AIChat() {
     sendMessage,
     isLoading
   } = useChatbot();
-  const { user } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -31,14 +29,13 @@ export function AIChat() {
   
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputValue.trim() || !user) return;
+    if (!inputValue.trim()) return;
     
     sendMessage(inputValue);
     setInputValue("");
   };
   
   const handleSuggestedQuestion = (question: string) => {
-    if (!user) return;
     sendMessage(question);
   };
   
