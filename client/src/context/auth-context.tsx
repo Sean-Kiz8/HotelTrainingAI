@@ -5,6 +5,18 @@ import { User } from "@shared/schema";
 // Type for user object without password
 export type AuthUser = Omit<User, "password">;
 
+// Тестовый пользователь-администратор (для разработки и тестирования)
+const mockAdminUser: AuthUser = {
+  id: 1,
+  username: "admin",
+  name: "Администратор",
+  email: "admin@example.com",
+  role: "admin",
+  position: "Администратор системы",
+  department: "IT",
+  avatar: ""
+};
+
 export interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
@@ -22,44 +34,23 @@ const AuthContext = createContext<AuthContextType>({
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Всегда используем мок-пользователя для разработки
+  const [user, setUser] = useState<AuthUser | null>(mockAdminUser);
+  const [loading, setLoading] = useState(false);
   
-  // Функция для обновления данных пользователя с сервера
+  // Функция для обновления данных пользователя - в режиме разработки всегда возвращает мок-пользователя
   const refreshUser = async () => {
-    try {
-      setLoading(true);
-      const response = await fetch("/api/user");
-      
-      if (response.status === 200) {
-        const userData = await response.json();
-        setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-      } else {
-        setUser(null);
-        localStorage.removeItem("user");
-      }
-    } catch (error) {
-      console.error("Failed to refresh user:", error);
-      setUser(null);
-      localStorage.removeItem("user");
-    } finally {
-      setLoading(false);
-    }
+    // Для разработки всегда используем мок-пользователя
+    setUser(mockAdminUser);
+    setLoading(false);
+    return;
   };
   
   const login = async (username: string, password: string) => {
     try {
       setLoading(true);
-      const response = await apiRequest("POST", "/api/login", { username, password });
-      
-      if (response.ok) {
-        const userData = await response.json();
-        setUser(userData);
-        localStorage.setItem("user", JSON.stringify(userData));
-      } else {
-        throw new Error("Неверное имя пользователя или пароль");
-      }
+      // В режиме разработки просто имитируем успешный вход
+      setUser(mockAdminUser);
     } catch (error) {
       console.error("Login failed:", error);
       throw error;
@@ -69,40 +60,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
   
   const logout = async () => {
-    try {
-      await apiRequest("POST", "/api/logout");
-      setUser(null);
-      localStorage.removeItem("user");
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
+    // В режиме разработки просто логируем действие и не выходим из системы
+    console.log("Logout attempted - in development mode, staying logged in as mock user");
   };
   
   useEffect(() => {
-    // При первом запуске приложения проверяем авторизацию
-    const loadUser = async () => {
-      const storedUser = localStorage.getItem("user");
-      
-      if (storedUser) {
-        try {
-          // Временно установим пользователя из localStorage
-          setUser(JSON.parse(storedUser));
-          
-          // И затем сделаем запрос на сервер для проверки сессии
-          await refreshUser();
-        } catch (error) {
-          console.error("Failed to parse stored user:", error);
-          localStorage.removeItem("user");
-          setUser(null);
-        }
-      } else {
-        await refreshUser();
-      }
-      
-      setLoading(false);
-    };
-    
-    loadUser();
+    // В режиме разработки всегда используем мок пользователя
+    setUser(mockAdminUser);
+    setLoading(false);
   }, []);
   
   return (

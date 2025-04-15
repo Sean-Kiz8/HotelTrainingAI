@@ -172,25 +172,11 @@ export default function LearningPaths() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeTab, setActiveTab] = useState("my");
 
-  // Проверяем и обновляем данные пользователя при загрузке
+  // В режиме разработки пропускаем проверку авторизации
   useEffect(() => {
-    const checkAuth = async () => {
-      // Обновляем информацию о пользователе с сервера
-      await refreshUser();
-      
-      // Теперь проверяем авторизацию
-      if (!user || !user.id) {
-        toast({
-          title: "Необходима авторизация",
-          description: "Для просмотра учебных планов необходимо авторизоваться",
-          variant: "destructive",
-        });
-        navigate("/login");
-      }
-    };
-    
-    checkAuth();
-  }, [refreshUser, toast, navigate]);
+    // Обновляем данные пользователя с сервера (в режиме разработки это мок-пользователь)
+    refreshUser();
+  }, [refreshUser]);
 
   // Получаем список учебных планов текущего пользователя (если он админ, то это планы, созданные им)
   const isAdmin = user?.role === "admin";

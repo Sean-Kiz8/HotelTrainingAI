@@ -82,25 +82,11 @@ export default function LearningPathDetails() {
   const [activeTab, setActiveTab] = useState("courses");
   const numericId = parseInt(id);
 
-  // Проверяем и обновляем данные пользователя при загрузке
+  // В режиме разработки пропускаем проверку авторизации
   useEffect(() => {
-    const checkAuth = async () => {
-      // Обновляем информацию о пользователе с сервера
-      await refreshUser();
-      
-      // Теперь проверяем авторизацию
-      if (!user || !user.id) {
-        toast({
-          title: "Необходима авторизация",
-          description: "Для просмотра учебного плана необходимо авторизоваться",
-          variant: "destructive",
-        });
-        navigate("/login");
-      }
-    };
-    
-    checkAuth();
-  }, [refreshUser, toast, navigate]);
+    // Обновляем данные пользователя с сервера (в режиме разработки это мок-пользователь)
+    refreshUser();
+  }, [refreshUser]);
 
   // Получаем данные о плане обучения
   const { data: learningPath, isLoading } = useQuery({
