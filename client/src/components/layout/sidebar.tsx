@@ -10,6 +10,7 @@ import { OnboardingButton } from "@/components/onboarding/onboarding-button";
 const adminNavItems = [
   { label: "Дашборд", icon: "dashboard", href: "/" },
   { label: "Курсы", icon: "school", href: "/courses" },
+  { label: "SmartCourse", icon: "auto_awesome", href: "/smart-course" },
   { label: "Сотрудники", icon: "groups", href: "/employees" },
   { label: "Медиатека", icon: "collections", href: "/media" },
   { label: "Аналитика", icon: "insert_chart", href: "/analytics" },

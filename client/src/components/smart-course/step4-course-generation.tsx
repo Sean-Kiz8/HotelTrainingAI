@@ -5,24 +5,24 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Check, Clock, FileText, LayoutList, Timer } from "lucide-react";
-import { useNavigate } from "wouter";
+import { useLocation } from "wouter";
 
 interface Step4CourseGenerationProps {
   generatedCourse: GeneratedCourse | null;
 }
 
 export function Step4CourseGeneration({ generatedCourse }: Step4CourseGenerationProps) {
-  const navigate = useNavigate();
+  const [, setLocation] = useLocation();
 
   const handleViewCourse = () => {
     if (generatedCourse?.id) {
-      navigate(`/courses/${generatedCourse.id}`);
+      setLocation(`/course-details/${generatedCourse.id}`);
     }
   };
 
   const handleEditCourse = () => {
     if (generatedCourse?.id) {
-      navigate(`/courses/${generatedCourse.id}/edit`);
+      setLocation(`/create-course?id=${generatedCourse.id}`);
     }
   };
 

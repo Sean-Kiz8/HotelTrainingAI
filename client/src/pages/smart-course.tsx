@@ -6,17 +6,17 @@ import { useEffect } from "react";
 import { useLocation } from "wouter";
 
 export default function SmartCoursePage() {
-  const { user, status } = useAuth();
+  const { user, isAuthenticated } = useAuth();
   const [, setLocation] = useLocation();
 
   useEffect(() => {
     // Проверяем авторизацию
-    if (status === 'unauthenticated') {
-      setLocation('/login');
+    if (!isAuthenticated) {
+      setLocation('/auth');
     }
-  }, [status, setLocation]);
+  }, [isAuthenticated, setLocation]);
 
-  if (status === 'loading' || !user) {
+  if (!isAuthenticated || !user) {
     return (
       <Layout>
         <Container>

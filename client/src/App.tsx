@@ -70,6 +70,7 @@ function App() {
                   <ProtectedRoute path="/courses" component={Courses} />
                   <ProtectedRoute path="/course-details/:id" component={CourseDetails} />
                   <ProtectedRoute path="/create-course" component={CreateCourse} />
+                  <ProtectedRoute path="/smart-course" component={SmartCourse} />
                   <ProtectedRoute path="/employees" component={Employees} />
                   <ProtectedRoute path="/analytics" component={Analytics} />
                   <ProtectedRoute path="/media" component={MediaLibrary} />
