@@ -55,23 +55,18 @@ export default function LearningPathGenerator() {
   // Мутация для генерации учебного плана
   const generateMutation = useMutation({
     mutationFn: async (data: FormValues) => {
-      const response = await apiRequest("/api/learning-paths/generate", {
+      const requestData = {
+        userId: parseInt(data.userId),
+        createdById: user?.id,
+        position: data.position,
+        level: data.level,
+        targetSkills: data.targetSkills,
+      };
+      
+      return apiRequest("/api/learning-paths/generate", {
         method: "POST",
-        body: JSON.stringify({
-          userId: parseInt(data.userId),
-          createdById: user?.id,
-          position: data.position,
-          level: data.level,
-          targetSkills: data.targetSkills,
-        }),
+        body: JSON.stringify(requestData),
       });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Не удалось создать план обучения");
-      }
-
-      return response.json();
     },
     onSuccess: (data) => {
       // Инвалидируем кеш для обновления списка учебных планов

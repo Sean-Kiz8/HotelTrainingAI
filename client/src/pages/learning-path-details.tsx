@@ -103,16 +103,9 @@ export default function LearningPathDetails() {
   // Мутация для завершения плана обучения
   const completeMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest(`/api/learning-paths/${numericId}/complete`, {
+      return apiRequest(`/api/learning-paths/${numericId}/complete`, {
         method: "POST"
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Не удалось завершить план обучения");
-      }
-      
-      return response.json();
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/learning-paths", numericId] });
@@ -133,16 +126,9 @@ export default function LearningPathDetails() {
   // Мутация для удаления плана обучения
   const deleteMutation = useMutation({
     mutationFn: async () => {
-      const response = await apiRequest(`/api/learning-paths/${numericId}`, {
+      return apiRequest(`/api/learning-paths/${numericId}`, {
         method: "DELETE"
       });
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || "Не удалось удалить план обучения");
-      }
-      
-      return true;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/learning-paths"] });
