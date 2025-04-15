@@ -1,10 +1,11 @@
 import { useLocation } from "wouter";
-import { LogOut } from "lucide-react";
+import { LogOut, HelpCircle } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { useChatbot } from "@/context/chatbot-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { OnboardingButton } from "@/components/onboarding/onboarding-button";
 
 const adminNavItems = [
   { label: "Дашборд", icon: "dashboard", href: "/" },
@@ -120,16 +121,20 @@ export function Sidebar() {
           </nav>
         </div>
         
-        {/* Chat and Logout buttons */}
+        {/* Chat, Help, and Logout buttons */}
         <div className="px-4 pt-4 pb-2 border-t border-neutral-200">
-          <Button 
-            className="w-full mb-2 flex justify-start" 
-            variant="outline"
-            onClick={openChatbot}
-          >
-            <span className="material-icons mr-3 text-primary">chat</span>
-            Помощник ИИ
-          </Button>
+          <div className="flex mb-2">
+            <Button 
+              className="flex-1 flex justify-start mr-2" 
+              variant="outline"
+              onClick={openChatbot}
+            >
+              <span className="material-icons mr-3 text-primary">chat</span>
+              Помощник ИИ
+            </Button>
+            
+            <OnboardingButton className="text-primary" />
+          </div>
           
           <Button 
             variant="ghost" 

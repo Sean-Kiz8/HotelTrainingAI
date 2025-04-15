@@ -20,6 +20,8 @@ import AuthPage from "./pages/auth-page";
 import { useEffect } from "react";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
+import { OnboardingProvider } from "./hooks/use-onboarding";
+import { Onboarding } from "./components/onboarding";
 
 function App() {
   // Add the Material Icons font
@@ -58,31 +60,36 @@ function App() {
       {/* Защищенные маршруты - с TempMainLayout и AuthProvider */}
       <Route path="*">
         <AuthProvider>
-          <TempMainLayout>
-            <Switch>
-              <ProtectedRoute path="/" component={Dashboard} />
-              <ProtectedRoute path="/courses" component={Courses} />
-              <ProtectedRoute path="/course-details/:id" component={CourseDetails} />
-              <ProtectedRoute path="/create-course" component={CreateCourse} />
-              <ProtectedRoute path="/employees" component={Employees} />
-              <ProtectedRoute path="/analytics" component={Analytics} />
-              <ProtectedRoute path="/media" component={MediaLibrary} />
-              <ProtectedRoute path="/settings" component={Settings} />
+          <OnboardingProvider>
+            <TempMainLayout>
+              <Switch>
+                <ProtectedRoute path="/" component={Dashboard} />
+                <ProtectedRoute path="/courses" component={Courses} />
+                <ProtectedRoute path="/course-details/:id" component={CourseDetails} />
+                <ProtectedRoute path="/create-course" component={CreateCourse} />
+                <ProtectedRoute path="/employees" component={Employees} />
+                <ProtectedRoute path="/analytics" component={Analytics} />
+                <ProtectedRoute path="/media" component={MediaLibrary} />
+                <ProtectedRoute path="/settings" component={Settings} />
+                
+                {/* Staff routes */}
+                <ProtectedRoute path="/my-learning" component={MyLearning} />
+                <ProtectedRoute path="/achievements" component={Achievements} />
+                <ProtectedRoute path="/leaderboard" component={Leaderboard} />
+                <ProtectedRoute path="/rewards" component={Rewards} />
+                <ProtectedRoute path="/discussions" component={Discussions} />
+                
+                {/* Debug route */}
+                <ProtectedRoute path="/debug" component={DebugPage} />
+                
+                {/* Fallback to 404 */}
+                <Route component={NotFound} />
+              </Switch>
               
-              {/* Staff routes */}
-              <ProtectedRoute path="/my-learning" component={MyLearning} />
-              <ProtectedRoute path="/achievements" component={Achievements} />
-              <ProtectedRoute path="/leaderboard" component={Leaderboard} />
-              <ProtectedRoute path="/rewards" component={Rewards} />
-              <ProtectedRoute path="/discussions" component={Discussions} />
-              
-              {/* Debug route */}
-              <ProtectedRoute path="/debug" component={DebugPage} />
-              
-              {/* Fallback to 404 */}
-              <Route component={NotFound} />
-            </Switch>
-          </TempMainLayout>
+              {/* Онбординг компонент */}
+              <Onboarding />
+            </TempMainLayout>
+          </OnboardingProvider>
         </AuthProvider>
       </Route>
     </Switch>
