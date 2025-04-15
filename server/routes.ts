@@ -1447,6 +1447,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch leaderboard" });
     }
   });
+  
+  // Эндпоинт для получения списка всех файлов (для поддержки SmartCourse)
+  app.get("/api/media/list", async (req, res) => {
+    try {
+      const mediaFiles = await storage.listMediaFiles(100, 0);
+      
+      // Добавляем необходимые поля для совместимости с клиентским интерфейсом
+      const formattedFiles = mediaFiles.map(file => ({
+        id: file.id.toString(),
+        name: file.originalFilename,
+        type: file.mimeType,
+        size: file.size,
+        url: file.url || `/uploads/${file.filename}`,
+        status: 'completed',
+        path: file.path || '',
+        originalFilename: file.originalFilename,
+        mimeType: file.mimeType
+      }));
+      
+      res.json(formattedFiles);
+    } catch (error) {
+      console.error('Error fetching media files:', error);
+      res.status(500).json({ message: "Failed to fetch media file" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;

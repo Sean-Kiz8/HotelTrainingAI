@@ -91,6 +91,7 @@ export function Step1FileUpload({ files, onFilesChange }: Step1FileUploadProps) 
       }
 
       const result = await response.json();
+      console.log('File upload response:', result);
       
       // Обновляем список файлов с полученными данными от сервера
       const updatedFiles = files.map(f => 
