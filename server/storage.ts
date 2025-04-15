@@ -249,7 +249,7 @@ export interface IStorage {
 }
 
 import { db } from "./db";
-import { eq, and, or, desc, like, sql } from "drizzle-orm";
+import { eq, and, or, desc, like, sql, inArray } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   // User operations
@@ -1997,48 +1997,68 @@ ${competency.description}
 
   // Рекомендации микро-обучающего контента
   async recommendMicroLearningForUser(userId: number, count: number = 5): Promise<MicroLearningContent[]> {
-    // Получаем последнюю сессию оценки пользователя
-    const [lastSession] = await db
-      .select()
-      .from(assessmentSessions)
-      .where(eq(assessmentSessions.user_id, userId))
-      .orderBy(desc(assessmentSessions.completed_at))
-      .limit(1);
-
-    if (!lastSession) {
-      // Если нет данных о сессии, возвращаем случайный контент
-      return await db
+    try {
+      // Получаем последнюю сессию оценки пользователя
+      const [lastSession] = await db
         .select()
-        .from(microLearningContent)
-        .limit(count);
+        .from(assessmentSessions)
+        .where(eq(assessmentSessions.userId, userId))
+        .orderBy(desc(assessmentSessions.completedAt))
+        .limit(1);
+
+      if (!lastSession) {
+        // Если нет данных о сессии, возвращаем случайный контент
+        return await db
+          .select()
+          .from(microLearningContent)
+          .limit(count);
+      }
+
+      // Если есть сессия, рекомендуем контент по компетенциям с низким результатом
+      const weakCompetencies = [];
+      
+      // Безопасно обрабатываем результаты компетенций
+      if (lastSession.competenciesResult && typeof lastSession.competenciesResult === 'object') {
+        for (const [id, result] of Object.entries(lastSession.competenciesResult)) {
+          if (result && typeof result === 'object' && 'percentage' in result) {
+            const percentage = (result as any).percentage;
+            if (percentage < 70) {
+              weakCompetencies.push(parseInt(id));
+            }
+          }
+        }
+      }
+
+      if (weakCompetencies.length === 0) {
+        // Если нет слабых компетенций, возвращаем контент по уровню
+        return await db
+          .select()
+          .from(microLearningContent)
+          .where(eq(microLearningContent.target_level, lastSession.level || 'junior'))
+          .limit(count);
+      }
+
+      // Безопасно формируем запрос для слабых компетенций
+      if (weakCompetencies.length === 1) {
+        // Если только одна слабая компетенция
+        return await db
+          .select()
+          .from(microLearningContent)
+          .where(eq(microLearningContent.competency_id, weakCompetencies[0]))
+          .limit(count);
+      } else {
+        // Если несколько слабых компетенций, используем sql шаблон
+        return await db
+          .select()
+          .from(microLearningContent)
+          .where(sql`${microLearningContent.competency_id} IN (${sql.join(weakCompetencies)})`)
+          .limit(count);
+      }
+    } catch (error) {
+      console.error("Error in recommendMicroLearningForUser:", error);
+      // Возвращаем пустой массив в случае ошибки
+      return [];
     }
-
-    // Если есть сессия, рекомендуем контент по компетенциям с низким результатом
-    const weakCompetencies = Object.entries(lastSession.competencies_result || {})
-      .map(([id, result]) => ({
-        id: parseInt(id),
-        percentage: result.percentage
-      }))
-      .filter(comp => comp.percentage < 70)
-      .map(comp => comp.id);
-
-    if (weakCompetencies.length === 0) {
-      // Если нет слабых компетенций, возвращаем контент по уровню
-      return await db
-        .select()
-        .from(microLearningContent)
-        .where(eq(microLearningContent.target_level, lastSession.level))
-        .limit(count);
-    }
-
-    // Получаем контент по слабым компетенциям
-    const content = await db
-      .select()
-      .from(microLearningContent)
-      .where(sql`${microLearningContent.competency_id} IN (${weakCompetencies.join(',')})`)
-      .limit(count);
-
-    return content;
   }
 
   async recommendMicroLearningByCompetency(competencyId: number, count: number = 3): Promise<MicroLearningContent[]> {
@@ -2175,7 +2195,7 @@ ${competency.description}
       progress = await db
         .select()
         .from(microLearningProgress)
-        .where(sql`${microLearningProgress.assignment_id} IN (${assignmentIds.join(',')})`);
+        .where(sql`${microLearningProgress.assignment_id} IN (${sql.join(assignmentIds)})`);
     }
 
     // Статистика по компетенциям
