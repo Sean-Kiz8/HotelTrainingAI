@@ -15,7 +15,6 @@ import { useEffect, useState } from "react";
 import { Button } from "./components/ui/button";
 import { Input } from "./components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
-import { AIChat } from "./components/chatbot/ai-chat";
 
 function Router() {
   const { user } = useAuth();
@@ -45,7 +44,7 @@ function Router() {
   );
 }
 
-function LoginForm() {
+export function LoginForm() {
   const { login } = useAuth();
   const [username, setUsername] = useState("admin");
   const [password, setPassword] = useState("admin123");
@@ -109,6 +108,8 @@ function LoginForm() {
 }
 
 function App() {
+  const { user } = useAuth();
+  
   // Add the Material Icons font
   useEffect(() => {
     const link = document.createElement('link');
@@ -132,6 +133,10 @@ function App() {
       document.head.removeChild(link);
     };
   }, []);
+  
+  if (!user) {
+    return <LoginForm />;
+  }
   
   return (
     <MainLayout>

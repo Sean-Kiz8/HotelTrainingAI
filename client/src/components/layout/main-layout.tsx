@@ -9,11 +9,6 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children }: MainLayoutProps) {
-  const { user } = useAuth();
-  
-  // If user is not logged in, don't show layout
-  if (!user) return <>{children}</>;
-  
   return (
     <div className="flex h-screen overflow-hidden bg-neutral-100">
       {/* Sidebar for desktop */}
