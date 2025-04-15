@@ -591,7 +591,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const mediaFile = await storage.createMediaFile(mediaFileData);
       
-      res.status(201).json(mediaFile);
+      // Добавляем виртуальное поле name для совместимости с клиентским кодом
+      const mediaFileWithName = {
+        ...mediaFile,
+        name: mediaFile.originalFilename
+      };
+      
+      res.status(201).json(mediaFileWithName);
     } catch (error) {
       console.error("Error uploading file:", error);
       res.status(500).json({ message: "Failed to upload file" });
