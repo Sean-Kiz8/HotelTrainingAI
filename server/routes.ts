@@ -1525,7 +1525,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const schema = z.object({
         userId: z.number(),
-        createdById: z.number(),
+        createdById: z.number().default(1), // Значение по умолчанию для createdById, чтобы избежать ошибки
         userRole: z.string(),
         userLevel: z.string(),
         userDepartment: z.string(),
@@ -1587,12 +1587,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             
             // Добавляем в учебный план
+            // Удаляем поле rationale, если оно присутствует в запросе, но не существует в схеме
             const learningPathCourse = await storage.createLearningPathCourse({
               learningPathId: learningPath.id,
               courseId: newCourse.id,
               order: courseRec.order || processedCourses.length,
-              priority: courseRec.priority || "normal",
-              rationale: courseRec.rationale
+              priority: courseRec.priority || "normal"
             });
             
             processedCourses.push({
@@ -1604,12 +1604,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             // Если это существующий курс
             const course = await storage.getCourse(courseRec.courseId);
             if (course) {
+              // Удаляем поле rationale, если оно присутствует в запросе, но не существует в схеме
               const learningPathCourse = await storage.createLearningPathCourse({
                 learningPathId: learningPath.id,
                 courseId: courseRec.courseId,
                 order: courseRec.order || processedCourses.length,
-                priority: courseRec.priority || "normal",
-                rationale: courseRec.rationale
+                priority: courseRec.priority || "normal"
               });
               
               processedCourses.push({
@@ -1891,7 +1891,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/learning-path-courses", async (req, res) => {
     try {
-      const learningPathCourseData = insertLearningPathCourseSchema.parse(req.body);
+      // Удаляем поле rationale, если оно присутствует в запросе, но не существует в схеме
+      const reqBody = { ...req.body };
+      if ('rationale' in reqBody) {
+        delete reqBody.rationale;
+      }
+      const learningPathCourseData = insertLearningPathCourseSchema.parse(reqBody);
       const learningPathCourse = await storage.createLearningPathCourse(learningPathCourseData);
       res.status(201).json(learningPathCourse);
     } catch (error) {
