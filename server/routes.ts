@@ -1,0 +1,397 @@
+import type { Express, Request, Response } from "express";
+import { createServer, type Server } from "http";
+import { storage } from "./storage";
+import { z } from "zod";
+import { 
+  insertUserSchema, insertCourseSchema, 
+  insertEnrollmentSchema, insertActivitySchema,
+  insertChatMessageSchema
+} from "@shared/schema";
+import OpenAI from "openai";
+
+// Initialize OpenAI
+const openai = new OpenAI({ 
+  apiKey: process.env.OPENAI_API_KEY || "sk-fakekey" 
+});
+
+export async function registerRoutes(app: Express): Promise<Server> {
+  // User routes
+  app.get("/api/users", async (req, res) => {
+    const users = await storage.listUsers();
+    res.json(users);
+  });
+  
+  app.get("/api/users/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const user = await storage.getUser(id);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    res.json(user);
+  });
+  
+  app.post("/api/users", async (req, res) => {
+    try {
+      const userData = insertUserSchema.parse(req.body);
+      const user = await storage.createUser(userData);
+      res.status(201).json(user);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create user" });
+    }
+  });
+  
+  app.patch("/api/users/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const userData = insertUserSchema.partial().parse(req.body);
+      const user = await storage.updateUser(id, userData);
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      res.json(user);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid user data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update user" });
+    }
+  });
+  
+  // Auth route for login
+  app.post("/api/auth/login", async (req, res) => {
+    const loginSchema = z.object({
+      username: z.string(),
+      password: z.string(),
+    });
+    
+    try {
+      const { username, password } = loginSchema.parse(req.body);
+      const user = await storage.getUserByUsername(username);
+      
+      if (!user || user.password !== password) {
+        return res.status(401).json({ message: "Invalid credentials" });
+      }
+      
+      // In a real app, we would use sessions or JWT
+      res.json({ 
+        id: user.id,
+        username: user.username,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        department: user.department,
+        position: user.position,
+        avatar: user.avatar
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid login data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Login failed" });
+    }
+  });
+  
+  // Course routes
+  app.get("/api/courses", async (req, res) => {
+    const department = req.query.department as string | undefined;
+    
+    if (department) {
+      const courses = await storage.listCoursesByDepartment(department);
+      return res.json(courses);
+    }
+    
+    const courses = await storage.listCourses();
+    res.json(courses);
+  });
+  
+  app.get("/api/courses/:id", async (req, res) => {
+    const id = parseInt(req.params.id);
+    const course = await storage.getCourse(id);
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+    res.json(course);
+  });
+  
+  app.post("/api/courses", async (req, res) => {
+    try {
+      const courseData = insertCourseSchema.parse(req.body);
+      const course = await storage.createCourse(courseData);
+      res.status(201).json(course);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid course data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create course" });
+    }
+  });
+  
+  app.patch("/api/courses/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const courseData = insertCourseSchema.partial().parse(req.body);
+      const course = await storage.updateCourse(id, courseData);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+      res.json(course);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid course data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update course" });
+    }
+  });
+  
+  // Enrollment routes
+  app.get("/api/enrollments", async (req, res) => {
+    const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+    const courseId = req.query.courseId ? parseInt(req.query.courseId as string) : undefined;
+    
+    if (userId && courseId) {
+      const enrollment = await storage.getEnrollment(userId, courseId);
+      return res.json(enrollment || null);
+    }
+    
+    if (userId) {
+      const enrollments = await storage.listEnrollmentsByUser(userId);
+      return res.json(enrollments);
+    }
+    
+    if (courseId) {
+      const enrollments = await storage.listEnrollmentsByCourse(courseId);
+      return res.json(enrollments);
+    }
+    
+    res.status(400).json({ message: "Missing userId or courseId parameter" });
+  });
+  
+  app.post("/api/enrollments", async (req, res) => {
+    try {
+      const enrollmentData = insertEnrollmentSchema.parse(req.body);
+      
+      // Check if enrollment already exists
+      const existingEnrollment = await storage.getEnrollment(
+        enrollmentData.userId,
+        enrollmentData.courseId
+      );
+      
+      if (existingEnrollment) {
+        return res.status(409).json({ 
+          message: "User is already enrolled in this course",
+          enrollment: existingEnrollment
+        });
+      }
+      
+      const enrollment = await storage.createEnrollment(enrollmentData);
+      res.status(201).json(enrollment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid enrollment data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to create enrollment" });
+    }
+  });
+  
+  app.patch("/api/enrollments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const enrollmentData = insertEnrollmentSchema.partial().parse(req.body);
+      const enrollment = await storage.updateEnrollment(id, enrollmentData);
+      if (!enrollment) {
+        return res.status(404).json({ message: "Enrollment not found" });
+      }
+      res.json(enrollment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid enrollment data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to update enrollment" });
+    }
+  });
+  
+  app.post("/api/enrollments/:id/complete", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const enrollment = await storage.completeEnrollment(id);
+      if (!enrollment) {
+        return res.status(404).json({ message: "Enrollment not found" });
+      }
+      res.json(enrollment);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to complete enrollment" });
+    }
+  });
+  
+  // Activity routes
+  app.get("/api/activities", async (req, res) => {
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
+    const activities = await storage.listRecentActivities(limit);
+    
+    // Populate user and course information for frontend display
+    const populatedActivities = await Promise.all(activities.map(async (activity) => {
+      const user = await storage.getUser(activity.userId);
+      const course = activity.courseId ? await storage.getCourse(activity.courseId) : null;
+      
+      return {
+        ...activity,
+        user: user ? {
+          id: user.id,
+          name: user.name,
+          username: user.username,
+          role: user.role
+        } : null,
+        course: course ? {
+          id: course.id,
+          title: course.title
+        } : null
+      };
+    }));
+    
+    res.json(populatedActivities);
+  });
+  
+  // Chat routes
+  app.post("/api/chat", async (req, res) => {
+    try {
+      const chatData = insertChatMessageSchema.parse(req.body);
+      
+      // Create chat message in database
+      const chatMessage = await storage.createChatMessage(chatData);
+      
+      try {
+        // Get user for context
+        const user = await storage.getUser(chatData.userId);
+        
+        // Get all courses for context
+        const courses = await storage.listCourses();
+        
+        // Create context about the hotel training system
+        const systemPrompt = `
+          You are an AI assistant for a hotel staff training system called HotelLearn.
+          The system helps with onboarding new staff and providing ongoing training.
+          You have knowledge about the following courses:
+          ${courses.map(c => `- ${c.title}: ${c.description} (Department: ${c.department})`).join('\n')}
+          
+          The user asking this question is ${user?.name || 'a hotel staff member'} 
+          who is a ${user?.role || 'staff member'} 
+          ${user?.department ? `in the ${user?.department} department` : ''}.
+          
+          Be helpful, concise, and knowledgeable about hotel operations and training.
+          If you don't know something specific about this hotel, provide general best practices
+          for the hospitality industry.
+        `;
+        
+        // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
+        const openaiResponse = await openai.chat.completions.create({
+          model: "gpt-4o",
+          messages: [
+            { role: "system", content: systemPrompt },
+            { role: "user", content: chatData.message }
+          ],
+        });
+        
+        const aiResponse = openaiResponse.choices[0].message.content || "I'm sorry, I couldn't process that request.";
+        
+        // Update the chat message with AI response
+        const updatedChatMessage = await storage.updateChatResponse(chatMessage.id, aiResponse);
+        
+        res.json(updatedChatMessage);
+      } catch (aiError) {
+        console.error("OpenAI API error:", aiError);
+        
+        // Still return the chat message, but with an error response
+        const errorResponse = "I'm sorry, I'm having trouble connecting to my knowledge base right now. Please try again later.";
+        const updatedChatMessage = await storage.updateChatResponse(chatMessage.id, errorResponse);
+        
+        res.json(updatedChatMessage);
+      }
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid chat data", errors: error.errors });
+      }
+      res.status(500).json({ message: "Failed to process chat message" });
+    }
+  });
+  
+  app.get("/api/chat/history/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      
+      const chatHistory = await storage.listChatMessagesByUser(userId, limit);
+      res.json(chatHistory);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch chat history" });
+    }
+  });
+  
+  // Statistics routes for dashboard
+  app.get("/api/stats", async (req, res) => {
+    try {
+      const users = await storage.listUsers();
+      const courses = await storage.listCourses();
+      const enrollments = Array.from(courses).flatMap(([_, course]) => 
+        Array.from({ length: course.participantCount }, () => ({
+          courseId: course.id,
+          completed: Math.random() > 0.3  // Simulate some completed courses
+        }))
+      );
+      
+      const totalEmployees = users.filter(user => user.role === "staff").length;
+      const activeCourses = courses.filter(course => course.active).length;
+      const completedCourses = enrollments.filter(e => e.completed).length;
+      
+      // Calculate average progress (in a real app, this would come from actual enrollment data)
+      const averageProgress = Math.floor(Math.random() * 30) + 70; // Random between 70-99
+      
+      res.json({
+        totalEmployees,
+        activeCourses,
+        completedCourses,
+        averageProgress: `${averageProgress}%`
+      });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch statistics" });
+    }
+  });
+  
+  // Onboarding progress for dashboard
+  app.get("/api/onboarding", async (req, res) => {
+    try {
+      // In a real app, this would pull actual onboarding data
+      // For now, we'll return mock data for the UI
+      res.json([
+        {
+          id: 1,
+          name: "Михаил Иванов",
+          department: "Ресепшн",
+          progress: 25,
+          duration: "3 дня"
+        },
+        {
+          id: 2,
+          name: "Ольга Смирнова",
+          department: "Ресторан",
+          progress: 75,
+          duration: "1 неделя"
+        },
+        {
+          id: 3,
+          name: "Александр Петров",
+          department: "Обслуживание номеров",
+          progress: 90,
+          duration: "2 недели"
+        }
+      ]);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch onboarding data" });
+    }
+  });
+
+  const httpServer = createServer(app);
+  return httpServer;
+}

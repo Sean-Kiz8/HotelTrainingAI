@@ -1,0 +1,135 @@
+import { useState, useRef, useEffect } from "react";
+import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useChatbot } from "@/context/chatbot-context";
+import { useAuth } from "@/context/auth-context";
+
+export function AIChat() {
+  const { 
+    isOpen, 
+    toggleChatbot, 
+    messages, 
+    sendMessage,
+    isLoading
+  } = useChatbot();
+  const { user } = useAuth();
+  const [inputValue, setInputValue] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  
+  // Suggested questions
+  const suggestedQuestions = [
+    "Доступные курсы",
+    "Мой прогресс",
+    "Помощь"
+  ];
+  
+  // Scroll to bottom when messages change
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+  
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputValue.trim() || !user) return;
+    
+    sendMessage(inputValue);
+    setInputValue("");
+  };
+  
+  const handleSuggestedQuestion = (question: string) => {
+    if (!user) return;
+    sendMessage(question);
+  };
+  
+  return (
+    <div 
+      className={cn(
+        "chat-window fixed bottom-0 right-0 md:right-6 z-20 w-full sm:w-80 flex flex-col transform",
+        isOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]"
+      )}
+    >
+      <div 
+        className="bg-primary text-white p-3 rounded-t-lg flex items-center justify-between cursor-pointer"
+        onClick={toggleChatbot}
+      >
+        <div className="flex items-center">
+          <span className="material-icons mr-2">smart_toy</span>
+          <h3 className="font-sans font-medium">Ассистент обучения</h3>
+        </div>
+        <button className="text-white focus:outline-none">
+          <span className="material-icons chatbot-toggle-icon">
+            {isOpen ? "expand_more" : "expand_less"}
+          </span>
+        </button>
+      </div>
+      <div className="bg-white border border-neutral-200 border-t-0 flex flex-col h-96 rounded-b-lg overflow-hidden shadow-lg">
+        <div className="flex-1 p-3 overflow-y-auto" id="chatMessages">
+          {messages.map((message, index) => (
+            <div key={index}>
+              {message.message !== "Приветствие" && (
+                <div className="flex items-start justify-end mb-3">
+                  <div className="bg-neutral-100 p-2 rounded-lg rounded-tr-none max-w-[85%]">
+                    <p className="text-sm">{message.message}</p>
+                  </div>
+                </div>
+              )}
+              
+              {message.response && (
+                <div className="flex items-start mb-3">
+                  <div className="bg-primary text-white p-2 rounded-lg rounded-tl-none max-w-[85%]">
+                    <p className="text-sm whitespace-pre-wrap">{message.response}</p>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+          
+          {isLoading && (
+            <div className="flex items-start mb-3">
+              <div className="bg-primary text-white p-2 rounded-lg rounded-tl-none">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce"></div>
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: "0.2s" }}></div>
+                  <div className="w-2 h-2 bg-white rounded-full animate-bounce" style={{ animationDelay: "0.4s" }}></div>
+                </div>
+              </div>
+            </div>
+          )}
+          <div ref={messagesEndRef} />
+        </div>
+        
+        <div className="border-t border-neutral-200 p-3">
+          <form onSubmit={handleSendMessage} className="flex">
+            <Input
+              type="text"
+              placeholder="Введите ваш вопрос..."
+              className="flex-1 rounded-r-none"
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
+            />
+            <Button 
+              type="submit"
+              className="bg-primary text-white px-3 py-2 rounded-l-none" 
+              disabled={!inputValue.trim() || isLoading}
+            >
+              <span className="material-icons text-sm">send</span>
+            </Button>
+          </form>
+          <div className="mt-2 flex flex-wrap gap-1">
+            {suggestedQuestions.map((question, index) => (
+              <button
+                key={index}
+                className="bg-neutral-100 text-neutral-700 text-xs px-2 py-1 rounded-full hover:bg-neutral-200"
+                onClick={() => handleSuggestedQuestion(question)}
+                disabled={isLoading}
+              >
+                {question}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
