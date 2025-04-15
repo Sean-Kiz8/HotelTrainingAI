@@ -11,6 +11,7 @@ const adminNavItems = [
   { label: "Дашборд", icon: "dashboard", href: "/" },
   { label: "Курсы", icon: "school", href: "/courses" },
   { label: "SmartCourse", icon: "auto_awesome", href: "/smart-course" },
+  { label: "Учебные планы", icon: "psychology", href: "/learning-paths" },
   { label: "Сотрудники", icon: "groups", href: "/employees" },
   { label: "Медиатека", icon: "collections", href: "/media" },
   { label: "Аналитика", icon: "insert_chart", href: "/analytics" },
@@ -20,6 +21,7 @@ const adminNavItems = [
 
 const staffNavItems = [
   { label: "Мое обучение", icon: "menu_book", href: "/my-learning" },
+  { label: "Мои учебные планы", icon: "psychology", href: "/learning-paths" },
   { label: "Достижения", icon: "stars", href: "/achievements" },
   { label: "Рейтинг", icon: "leaderboard", href: "/leaderboard" },
   { label: "Награды", icon: "workspace_premium", href: "/rewards" },

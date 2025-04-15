@@ -19,6 +19,10 @@ import Discussions from "./pages/discussions";
 import MediaLibrary from "./pages/media-library";
 import DebugPage from "./pages/debug";
 import AuthPage from "./pages/auth-page";
+// AI Personal Learning Path pages
+import LearningPaths from "./pages/learning-paths";
+import LearningPathDetails from "./pages/learning-path-details";
+import LearningPathGenerator from "./pages/learning-path-generator";
 import { useEffect } from "react";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -84,6 +88,11 @@ function App() {
                   <ProtectedRoute path="/leaderboard" component={Leaderboard} />
                   <ProtectedRoute path="/rewards" component={Rewards} />
                   <ProtectedRoute path="/discussions" component={Discussions} />
+                  
+                  {/* AI Personal Learning Path routes */}
+                  <ProtectedRoute path="/learning-paths" component={LearningPaths} />
+                  <ProtectedRoute path="/learning-paths/:id" component={LearningPathDetails} />
+                  <ProtectedRoute path="/learning-path-generator" component={LearningPathGenerator} />
                   
                   {/* Debug route */}
                   <ProtectedRoute path="/debug" component={DebugPage} />

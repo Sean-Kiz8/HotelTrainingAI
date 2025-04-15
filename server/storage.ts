@@ -745,7 +745,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(userLevels)
-      .orderBy([desc(userLevels.level), desc(userLevels.points)])
+      .orderBy(desc(userLevels.points))
       .limit(limit);
   }
 
