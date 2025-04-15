@@ -560,3 +560,78 @@ export type InsertAssessmentSession = z.infer<typeof insertAssessmentSessionSche
 
 export type AssessmentAnswer = typeof assessmentAnswers.$inferSelect;
 export type InsertAssessmentAnswer = z.infer<typeof insertAssessmentAnswerSchema>;
+
+// Enum для типов микро-обучающего контента
+export const microLearningTypeEnum = pgEnum("micro_learning_type", [
+  "text",
+  "video",
+  "quiz",
+  "interactive"
+]);
+
+// Микро-обучающий контент
+export const microLearningContent = pgTable("micro_learning_content", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  type: microLearningTypeEnum("type").notNull(),
+  content: text("content").notNull(),
+  media_id: integer("media_id").references(() => mediaFiles.id),
+  competency_id: integer("competency_id").references(() => competencies.id),
+  target_level: employeeLevelEnum("target_level").notNull(),
+  duration_minutes: integer("duration_minutes").notNull().default(5),
+  created_by_id: integer("created_by_id").notNull().references(() => users.id),
+  created_at: timestamp("created_at").notNull().defaultNow(),
+  updated_at: timestamp("updated_at").notNull().defaultNow(),
+  has_quiz: boolean("has_quiz").notNull().default(false),
+  keywords: text("keywords").array(),
+});
+
+export const insertMicroLearningContentSchema = createInsertSchema(microLearningContent).omit({
+  id: true,
+  created_at: true,
+  updated_at: true,
+});
+
+// Назначение микро-обучающего контента пользователям
+export const microLearningAssignments = pgTable("micro_learning_assignments", {
+  id: serial("id").primaryKey(),
+  user_id: integer("user_id").notNull().references(() => users.id),
+  content_id: integer("content_id").notNull().references(() => microLearningContent.id),
+  assessment_session_id: integer("assessment_session_id").references(() => assessmentSessions.id),
+  competency_id: integer("competency_id").references(() => competencies.id),
+  assigned_at: timestamp("assigned_at").notNull().defaultNow(),
+  completed_at: timestamp("completed_at"),
+  is_completed: boolean("is_completed").notNull().default(false),
+  user_feedback: text("user_feedback"),
+  effectiveness_rating: integer("effectiveness_rating"),
+});
+
+export const insertMicroLearningAssignmentSchema = createInsertSchema(microLearningAssignments).omit({
+  id: true,
+  assigned_at: true,
+});
+
+// Прогресс по выполнению микро-обучающего контента
+export const microLearningProgress = pgTable("micro_learning_progress", {
+  id: serial("id").primaryKey(),
+  assignment_id: integer("assignment_id").notNull().references(() => microLearningAssignments.id),
+  progress_percentage: integer("progress_percentage").notNull().default(0),
+  last_accessed_at: timestamp("last_accessed_at").notNull().defaultNow(),
+  completed_at: timestamp("completed_at"),
+  time_spent_seconds: integer("time_spent_seconds").notNull().default(0),
+  quiz_score: integer("quiz_score"),
+});
+
+export const insertMicroLearningProgressSchema = createInsertSchema(microLearningProgress).omit({
+  id: true,
+  last_accessed_at: true,
+});
+
+export type MicroLearningContent = typeof microLearningContent.$inferSelect;
+export type InsertMicroLearningContent = z.infer<typeof insertMicroLearningContentSchema>;
+
+export type MicroLearningAssignment = typeof microLearningAssignments.$inferSelect;
+export type InsertMicroLearningAssignment = z.infer<typeof insertMicroLearningAssignmentSchema>;
+
+export type MicroLearningProgress = typeof microLearningProgress.$inferSelect;
+export type InsertMicroLearningProgress = z.infer<typeof insertMicroLearningProgressSchema>;

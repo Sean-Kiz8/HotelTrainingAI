@@ -204,6 +204,43 @@ export interface IStorage {
   getAssessmentStatistics(assessmentId: number): Promise<any>;
   getUserAssessmentResults(userId: number): Promise<any>;
   getDepartmentAssessmentResults(department: string): Promise<any>;
+  
+  // ================ Операции с микро-обучающим контентом ================
+  
+  // Операции с микро-обучающим контентом
+  getMicroLearningContent(id: number): Promise<MicroLearningContent | undefined>;
+  createMicroLearningContent(content: InsertMicroLearningContent): Promise<MicroLearningContent>;
+  updateMicroLearningContent(id: number, contentData: Partial<InsertMicroLearningContent>): Promise<MicroLearningContent | undefined>;
+  deleteMicroLearningContent(id: number): Promise<boolean>;
+  listMicroLearningContent(): Promise<MicroLearningContent[]>;
+  listMicroLearningContentByCompetency(competencyId: number): Promise<MicroLearningContent[]>;
+  listMicroLearningContentByTargetLevel(level: string): Promise<MicroLearningContent[]>;
+  
+  // Операции с назначениями микро-обучающего контента
+  getMicroLearningAssignment(id: number): Promise<MicroLearningAssignment | undefined>;
+  createMicroLearningAssignment(assignment: InsertMicroLearningAssignment): Promise<MicroLearningAssignment>;
+  updateMicroLearningAssignment(id: number, assignmentData: Partial<InsertMicroLearningAssignment>): Promise<MicroLearningAssignment | undefined>;
+  completeMicroLearningAssignment(id: number, feedback?: string, rating?: number): Promise<MicroLearningAssignment | undefined>;
+  listMicroLearningAssignmentsByUser(userId: number): Promise<MicroLearningAssignment[]>;
+  listMicroLearningAssignmentsByContent(contentId: number): Promise<MicroLearningAssignment[]>;
+  
+  // Операции с прогрессом по микро-обучающему контенту
+  getMicroLearningProgress(id: number): Promise<MicroLearningProgress | undefined>;
+  createMicroLearningProgress(progress: InsertMicroLearningProgress): Promise<MicroLearningProgress>;
+  updateMicroLearningProgress(id: number, progressData: Partial<InsertMicroLearningProgress>): Promise<MicroLearningProgress | undefined>;
+  completeMicroLearningProgress(id: number, quizScore?: number): Promise<MicroLearningProgress | undefined>;
+  
+  // Генерация микро-обучающего контента на основе результатов ассесмента
+  generateMicroLearningContent(assessmentSessionId: number, options?: { type?: string, count?: number }): Promise<MicroLearningContent[]>;
+  
+  // Рекомендации микро-обучающего контента
+  recommendMicroLearningForUser(userId: number, count?: number): Promise<MicroLearningContent[]>;
+  recommendMicroLearningByCompetency(competencyId: number, count?: number): Promise<MicroLearningContent[]>;
+  
+  // Аналитика по микро-обучающему контенту
+  getMicroLearningStatistics(): Promise<any>;
+  getUserMicroLearningStatistics(userId: number): Promise<any>;
+  getCompetencyMicroLearningStatistics(competencyId: number): Promise<any>;
 }
 
 import { db } from "./db";
