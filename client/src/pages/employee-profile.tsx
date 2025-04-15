@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { CourseCard } from "@/components/dashboard/course-card";
+import { AssignAssessmentDialog } from "@/components/employees/assign-assessment-dialog";
 
 export default function EmployeeProfile() {
   const { id } = useParams<{ id: string }>();
@@ -18,6 +19,7 @@ export default function EmployeeProfile() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const userId = parseInt(id);
+  const [showAssignAssessmentDialog, setShowAssignAssessmentDialog] = useState(false);
 
   // Получаем данные сотрудника
   const { data: employee, isLoading: isLoadingEmployee } = useQuery({
@@ -45,6 +47,12 @@ export default function EmployeeProfile() {
   // Получаем достижения пользователя
   const { data: userAchievements = [], isLoading: isLoadingAchievements } = useQuery({
     queryKey: [`/api/user-achievements/${userId}`],
+    enabled: !!userId && !isNaN(userId),
+  });
+
+  // Получаем сессии ассесментов для сотрудника
+  const { data: assessmentSessions = [], isLoading: isLoadingAssessmentSessions } = useQuery({
+    queryKey: [`/api/assessment-sessions?userId=${userId}`],
     enabled: !!userId && !isNaN(userId),
   });
 
@@ -78,7 +86,7 @@ export default function EmployeeProfile() {
   // Вычисляем общий прогресс обучения
   const totalProgress = enrollments.length > 0
     ? Math.round(
-        enrollments.reduce((sum: number, enrollment: any) => sum + enrollment.progress, 0) / 
+        enrollments.reduce((sum: number, enrollment: any) => sum + enrollment.progress, 0) /
         enrollments.length
       )
     : 0;
@@ -114,8 +122,25 @@ export default function EmployeeProfile() {
 
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">
-      <PageHeader title="Профиль сотрудника" />
-      
+      <PageHeader title="Профиль сотрудника">
+        <Button
+          onClick={() => setShowAssignAssessmentDialog(true)}
+          className="ml-auto"
+        >
+          Назначить ассесмент
+        </Button>
+
+        {/* Диалоговое окно назначения ассесмента */}
+        {employee && (
+          <AssignAssessmentDialog
+            open={showAssignAssessmentDialog}
+            onOpenChange={setShowAssignAssessmentDialog}
+            employeeId={userId}
+            employeeName={employee.name}
+          />
+        )}
+      </PageHeader>
+
       {/* Карточка профиля */}
       <Card className="mb-6">
         <CardContent className="p-6">
@@ -124,7 +149,7 @@ export default function EmployeeProfile() {
               <AvatarImage src={employee.avatar || ""} alt={employee.name} />
               <AvatarFallback className="text-2xl">{employee.name.charAt(0)}</AvatarFallback>
             </Avatar>
-            
+
             <div className="flex-1">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
@@ -136,7 +161,7 @@ export default function EmployeeProfile() {
                     </Badge>
                   )}
                 </div>
-                
+
                 <div className="flex flex-col items-start md:items-end">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm text-neutral-500">Email:</span>
@@ -148,7 +173,7 @@ export default function EmployeeProfile() {
                   </div>
                 </div>
               </div>
-              
+
               {/* Прогресс обучения */}
               <div className="mt-6">
                 <div className="flex justify-between items-center mb-1">
@@ -157,7 +182,7 @@ export default function EmployeeProfile() {
                 </div>
                 <Progress value={totalProgress} className="h-2" />
               </div>
-              
+
               {/* Уровень и достижения */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                 <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-md">
@@ -169,7 +194,7 @@ export default function EmployeeProfile() {
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-md">
                   <span className="material-icons text-primary">emoji_events</span>
                   <div>
@@ -184,14 +209,15 @@ export default function EmployeeProfile() {
           </div>
         </CardContent>
       </Card>
-      
-      {/* Вкладки с курсами */}
+
+      {/* Вкладки с курсами и ассесментами */}
       <Tabs defaultValue="in-progress" className="mb-6">
-        <TabsList>
+        <TabsList className="grid grid-cols-3">
           <TabsTrigger value="in-progress">В процессе обучения</TabsTrigger>
           <TabsTrigger value="completed">Завершенные курсы</TabsTrigger>
+          <TabsTrigger value="assessments">Ассесменты</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="in-progress" className="mt-4">
           {isLoadingEnrollments || isLoadingCourses ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -222,8 +248,8 @@ export default function EmployeeProfile() {
               ) : (
                 <div className="text-center py-12 text-neutral-500">
                   <p>Нет курсов в процессе обучения</p>
-                  <Button 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     className="mt-4"
                     onClick={() => navigate('/courses')}
                   >
@@ -234,7 +260,7 @@ export default function EmployeeProfile() {
             </>
           )}
         </TabsContent>
-        
+
         <TabsContent value="completed" className="mt-4">
           {isLoadingEnrollments || isLoadingCourses ? (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -270,17 +296,82 @@ export default function EmployeeProfile() {
             </>
           )}
         </TabsContent>
+
+        <TabsContent value="assessments" className="mt-4">
+          {isLoadingAssessmentSessions ? (
+            <div className="space-y-4">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-24" />
+              ))}
+            </div>
+          ) : (
+            <>
+              {assessmentSessions.length > 0 ? (
+                <div className="space-y-4">
+                  {assessmentSessions.map((session: any) => (
+                    <Card key={session.id}>
+                      <CardContent className="p-4">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <h3 className="font-medium">{session.assessment?.title || 'Ассесмент'}</h3>
+                            <p className="text-sm text-neutral-500 mt-1">
+                              {session.status === 'completed'
+                                ? `Завершен: ${new Date(session.completedAt).toLocaleDateString()}`
+                                : session.status === 'in_progress'
+                                  ? 'В процессе'
+                                  : 'Не начат'}
+                            </p>
+                            {session.status === 'completed' && (
+                              <div className="mt-2">
+                                <Badge variant={session.score_percentage >= 70 ? 'success' : 'destructive'}>
+                                  Результат: {session.score_percentage}%
+                                </Badge>
+                                {session.level && (
+                                  <Badge variant="outline" className="ml-2">
+                                    Уровень: {session.level}
+                                  </Badge>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                          <Button
+                            size="sm"
+                            variant={session.status === 'completed' ? 'outline' : 'default'}
+                            onClick={() => navigate(`/assessment-session/${session.id}`)}
+                          >
+                            {session.status === 'completed' ? 'Просмотр результатов' : 'Пройти ассесмент'}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-neutral-500">
+                  <p>Нет назначенных ассесментов</p>
+                  <Button
+                    variant="outline"
+                    className="mt-4"
+                    onClick={() => setShowAssignAssessmentDialog(true)}
+                  >
+                    Назначить ассесмент
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
       </Tabs>
-      
+
       <div className="flex justify-end">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           className="mr-2"
           onClick={() => navigate('/employees')}
         >
           Назад к списку сотрудников
         </Button>
-        <Button 
+        <Button
           onClick={() => navigate(`/learning-path-generator?userId=${userId}`)}
         >
           Создать учебный план

@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
 import { AddEmployeeDialog } from "@/components/employees/add-employee-dialog";
 import { AssignCourseDialog } from "@/components/employees/assign-course-dialog";
+import { AssignAssessmentDialog } from "@/components/employees/assign-assessment-dialog";
 
 export default function Employees() {
   const { toast } = useToast();
@@ -18,6 +19,7 @@ export default function Employees() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddEmployeeDialog, setShowAddEmployeeDialog] = useState(false);
   const [showAssignCourseDialog, setShowAssignCourseDialog] = useState(false);
+  const [showAssignAssessmentDialog, setShowAssignAssessmentDialog] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<any>(null);
 
   // Fetch users
@@ -88,6 +90,16 @@ export default function Employees() {
             employeeName={selectedEmployee.name}
           />
         )}
+
+        {/* Диалоговое окно назначения ассесмента */}
+        {selectedEmployee && (
+          <AssignAssessmentDialog
+            open={showAssignAssessmentDialog}
+            onOpenChange={setShowAssignAssessmentDialog}
+            employeeId={selectedEmployee.id}
+            employeeName={selectedEmployee.name}
+          />
+        )}
       </PageHeader>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -135,17 +147,30 @@ export default function Employees() {
                         >
                           Профиль
                         </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="text-xs"
-                          onClick={() => {
-                            setSelectedEmployee(employee);
-                            setShowAssignCourseDialog(true);
-                          }}
-                        >
-                          Назначить курс
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => {
+                              setSelectedEmployee(employee);
+                              setShowAssignCourseDialog(true);
+                            }}
+                          >
+                            Назначить курс
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => {
+                              setSelectedEmployee(employee);
+                              setShowAssignAssessmentDialog(true);
+                            }}
+                          >
+                            Назначить ассесмент
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </CardContent>

@@ -25,6 +25,10 @@ import LearningPaths from "./pages/learning-paths";
 import LearningPathDetails from "./pages/learning-path-details";
 import LearningPathGenerator from "./pages/learning-path-generator";
 import AILearningPath from "./pages/ai-learning-path";
+// Assessment pages
+import Assessments from "./pages/assessments";
+import AssessmentSession from "./pages/assessment-session";
+import AssessmentResults from "./pages/assessment-results";
 import { useEffect } from "react";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -97,6 +101,11 @@ function App() {
                   <ProtectedRoute path="/learning-path/:id" component={LearningPathDetails} />
                   <ProtectedRoute path="/learning-path-generator" component={LearningPathGenerator} />
                   <ProtectedRoute path="/ai-learning-path" component={AILearningPath} />
+
+                  {/* Assessment routes */}
+                  <ProtectedRoute path="/assessments" component={Assessments} />
+                  <ProtectedRoute path="/assessment-session/:id" component={AssessmentSession} />
+                  <ProtectedRoute path="/assessment-results/:id" component={AssessmentResults} />
 
                   {/* Debug route */}
                   <ProtectedRoute path="/debug" component={DebugPage} />

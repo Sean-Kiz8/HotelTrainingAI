@@ -13,6 +13,7 @@ const adminNavItems = [
   { label: "SmartCourse", icon: "auto_awesome", href: "/smart-course" },
   { label: "Учебные планы", icon: "psychology", href: "/learning-paths" },
   { label: "Сотрудники", icon: "groups", href: "/employees" },
+  { label: "Ассесменты", icon: "assignment", href: "/assessments" },
   { label: "Медиатека", icon: "collections", href: "/media" },
   { label: "Аналитика", icon: "insert_chart", href: "/analytics" },
   { label: "Геймификация", icon: "emoji_events", href: "/achievements" },
@@ -22,6 +23,7 @@ const adminNavItems = [
 const staffNavItems = [
   { label: "Мое обучение", icon: "menu_book", href: "/my-learning" },
   { label: "Мои учебные планы", icon: "psychology", href: "/learning-paths" },
+  { label: "Мои ассесменты", icon: "assignment", href: "/assessments" },
   { label: "Достижения", icon: "stars", href: "/achievements" },
   { label: "Рейтинг", icon: "leaderboard", href: "/leaderboard" },
   { label: "Награды", icon: "workspace_premium", href: "/rewards" },
@@ -32,14 +34,14 @@ export function Sidebar() {
   const [location, navigate] = useLocation();
   const { user, logoutMutation } = useAuth();
   const { openChatbot } = useChatbot();
-  
+
   // Всегда отображаем боковое меню для разработки
   // if (!user) return null;
-  
+
   const goToPage = (href: string) => {
     navigate(href);
   };
-  
+
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r border-neutral-200 bg-white">
       <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
@@ -48,7 +50,7 @@ export function Sidebar() {
           <span className="material-icons text-primary mr-2">hotel</span>
           <h1 className="font-sans font-bold text-xl text-primary">HotelLearn</h1>
         </div>
-        
+
         {/* User info */}
         <div className="flex-shrink-0 px-4 pb-3 border-b border-neutral-200">
           <div className="flex items-center">
@@ -62,7 +64,7 @@ export function Sidebar() {
             </div>
           </div>
         </div>
-        
+
         {/* Navigation */}
         <div className="mt-5 flex-1 flex flex-col">
           <p className="text-xs uppercase text-neutral-500 font-semibold tracking-wider px-4 mb-2">
@@ -70,7 +72,7 @@ export function Sidebar() {
           </p>
           <nav className="flex-1 px-2 space-y-1">
             {adminNavItems.map((item) => (
-              <div 
+              <div
                 key={item.href}
                 role="button"
                 tabIndex={0}
@@ -78,8 +80,8 @@ export function Sidebar() {
                 onKeyDown={(e) => e.key === 'Enter' && goToPage(item.href)}
                 className={cn(
                   "flex items-center px-2 py-2 rounded-md group transition-colors cursor-pointer",
-                  location === item.href 
-                    ? "bg-primary text-white" 
+                  location === item.href
+                    ? "bg-primary text-white"
                     : "text-neutral-700 hover:bg-neutral-100"
                 )}
               >
@@ -93,13 +95,13 @@ export function Sidebar() {
               </div>
             ))}
           </nav>
-          
+
           <p className="text-xs uppercase text-neutral-500 font-semibold tracking-wider px-4 mb-2 mt-6">
             Персонал
           </p>
           <nav className="flex-1 px-2 space-y-1">
             {staffNavItems.map((item) => (
-              <div 
+              <div
                 key={item.href}
                 role="button"
                 tabIndex={0}
@@ -107,8 +109,8 @@ export function Sidebar() {
                 onKeyDown={(e) => e.key === 'Enter' && goToPage(item.href)}
                 className={cn(
                   "flex items-center px-2 py-2 rounded-md group transition-colors cursor-pointer",
-                  location === item.href 
-                    ? "bg-primary text-white" 
+                  location === item.href
+                    ? "bg-primary text-white"
                     : "text-neutral-700 hover:bg-neutral-100"
                 )}
               >
@@ -123,25 +125,25 @@ export function Sidebar() {
             ))}
           </nav>
         </div>
-        
+
         {/* Chat, Help, and Logout buttons */}
         <div className="px-4 pt-4 pb-2 border-t border-neutral-200">
           <div className="flex mb-2">
-            <Button 
-              className="flex-1 flex justify-start mr-2" 
+            <Button
+              className="flex-1 flex justify-start mr-2"
               variant="outline"
               onClick={openChatbot}
             >
               <span className="material-icons mr-3 text-primary">chat</span>
               Помощник ИИ
             </Button>
-            
+
             <OnboardingButton className="text-primary" />
           </div>
-          
-          <Button 
-            variant="ghost" 
-            className="w-full justify-start text-neutral-700" 
+
+          <Button
+            variant="ghost"
+            className="w-full justify-start text-neutral-700"
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
           >

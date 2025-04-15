@@ -1,4 +1,4 @@
-import { 
+import {
   users, type User, type InsertUser,
   courses, type Course, type InsertCourse,
   enrollments, type Enrollment, type InsertEnrollment,
@@ -34,10 +34,10 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined>;
   listUsers(): Promise<User[]>;
-  
+
   // Дополнительный метод для получения всех учебных планов
   listAllLearningPaths(): Promise<LearningPath[]>;
-  
+
   // Media operations
   getMediaFile(id: number): Promise<MediaFile | undefined>;
   createMediaFile(mediaFile: InsertMediaFile): Promise<MediaFile>;
@@ -45,34 +45,34 @@ export interface IStorage {
   deleteMediaFile(id: number): Promise<boolean>;
   listMediaFiles(limit?: number, offset?: number): Promise<MediaFile[]>;
   listMediaFilesByType(mediaType: string, limit?: number, offset?: number): Promise<MediaFile[]>;
-  
+
   // Course operations
   getCourse(id: number): Promise<Course | undefined>;
   createCourse(course: InsertCourse): Promise<Course>;
   updateCourse(id: number, courseData: Partial<InsertCourse>): Promise<Course | undefined>;
   listCourses(): Promise<Course[]>;
   listCoursesByDepartment(department: string): Promise<Course[]>;
-  
+
   // Module operations
   getModule(id: number): Promise<Module | undefined>;
   createModule(module: InsertModule): Promise<Module>;
   updateModule(id: number, moduleData: Partial<InsertModule>): Promise<Module | undefined>;
   deleteModule(id: number): Promise<boolean>;
   listModulesByCourse(courseId: number): Promise<Module[]>;
-  
+
   // Lesson operations
   getLesson(id: number): Promise<Lesson | undefined>;
   createLesson(lesson: InsertLesson): Promise<Lesson>;
   updateLesson(id: number, lessonData: Partial<InsertLesson>): Promise<Lesson | undefined>;
   deleteLesson(id: number): Promise<boolean>;
   listLessonsByModule(moduleId: number): Promise<Lesson[]>;
-  
+
   // Lesson media operations
   getLessonMedia(id: number): Promise<LessonMedia | undefined>;
   createLessonMedia(lessonMedia: InsertLessonMedia): Promise<LessonMedia>;
   deleteLessonMedia(id: number): Promise<boolean>;
   listMediaByLesson(lessonId: number): Promise<LessonMedia[]>;
-  
+
   // Enrollment operations
   getEnrollment(userId: number, courseId: number): Promise<Enrollment | undefined>;
   createEnrollment(enrollment: InsertEnrollment): Promise<Enrollment>;
@@ -80,23 +80,23 @@ export interface IStorage {
   completeEnrollment(id: number): Promise<Enrollment | undefined>;
   listEnrollmentsByUser(userId: number): Promise<Enrollment[]>;
   listEnrollmentsByCourse(courseId: number): Promise<Enrollment[]>;
-  
+
   // Lesson progress operations
   getLessonProgress(enrollmentId: number, lessonId: number): Promise<LessonProgress | undefined>;
   createLessonProgress(lessonProgress: InsertLessonProgress): Promise<LessonProgress>;
   updateLessonProgress(id: number, progressData: Partial<InsertLessonProgress>): Promise<LessonProgress | undefined>;
   completeLessonProgress(id: number): Promise<LessonProgress | undefined>;
   listLessonProgressByEnrollment(enrollmentId: number): Promise<LessonProgress[]>;
-  
+
   // Activity operations
   createActivity(activity: InsertActivity): Promise<Activity>;
   listRecentActivities(limit: number): Promise<Activity[]>;
-  
+
   // Chat operations
   createChatMessage(chatMessage: InsertChatMessage): Promise<ChatMessage>;
   updateChatResponse(id: number, response: string): Promise<ChatMessage | undefined>;
   listChatMessagesByUser(userId: number, limit: number): Promise<ChatMessage[]>;
-  
+
   // Геймификация - Достижения
   getAchievement(id: number): Promise<Achievement | undefined>;
   createAchievement(achievement: InsertAchievement): Promise<Achievement>;
@@ -104,12 +104,12 @@ export interface IStorage {
   deleteAchievement(id: number): Promise<boolean>;
   listAchievements(): Promise<Achievement[]>;
   listAchievementsByType(type: string): Promise<Achievement[]>;
-  
+
   // Геймификация - Достижения пользователей
   getUserAchievement(userId: number, achievementId: number): Promise<UserAchievement | undefined>;
   createUserAchievement(userAchievement: InsertUserAchievement): Promise<UserAchievement>;
   listUserAchievementsByUser(userId: number): Promise<UserAchievement[]>;
-  
+
   // Геймификация - Вознаграждения
   getReward(id: number): Promise<Reward | undefined>;
   createReward(reward: InsertReward): Promise<Reward>;
@@ -117,19 +117,19 @@ export interface IStorage {
   deleteReward(id: number): Promise<boolean>;
   listRewards(): Promise<Reward[]>;
   listActiveRewards(): Promise<Reward[]>;
-  
+
   // Геймификация - Вознаграждения пользователей
   getUserReward(userId: number, rewardId: number): Promise<UserReward | undefined>;
   createUserReward(userReward: InsertUserReward): Promise<UserReward>;
   listUserRewardsByUser(userId: number): Promise<UserReward[]>;
-  
+
   // Геймификация - Уровни пользователей
   getUserLevel(userId: number): Promise<UserLevel | undefined>;
   createUserLevel(userLevel: InsertUserLevel): Promise<UserLevel>;
   updateUserLevel(userId: number, userLevelData: Partial<InsertUserLevel>): Promise<UserLevel | undefined>;
   addUserPoints(userId: number, points: number): Promise<UserLevel | undefined>;
   getLeaderboard(limit?: number): Promise<UserLevel[]>;
-  
+
   // AI Personal Learning Path operations
   getLearningPath(id: number): Promise<LearningPath | undefined>;
   createLearningPath(learningPath: InsertLearningPath): Promise<LearningPath>;
@@ -138,7 +138,7 @@ export interface IStorage {
   deleteLearningPath(id: number): Promise<boolean>;
   listLearningPathsByUser(userId: number): Promise<LearningPath[]>;
   listLearningPathsByCreator(createdById: number): Promise<LearningPath[]>;
-  
+
   // Learning Path Courses operations
   getLearningPathCourse(id: number): Promise<LearningPathCourse | undefined>;
   createLearningPathCourse(learningPathCourse: InsertLearningPathCourse): Promise<LearningPathCourse>;
@@ -147,9 +147,9 @@ export interface IStorage {
   deleteLearningPathCourse(id: number): Promise<boolean>;
   listCoursesByLearningPath(learningPathId: number): Promise<LearningPathCourse[]>;
   listDetailedCoursesByLearningPath(learningPathId: number): Promise<(LearningPathCourse & { course: Course })[]>;
-  
+
   // ================ Операции с системой оценки навыков сотрудников ================
-  
+
   // Операции с ролями сотрудников
   getEmployeeRole(id: number): Promise<EmployeeRole | undefined>;
   createEmployeeRole(role: InsertEmployeeRole): Promise<EmployeeRole>;
@@ -157,7 +157,7 @@ export interface IStorage {
   deleteEmployeeRole(id: number): Promise<boolean>;
   listEmployeeRoles(): Promise<EmployeeRole[]>;
   listEmployeeRolesByDepartment(department: string): Promise<EmployeeRole[]>;
-  
+
   // Операции с компетенциями
   getCompetency(id: number): Promise<Competency | undefined>;
   createCompetency(competency: InsertCompetency): Promise<Competency>;
@@ -165,7 +165,7 @@ export interface IStorage {
   deleteCompetency(id: number): Promise<boolean>;
   listCompetencies(): Promise<Competency[]>;
   listCompetenciesByCategory(category: string): Promise<Competency[]>;
-  
+
   // Операции с ассесментами
   getAssessment(id: number): Promise<Assessment | undefined>;
   createAssessment(assessment: InsertAssessment): Promise<Assessment>;
@@ -173,7 +173,7 @@ export interface IStorage {
   deleteAssessment(id: number): Promise<boolean>;
   listAssessments(): Promise<Assessment[]>;
   listAssessmentsByRole(roleId: number): Promise<Assessment[]>;
-  
+
   // Операции с вопросами для ассесментов
   getAssessmentQuestion(id: number): Promise<AssessmentQuestion | undefined>;
   createAssessmentQuestion(question: InsertAssessmentQuestion): Promise<AssessmentQuestion>;
@@ -182,7 +182,7 @@ export interface IStorage {
   listAssessmentQuestions(assessmentId: number): Promise<AssessmentQuestion[]>;
   listAssessmentQuestionsByDifficulty(assessmentId: number, difficulty: string): Promise<AssessmentQuestion[]>;
   listAssessmentQuestionsByCompetency(assessmentId: number, competencyId: number): Promise<AssessmentQuestion[]>;
-  
+
   // Операции с сессиями прохождения ассесментов
   getAssessmentSession(id: number): Promise<AssessmentSession | undefined>;
   createAssessmentSession(session: InsertAssessmentSession): Promise<AssessmentSession>;
@@ -190,23 +190,23 @@ export interface IStorage {
   completeAssessmentSession(id: number, results: any): Promise<AssessmentSession>;
   listAssessmentSessionsByUser(userId: number): Promise<AssessmentSession[]>;
   listAssessmentSessionsByAssessment(assessmentId: number): Promise<AssessmentSession[]>;
-  
+
   // Операции с ответами пользователя
   getAssessmentAnswer(id: number): Promise<AssessmentAnswer | undefined>;
   createAssessmentAnswer(answer: InsertAssessmentAnswer): Promise<AssessmentAnswer>;
   updateAssessmentAnswer(id: number, answerData: Partial<InsertAssessmentAnswer>): Promise<AssessmentAnswer | undefined>;
   listAssessmentAnswersBySession(sessionId: number): Promise<AssessmentAnswer[]>;
-  
+
   // Генерация умных ассесментов
   generateAssessmentQuestions(assessmentId: number, count: number): Promise<AssessmentQuestion[]>;
-  
+
   // Аналитика по ассесментам
   getAssessmentStatistics(assessmentId: number): Promise<any>;
   getUserAssessmentResults(userId: number): Promise<any>;
   getDepartmentAssessmentResults(department: string): Promise<any>;
-  
+
   // ================ Операции с микро-обучающим контентом ================
-  
+
   // Операции с микро-обучающим контентом
   getMicroLearningContent(id: number): Promise<MicroLearningContent | undefined>;
   createMicroLearningContent(content: InsertMicroLearningContent): Promise<MicroLearningContent>;
@@ -215,7 +215,7 @@ export interface IStorage {
   listMicroLearningContent(): Promise<MicroLearningContent[]>;
   listMicroLearningContentByCompetency(competencyId: number): Promise<MicroLearningContent[]>;
   listMicroLearningContentByTargetLevel(level: string): Promise<MicroLearningContent[]>;
-  
+
   // Операции с назначениями микро-обучающего контента
   getMicroLearningAssignment(id: number): Promise<MicroLearningAssignment | undefined>;
   createMicroLearningAssignment(assignment: InsertMicroLearningAssignment): Promise<MicroLearningAssignment>;
@@ -223,20 +223,20 @@ export interface IStorage {
   completeMicroLearningAssignment(id: number, feedback?: string, rating?: number): Promise<MicroLearningAssignment | undefined>;
   listMicroLearningAssignmentsByUser(userId: number): Promise<MicroLearningAssignment[]>;
   listMicroLearningAssignmentsByContent(contentId: number): Promise<MicroLearningAssignment[]>;
-  
+
   // Операции с прогрессом по микро-обучающему контенту
   getMicroLearningProgress(id: number): Promise<MicroLearningProgress | undefined>;
   createMicroLearningProgress(progress: InsertMicroLearningProgress): Promise<MicroLearningProgress>;
   updateMicroLearningProgress(id: number, progressData: Partial<InsertMicroLearningProgress>): Promise<MicroLearningProgress | undefined>;
   completeMicroLearningProgress(id: number, quizScore?: number): Promise<MicroLearningProgress | undefined>;
-  
+
   // Генерация микро-обучающего контента на основе результатов ассесмента
   generateMicroLearningContent(assessmentSessionId: number, options?: { type?: string, count?: number }): Promise<MicroLearningContent[]>;
-  
+
   // Рекомендации микро-обучающего контента
   recommendMicroLearningForUser(userId: number, count?: number): Promise<MicroLearningContent[]>;
   recommendMicroLearningByCompetency(competencyId: number, count?: number): Promise<MicroLearningContent[]>;
-  
+
   // Аналитика по микро-обучающему контенту
   getMicroLearningStatistics(): Promise<any>;
   getUserMicroLearningStatistics(userId: number): Promise<any>;
@@ -244,7 +244,7 @@ export interface IStorage {
 }
 
 import { db } from "./db";
-import { eq, and, desc, like, sql } from "drizzle-orm";
+import { eq, and, or, desc, like, sql } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   // User operations
@@ -252,17 +252,17 @@ export class DatabaseStorage implements IStorage {
     const [user] = await db.select().from(users).where(eq(users.id, id));
     return user;
   }
-  
+
   async getUserByUsername(username: string): Promise<User | undefined> {
     const [user] = await db.select().from(users).where(eq(users.username, username));
     return user;
   }
-  
+
   async createUser(user: InsertUser): Promise<User> {
     const [newUser] = await db.insert(users).values(user).returning();
     return newUser;
   }
-  
+
   async updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined> {
     const [updatedUser] = await db
       .update(users)
@@ -271,22 +271,22 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedUser;
   }
-  
+
   async listUsers(): Promise<User[]> {
     return await db.select().from(users);
   }
-  
+
   // Media operations
   async getMediaFile(id: number): Promise<MediaFile | undefined> {
     const [mediaFile] = await db.select().from(mediaFiles).where(eq(mediaFiles.id, id));
     return mediaFile;
   }
-  
+
   async createMediaFile(mediaFile: InsertMediaFile): Promise<MediaFile> {
     const [newMediaFile] = await db.insert(mediaFiles).values(mediaFile).returning();
     return newMediaFile;
   }
-  
+
   async updateMediaFile(id: number, mediaFileData: Partial<InsertMediaFile>): Promise<MediaFile | undefined> {
     const [updatedMediaFile] = await db
       .update(mediaFiles)
@@ -295,12 +295,12 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedMediaFile;
   }
-  
+
   async deleteMediaFile(id: number): Promise<boolean> {
     const result = await db.delete(mediaFiles).where(eq(mediaFiles.id, id));
     return !!result;
   }
-  
+
   async listMediaFiles(limit: number = 20, offset: number = 0): Promise<MediaFile[]> {
     return await db
       .select()
@@ -309,7 +309,7 @@ export class DatabaseStorage implements IStorage {
       .limit(limit)
       .offset(offset);
   }
-  
+
   async listMediaFilesByType(mediaType: string, limit: number = 20, offset: number = 0): Promise<MediaFile[]> {
     return await db
       .select()
@@ -319,33 +319,33 @@ export class DatabaseStorage implements IStorage {
       .limit(limit)
       .offset(offset);
   }
-  
+
   // Course operations
   async getCourse(id: number): Promise<Course | undefined> {
     const [course] = await db.select().from(courses).where(eq(courses.id, id));
     return course;
   }
-  
+
   async createCourse(course: InsertCourse): Promise<Course> {
     const [newCourse] = await db.insert(courses).values(course).returning();
-    
+
     // Create activity for course creation
     await this.createActivity({
       userId: course.createdById,
       courseId: newCourse.id,
       type: "created_course"
     });
-    
+
     return newCourse;
   }
-  
+
   async updateCourse(id: number, courseData: Partial<InsertCourse>): Promise<Course | undefined> {
     const [updatedCourse] = await db
       .update(courses)
       .set(courseData)
       .where(eq(courses.id, id))
       .returning();
-    
+
     // Create activity for course update
     if (courseData.createdById && updatedCourse) {
       await this.createActivity({
@@ -354,32 +354,32 @@ export class DatabaseStorage implements IStorage {
         type: "updated_course"
       });
     }
-    
+
     return updatedCourse;
   }
-  
+
   async listCourses(): Promise<Course[]> {
     return await db.select().from(courses);
   }
-  
+
   async listCoursesByDepartment(department: string): Promise<Course[]> {
     return await db
       .select()
       .from(courses)
       .where(eq(courses.department, department));
   }
-  
+
   // Module operations
   async getModule(id: number): Promise<Module | undefined> {
     const [module] = await db.select().from(modules).where(eq(modules.id, id));
     return module;
   }
-  
+
   async createModule(module: InsertModule): Promise<Module> {
     const [newModule] = await db.insert(modules).values(module).returning();
     return newModule;
   }
-  
+
   async updateModule(id: number, moduleData: Partial<InsertModule>): Promise<Module | undefined> {
     const [updatedModule] = await db
       .update(modules)
@@ -388,12 +388,12 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedModule;
   }
-  
+
   async deleteModule(id: number): Promise<boolean> {
     const result = await db.delete(modules).where(eq(modules.id, id));
     return !!result;
   }
-  
+
   async listModulesByCourse(courseId: number): Promise<Module[]> {
     return await db
       .select()
@@ -401,18 +401,18 @@ export class DatabaseStorage implements IStorage {
       .where(eq(modules.courseId, courseId))
       .orderBy(modules.order);
   }
-  
+
   // Lesson operations
   async getLesson(id: number): Promise<Lesson | undefined> {
     const [lesson] = await db.select().from(lessons).where(eq(lessons.id, id));
     return lesson;
   }
-  
+
   async createLesson(lesson: InsertLesson): Promise<Lesson> {
     const [newLesson] = await db.insert(lessons).values(lesson).returning();
     return newLesson;
   }
-  
+
   async updateLesson(id: number, lessonData: Partial<InsertLesson>): Promise<Lesson | undefined> {
     const [updatedLesson] = await db
       .update(lessons)
@@ -421,12 +421,12 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedLesson;
   }
-  
+
   async deleteLesson(id: number): Promise<boolean> {
     const result = await db.delete(lessons).where(eq(lessons.id, id));
     return !!result;
   }
-  
+
   async listLessonsByModule(moduleId: number): Promise<Lesson[]> {
     return await db
       .select()
@@ -434,23 +434,23 @@ export class DatabaseStorage implements IStorage {
       .where(eq(lessons.moduleId, moduleId))
       .orderBy(lessons.order);
   }
-  
+
   // Lesson media operations
   async getLessonMedia(id: number): Promise<LessonMedia | undefined> {
     const [lessonMediaItem] = await db.select().from(lessonMedia).where(eq(lessonMedia.id, id));
     return lessonMediaItem;
   }
-  
+
   async createLessonMedia(lessonMediaItem: InsertLessonMedia): Promise<LessonMedia> {
     const [newLessonMedia] = await db.insert(lessonMedia).values(lessonMediaItem).returning();
     return newLessonMedia;
   }
-  
+
   async deleteLessonMedia(id: number): Promise<boolean> {
     const result = await db.delete(lessonMedia).where(eq(lessonMedia.id, id));
     return !!result;
   }
-  
+
   async listMediaByLesson(lessonId: number): Promise<LessonMedia[]> {
     return await db
       .select()
@@ -458,7 +458,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(lessonMedia.lessonId, lessonId))
       .orderBy(lessonMedia.order);
   }
-  
+
   // Enrollment operations
   async getEnrollment(userId: number, courseId: number): Promise<Enrollment | undefined> {
     const [enrollment] = await db
@@ -472,10 +472,10 @@ export class DatabaseStorage implements IStorage {
       );
     return enrollment;
   }
-  
+
   async createEnrollment(enrollment: InsertEnrollment): Promise<Enrollment> {
     const [newEnrollment] = await db.insert(enrollments).values(enrollment).returning();
-    
+
     // Increment course participant count
     await db
       .update(courses)
@@ -483,17 +483,17 @@ export class DatabaseStorage implements IStorage {
         participantCount: sql`${courses.participantCount} + 1`
       })
       .where(eq(courses.id, enrollment.courseId));
-    
+
     // Create activity for enrollment
     await this.createActivity({
       userId: enrollment.userId,
       courseId: enrollment.courseId,
       type: "started_course"
     });
-    
+
     return newEnrollment;
   }
-  
+
   async updateEnrollment(id: number, enrollmentData: Partial<InsertEnrollment>): Promise<Enrollment | undefined> {
     const [updatedEnrollment] = await db
       .update(enrollments)
@@ -502,15 +502,15 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedEnrollment;
   }
-  
+
   async completeEnrollment(id: number): Promise<Enrollment | undefined> {
     const [enrollment] = await db
       .select()
       .from(enrollments)
       .where(eq(enrollments.id, id));
-    
+
     if (!enrollment) return undefined;
-    
+
     const [completedEnrollment] = await db
       .update(enrollments)
       .set({
@@ -520,31 +520,31 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(enrollments.id, id))
       .returning();
-    
+
     // Create activity for course completion
     await this.createActivity({
       userId: enrollment.userId,
       courseId: enrollment.courseId,
       type: "completed_course"
     });
-    
+
     return completedEnrollment;
   }
-  
+
   async listEnrollmentsByUser(userId: number): Promise<Enrollment[]> {
     return await db
       .select()
       .from(enrollments)
       .where(eq(enrollments.userId, userId));
   }
-  
+
   async listEnrollmentsByCourse(courseId: number): Promise<Enrollment[]> {
     return await db
       .select()
       .from(enrollments)
       .where(eq(enrollments.courseId, courseId));
   }
-  
+
   // Lesson progress operations
   async getLessonProgress(enrollmentId: number, lessonId: number): Promise<LessonProgress | undefined> {
     const [progress] = await db
@@ -558,12 +558,12 @@ export class DatabaseStorage implements IStorage {
       );
     return progress;
   }
-  
+
   async createLessonProgress(progress: InsertLessonProgress): Promise<LessonProgress> {
     const [newProgress] = await db.insert(lessonProgress).values(progress).returning();
     return newProgress;
   }
-  
+
   async updateLessonProgress(id: number, progressData: Partial<InsertLessonProgress>): Promise<LessonProgress | undefined> {
     const [updatedProgress] = await db
       .update(lessonProgress)
@@ -572,7 +572,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedProgress;
   }
-  
+
   async completeLessonProgress(id: number): Promise<LessonProgress | undefined> {
     const [completedProgress] = await db
       .update(lessonProgress)
@@ -584,20 +584,20 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return completedProgress;
   }
-  
+
   async listLessonProgressByEnrollment(enrollmentId: number): Promise<LessonProgress[]> {
     return await db
       .select()
       .from(lessonProgress)
       .where(eq(lessonProgress.enrollmentId, enrollmentId));
   }
-  
+
   // Activity operations
   async createActivity(activity: InsertActivity): Promise<Activity> {
     const [newActivity] = await db.insert(activities).values(activity).returning();
     return newActivity;
   }
-  
+
   async listRecentActivities(limit: number): Promise<Activity[]> {
     return await db
       .select()
@@ -605,13 +605,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(activities.timestamp))
       .limit(limit);
   }
-  
+
   // Chat operations
   async createChatMessage(chatMessage: InsertChatMessage): Promise<ChatMessage> {
     const [newChatMessage] = await db.insert(chatMessages).values(chatMessage).returning();
     return newChatMessage;
   }
-  
+
   async updateChatResponse(id: number, response: string): Promise<ChatMessage | undefined> {
     const [updatedChatMessage] = await db
       .update(chatMessages)
@@ -620,7 +620,7 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedChatMessage;
   }
-  
+
   async listChatMessagesByUser(userId: number, limit: number): Promise<ChatMessage[]> {
     return await db
       .select()
@@ -629,18 +629,18 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(chatMessages.timestamp))
       .limit(limit);
   }
-  
+
   // Геймификация - Достижения
   async getAchievement(id: number): Promise<Achievement | undefined> {
     const [achievement] = await db.select().from(achievements).where(eq(achievements.id, id));
     return achievement;
   }
-  
+
   async createAchievement(achievement: InsertAchievement): Promise<Achievement> {
     const [newAchievement] = await db.insert(achievements).values(achievement).returning();
     return newAchievement;
   }
-  
+
   async updateAchievement(id: number, achievementData: Partial<InsertAchievement>): Promise<Achievement | undefined> {
     const [updatedAchievement] = await db
       .update(achievements)
@@ -649,23 +649,23 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedAchievement;
   }
-  
+
   async deleteAchievement(id: number): Promise<boolean> {
     const result = await db.delete(achievements).where(eq(achievements.id, id));
     return !!result;
   }
-  
+
   async listAchievements(): Promise<Achievement[]> {
     return await db.select().from(achievements);
   }
-  
+
   async listAchievementsByType(type: string): Promise<Achievement[]> {
     return await db
       .select()
       .from(achievements)
       .where(eq(achievements.type, type as any));
   }
-  
+
   // Геймификация - Достижения пользователей
   async getUserAchievement(userId: number, achievementId: number): Promise<UserAchievement | undefined> {
     const [userAchievement] = await db
@@ -679,55 +679,55 @@ export class DatabaseStorage implements IStorage {
       );
     return userAchievement;
   }
-  
+
   async createUserAchievement(userAchievement: InsertUserAchievement): Promise<UserAchievement> {
     // Проверяем, существует ли уже такое достижение у пользователя
     const existingAchievement = await this.getUserAchievement(
       userAchievement.userId,
       userAchievement.achievementId
     );
-    
+
     if (existingAchievement) {
       return existingAchievement;
     }
-    
+
     const [newUserAchievement] = await db.insert(userAchievements).values(userAchievement).returning();
-    
+
     // Получаем информацию о достижении
     const achievement = await this.getAchievement(userAchievement.achievementId);
-    
+
     if (achievement) {
       // Добавляем очки пользователю
       await this.addUserPoints(userAchievement.userId, achievement.pointsAwarded);
-      
+
       // Создаем активность
       await this.createActivity({
         userId: userAchievement.userId,
         type: "achievement_earned"
       });
     }
-    
+
     return newUserAchievement;
   }
-  
+
   async listUserAchievementsByUser(userId: number): Promise<UserAchievement[]> {
     return await db
       .select()
       .from(userAchievements)
       .where(eq(userAchievements.userId, userId));
   }
-  
+
   // Геймификация - Вознаграждения
   async getReward(id: number): Promise<Reward | undefined> {
     const [reward] = await db.select().from(rewards).where(eq(rewards.id, id));
     return reward;
   }
-  
+
   async createReward(reward: InsertReward): Promise<Reward> {
     const [newReward] = await db.insert(rewards).values(reward).returning();
     return newReward;
   }
-  
+
   async updateReward(id: number, rewardData: Partial<InsertReward>): Promise<Reward | undefined> {
     const [updatedReward] = await db
       .update(rewards)
@@ -736,23 +736,23 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedReward;
   }
-  
+
   async deleteReward(id: number): Promise<boolean> {
     const result = await db.delete(rewards).where(eq(rewards.id, id));
     return !!result;
   }
-  
+
   async listRewards(): Promise<Reward[]> {
     return await db.select().from(rewards);
   }
-  
+
   async listActiveRewards(): Promise<Reward[]> {
     return await db
       .select()
       .from(rewards)
       .where(eq(rewards.active, true));
   }
-  
+
   // Геймификация - Вознаграждения пользователей
   async getUserReward(userId: number, rewardId: number): Promise<UserReward | undefined> {
     const [userReward] = await db
@@ -766,26 +766,26 @@ export class DatabaseStorage implements IStorage {
       );
     return userReward;
   }
-  
+
   async createUserReward(userReward: InsertUserReward): Promise<UserReward> {
     const [newUserReward] = await db.insert(userRewards).values(userReward).returning();
-    
+
     // Создаем активность
     await this.createActivity({
       userId: userReward.userId,
       type: "reward_claimed"
     });
-    
+
     return newUserReward;
   }
-  
+
   async listUserRewardsByUser(userId: number): Promise<UserReward[]> {
     return await db
       .select()
       .from(userRewards)
       .where(eq(userRewards.userId, userId));
   }
-  
+
   // Геймификация - Уровни пользователей
   async getUserLevel(userId: number): Promise<UserLevel | undefined> {
     const [userLevel] = await db
@@ -794,12 +794,12 @@ export class DatabaseStorage implements IStorage {
       .where(eq(userLevels.userId, userId));
     return userLevel;
   }
-  
+
   async createUserLevel(userLevel: InsertUserLevel): Promise<UserLevel> {
     const [newUserLevel] = await db.insert(userLevels).values(userLevel).returning();
     return newUserLevel;
   }
-  
+
   async updateUserLevel(userId: number, userLevelData: Partial<InsertUserLevel>): Promise<UserLevel | undefined> {
     const [updatedUserLevel] = await db
       .update(userLevels)
@@ -808,11 +808,11 @@ export class DatabaseStorage implements IStorage {
       .returning();
     return updatedUserLevel;
   }
-  
+
   async addUserPoints(userId: number, points: number): Promise<UserLevel | undefined> {
     // Получаем текущий уровень пользователя
     let userLevel = await this.getUserLevel(userId);
-    
+
     // Если уровень не существует, создаем его
     if (!userLevel) {
       userLevel = await this.createUserLevel({
@@ -822,15 +822,15 @@ export class DatabaseStorage implements IStorage {
         nextLevelPoints: 100
       });
     }
-    
+
     // Вычисляем новое количество очков
     const newPoints = userLevel.points + points;
-    
+
     // Проверяем, достиг ли пользователь нового уровня
     if (newPoints >= userLevel.nextLevelPoints) {
       const newLevel = userLevel.level + 1;
       const nextLevelPoints = 100 * Math.pow(1.5, newLevel);
-      
+
       // Обновляем уровень пользователя
       return await this.updateUserLevel(userId, {
         level: newLevel,
@@ -844,7 +844,7 @@ export class DatabaseStorage implements IStorage {
       });
     }
   }
-  
+
   async getLeaderboard(limit: number = 10): Promise<UserLevel[]> {
     return await db
       .select()
@@ -861,13 +861,13 @@ export class DatabaseStorage implements IStorage {
 
   async createLearningPath(learningPath: InsertLearningPath): Promise<LearningPath> {
     const [newLearningPath] = await db.insert(learningPaths).values(learningPath).returning();
-    
+
     // Создаем активность для создания персонального плана обучения
     await this.createActivity({
       userId: learningPath.createdById,
       type: "created_learning_path"
     });
-    
+
     return newLearningPath;
   }
 
@@ -888,9 +888,9 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(learningPaths)
       .where(eq(learningPaths.id, id));
-    
+
     if (!learningPath) return undefined;
-    
+
     const [completedLearningPath] = await db
       .update(learningPaths)
       .set({
@@ -900,20 +900,20 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(learningPaths.id, id))
       .returning();
-    
+
     // Создаем активность для завершения персонального плана обучения
     await this.createActivity({
       userId: learningPath.userId,
       type: "completed_learning_path"
     });
-    
+
     return completedLearningPath;
   }
 
   async deleteLearningPath(id: number): Promise<boolean> {
     // Сначала удаляем все связанные курсы
     await db.delete(learningPathCourses).where(eq(learningPathCourses.learningPathId, id));
-    
+
     // Затем удаляем сам план обучения
     const result = await db.delete(learningPaths).where(eq(learningPaths.id, id));
     return !!result;
@@ -934,7 +934,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(learningPaths.createdById, createdById))
       .orderBy(desc(learningPaths.createdAt));
   }
-  
+
   // Дополнительный метод для получения всех учебных планов
   async listAllLearningPaths(): Promise<LearningPath[]> {
     return await db
@@ -951,10 +951,10 @@ export class DatabaseStorage implements IStorage {
 
   async createLearningPathCourse(learningPathCourse: InsertLearningPathCourse): Promise<LearningPathCourse> {
     const [newLearningPathCourse] = await db.insert(learningPathCourses).values(learningPathCourse).returning();
-    
+
     // Обновляем статус плана обучения
     await this.updateLearningPathProgress(learningPathCourse.learningPathId);
-    
+
     return newLearningPathCourse;
   }
 
@@ -963,18 +963,18 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(learningPathCourses)
       .where(eq(learningPathCourses.id, id));
-      
+
     if (!oldLearningPathCourse) return undefined;
-    
+
     const [updatedLearningPathCourse] = await db
       .update(learningPathCourses)
       .set(learningPathCourseData)
       .where(eq(learningPathCourses.id, id))
       .returning();
-    
+
     // Обновляем статус плана обучения
     await this.updateLearningPathProgress(oldLearningPathCourse.learningPathId);
-    
+
     return updatedLearningPathCourse;
   }
 
@@ -983,9 +983,9 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(learningPathCourses)
       .where(eq(learningPathCourses.id, id));
-    
+
     if (!learningPathCourse) return undefined;
-    
+
     const [completedLearningPathCourse] = await db
       .update(learningPathCourses)
       .set({
@@ -993,10 +993,10 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(learningPathCourses.id, id))
       .returning();
-    
+
     // Обновляем статус плана обучения
     await this.updateLearningPathProgress(learningPathCourse.learningPathId);
-    
+
     return completedLearningPathCourse;
   }
 
@@ -1005,14 +1005,14 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(learningPathCourses)
       .where(eq(learningPathCourses.id, id));
-      
+
     if (!learningPathCourse) return false;
-    
+
     const result = await db.delete(learningPathCourses).where(eq(learningPathCourses.id, id));
-    
+
     // Обновляем статус плана обучения
     await this.updateLearningPathProgress(learningPathCourse.learningPathId);
-    
+
     return !!result;
   }
 
@@ -1031,7 +1031,7 @@ export class DatabaseStorage implements IStorage {
       .from(learningPathCourses)
       .where(eq(learningPathCourses.learningPathId, learningPathId))
       .orderBy(learningPathCourses.order);
-    
+
     // Получаем подробную информацию о каждом курсе
     const detailedCourses = await Promise.all(
       pathCourses.map(async (lpc) => {
@@ -1042,20 +1042,20 @@ export class DatabaseStorage implements IStorage {
         };
       })
     );
-    
+
     return detailedCourses;
   }
-  
+
   // Вспомогательный метод для обновления прогресса учебного плана
   private async updateLearningPathProgress(learningPathId: number): Promise<void> {
     const learningPathCourses = await this.listCoursesByLearningPath(learningPathId);
     const totalCourses = learningPathCourses.length;
-    
+
     if (totalCourses === 0) return;
-    
+
     const completedCourses = learningPathCourses.filter(course => course.completed).length;
     const progress = Math.floor((completedCourses / totalCourses) * 100);
-    
+
     // Обновляем прогресс в плане обучения
     await db
       .update(learningPaths)
@@ -1252,7 +1252,48 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAssessmentSession(session: InsertAssessmentSession): Promise<AssessmentSession> {
+    // Получаем данные о сотруднике и ассесменте
+    const user = await this.getUser(session.userId);
+    const assessment = await this.getAssessment(session.assessmentId);
+
+    if (!user) {
+      throw new Error('Пользователь не найден');
+    }
+
+    if (!assessment) {
+      throw new Error('Ассесмент не найден');
+    }
+
+    // Проверяем, что у сотрудника нет активной сессии для этого ассесмента
+    const existingSessions = await db
+      .select()
+      .from(assessmentSessions)
+      .where(
+        and(
+          eq(assessmentSessions.userId, session.userId),
+          eq(assessmentSessions.assessmentId, session.assessmentId),
+          or(
+            eq(assessmentSessions.status, 'created'),
+            eq(assessmentSessions.status, 'in_progress')
+          )
+        )
+      );
+
+    if (existingSessions.length > 0) {
+      // Если уже есть активная сессия, возвращаем ее
+      return existingSessions[0];
+    }
+
+    // Создаем сессию
     const [newSession] = await db.insert(assessmentSessions).values(session).returning();
+
+    // Создаем активность для назначения ассесмента
+    await this.createActivity({
+      userId: session.userId,
+      type: "assigned_assessment",
+      timestamp: new Date()
+    });
+
     return newSession;
   }
 
@@ -1268,26 +1309,26 @@ export class DatabaseStorage implements IStorage {
   async completeAssessmentSession(id: number, results: any): Promise<AssessmentSession> {
     // Получаем все ответы пользователя
     const answers = await this.listAssessmentAnswersBySession(id);
-    
+
     // Получаем сессию
     const [session] = await db.select().from(assessmentSessions).where(eq(assessmentSessions.id, id));
-    
+
     if (!session) {
       throw new Error('Сессия не найдена');
     }
-    
+
     // Получаем все вопросы ассесмента
     const questions = await this.listAssessmentQuestions(session.assessmentId);
-    
+
     // Подсчитываем общий балл
     const totalPossiblePoints = questions.reduce((sum, q) => sum + q.points, 0);
     const earnedPoints = answers.reduce((sum, a) => sum + (a.points || 0), 0);
-    
+
     // Подсчитываем процент правильных ответов
-    const scorePercentage = totalPossiblePoints > 0 
-      ? Math.floor((earnedPoints / totalPossiblePoints) * 100) 
+    const scorePercentage = totalPossiblePoints > 0
+      ? Math.floor((earnedPoints / totalPossiblePoints) * 100)
       : 0;
-    
+
     // Определяем уровень сотрудника на основе процента
     let level: 'junior' | 'middle' | 'senior' = 'junior';
     if (scorePercentage >= 80) {
@@ -1295,14 +1336,14 @@ export class DatabaseStorage implements IStorage {
     } else if (scorePercentage >= 60) {
       level = 'middle';
     }
-    
+
     // Анализируем результаты по компетенциям
     const competencyResults: {[key: number]: {id: number, name: string, score: number, maxScore: number, percentage: number}} = {};
-    
+
     // Группируем вопросы по компетенциям
     for (const question of questions) {
       const competencyId = question.competencyId;
-      
+
       if (!competencyResults[competencyId]) {
         const competency = await this.getCompetency(competencyId);
         if (competency) {
@@ -1315,12 +1356,12 @@ export class DatabaseStorage implements IStorage {
           };
         }
       }
-      
+
       if (competencyResults[competencyId]) {
         competencyResults[competencyId].maxScore += question.points;
       }
     }
-    
+
     // Добавляем заработанные баллы на основе ответов
     for (const answer of answers) {
       const question = questions.find(q => q.id === answer.questionId);
@@ -1328,15 +1369,15 @@ export class DatabaseStorage implements IStorage {
         competencyResults[question.competencyId].score += answer.points || 0;
       }
     }
-    
+
     // Расчитываем проценты для каждой компетенции
     for (const competencyId in competencyResults) {
       const result = competencyResults[competencyId];
-      result.percentage = result.maxScore > 0 
-        ? Math.floor((result.score / result.maxScore) * 100) 
+      result.percentage = result.maxScore > 0
+        ? Math.floor((result.score / result.maxScore) * 100)
         : 0;
     }
-    
+
     // Обновляем сессию с результатами
     const [completedSession] = await db
       .update(assessmentSessions)
@@ -1351,14 +1392,14 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(assessmentSessions.id, id))
       .returning();
-    
+
     // ИДЕЯ: На основе результатов можно автоматически создать персональный план обучения
     // TODO: Автоматическое создание плана обучения на основе результатов
-    
+
     if (!completedSession) {
       throw new Error('Не удалось обновить сессию');
     }
-    
+
     return completedSession;
   }
 
@@ -1390,15 +1431,15 @@ export class DatabaseStorage implements IStorage {
       .select()
       .from(assessmentQuestions)
       .where(eq(assessmentQuestions.id, answer.questionId));
-    
+
     if (!question) {
       throw new Error('Вопрос не найден');
     }
-    
+
     // Проверяем правильность ответа
     let isCorrect = false;
     let points = 0;
-    
+
     // Сравниваем ответы в зависимости от типа вопроса
     if (question.type === 'multiple_choice' || question.type === 'true_false') {
       isCorrect = answer.answer === question.correctAnswer;
@@ -1407,26 +1448,26 @@ export class DatabaseStorage implements IStorage {
       // Например, проверять на наличие ключевых слов
       const userAnswer = answer.answer.toLowerCase().trim();
       const correctAnswer = question.correctAnswer?.toLowerCase().trim() || '';
-      
+
       // Простая проверка - совпадает ли ответ хотя бы частично
       isCorrect = userAnswer.includes(correctAnswer) || correctAnswer.includes(userAnswer);
     } else if (question.type === 'image_based') {
       // Для вопросов с изображениями просто сравниваем ответы
       isCorrect = answer.answer === question.correctAnswer;
     }
-    
+
     // Если ответ правильный, начисляем баллы
     if (isCorrect) {
       points = question.points;
     }
-    
+
     // Создаем запись об ответе с указанием правильности и баллов
     const answerData = {
       ...answer,
       isCorrect,
       points
     };
-    
+
     const [newAnswer] = await db.insert(assessmentAnswers).values(answerData).returning();
     return newAnswer;
   }
@@ -1455,30 +1496,87 @@ export class DatabaseStorage implements IStorage {
     if (!assessment) {
       throw new Error('Ассесмент не найден');
     }
-    
+
     // Получаем роль, для которой создается ассесмент
     const role = await this.getEmployeeRole(assessment.roleId);
     if (!role) {
       throw new Error('Роль не найдена');
     }
-    
+
     // Получаем целевые компетенции
-    const targetCompetencies = assessment.targetCompetencies as any[] || [];
-    
-    // Здесь должен быть запрос к API OpenAI для генерации вопросов
-    // Но т.к. интеграция с OpenAI пока не реализована, создаем заглушку
-    
-    const questions: InsertAssessmentQuestion[] = [];
-    
-    // В реальном приложении запрос к OpenAI выглядел бы примерно так:
-    // const prompt = `Сгенерируй ${count} вопросов для оценки компетенций сотрудника отеля на должности "${role.title}".
-    // Департамент: ${role.department}
-    // Целевые компетенции: ${targetCompetencies.map(c => c.name).join(', ')}
-    // Вопросы должны быть разного уровня сложности (easy, medium, hard).
-    // Формат: список вопросов с вариантами ответов, указанием правильного ответа и его объяснением.`;
-    
+    let competenciesToUse = [];
+
+    if (assessment.targetCompetencies && Array.isArray(assessment.targetCompetencies)) {
+      // Если в ассесменте указаны конкретные компетенции
+      const competencyIds = assessment.targetCompetencies.map(c => c.id || c);
+      competenciesToUse = await Promise.all(
+        competencyIds.map(async (id) => await this.getCompetency(typeof id === 'object' ? id.id : id))
+      );
+      competenciesToUse = competenciesToUse.filter(Boolean); // Удаляем null/undefined
+    }
+
+    // Если компетенции не указаны, берем все компетенции для данной роли
+    if (competenciesToUse.length === 0) {
+      if (role.requiredCompetencies && Array.isArray(role.requiredCompetencies)) {
+        const competencyIds = role.requiredCompetencies.map(c => c.id || c);
+        competenciesToUse = await Promise.all(
+          competencyIds.map(async (id) => await this.getCompetency(typeof id === 'object' ? id.id : id))
+        );
+        competenciesToUse = competenciesToUse.filter(Boolean);
+      }
+    }
+
+    // Если и в роли нет компетенций, берем все доступные компетенции
+    if (competenciesToUse.length === 0) {
+      competenciesToUse = await this.listCompetencies();
+    }
+
+    if (competenciesToUse.length === 0) {
+      throw new Error('Не найдены компетенции для генерации вопросов');
+    }
+
+    // Используем функцию из utils/openai.ts для генерации вопросов
+    const { generateAssessmentQuestions } = await import('./utils/openai');
+
+    try {
+      const result = await generateAssessmentQuestions(
+        role.title,
+        role.department,
+        competenciesToUse,
+        count,
+        true // Включаем объяснения к ответам
+      );
+
+      // Создаем вопросы в базе данных
+      const createdQuestions = [];
+
+      for (const questionData of result.questions) {
+        const insertData: InsertAssessmentQuestion = {
+          assessmentId,
+          text: questionData.text,
+          type: questionData.type as any,
+          options: questionData.options ? questionData.options : undefined,
+          correctAnswer: questionData.correctAnswer,
+          explanation: questionData.explanation,
+          points: questionData.points,
+          competencyId: questionData.competencyId,
+          difficulty: questionData.difficulty as any,
+          createdAt: new Date(),
+          updatedAt: new Date()
+        };
+
+        const newQuestion = await this.createAssessmentQuestion(insertData);
+        createdQuestions.push(newQuestion);
+      }
+
+      return createdQuestions;
+    } catch (error) {
+      console.error('Ошибка при генерации вопросов:', error);
+      throw new Error(`Не удалось сгенерировать вопросы: ${error.message}`);
+    }
+
     // TODO: Добавить настоящую интеграцию с OpenAI
-    
+
     // В реальном сценарии мы бы получили ответ от API и обработали его
     // Сейчас просто возвращаем пустой массив
     return [];
@@ -1487,29 +1585,29 @@ export class DatabaseStorage implements IStorage {
   // Аналитика по ассесментам
   async getAssessmentStatistics(assessmentId: number): Promise<any> {
     const sessions = await this.listAssessmentSessionsByAssessment(assessmentId);
-    
+
     // Базовая статистика
     const totalSessions = sessions.length;
     const completedSessions = sessions.filter(s => s.status === 'completed').length;
     const averageScore = sessions.reduce((sum, s) => sum + (s.scorePercentage || 0), 0) / totalSessions || 0;
-    
+
     // Распределение по уровням
     const levelDistribution = {
       junior: sessions.filter(s => s.level === 'junior').length,
       middle: sessions.filter(s => s.level === 'middle').length,
       senior: sessions.filter(s => s.level === 'senior').length
     };
-    
+
     // Статистика по компетенциям
     const competencyStats: { [key: number]: { name: string, averageScore: number, count: number } } = {};
-    
+
     for (const session of sessions) {
       if (session.competenciesResult) {
         const results = session.competenciesResult as any;
-        
+
         for (const competencyId in results) {
           const result = results[competencyId];
-          
+
           if (!competencyStats[competencyId]) {
             competencyStats[competencyId] = {
               name: result.name,
@@ -1517,19 +1615,19 @@ export class DatabaseStorage implements IStorage {
               count: 0
             };
           }
-          
+
           competencyStats[competencyId].averageScore += result.percentage;
           competencyStats[competencyId].count++;
         }
       }
     }
-    
+
     // Рассчитываем средние баллы по компетенциям
     for (const competencyId in competencyStats) {
       const stat = competencyStats[competencyId];
       stat.averageScore = stat.count > 0 ? stat.averageScore / stat.count : 0;
     }
-    
+
     return {
       totalSessions,
       completedSessions,
@@ -1541,13 +1639,13 @@ export class DatabaseStorage implements IStorage {
 
   async getUserAssessmentResults(userId: number): Promise<any> {
     const sessions = await this.listAssessmentSessionsByUser(userId);
-    
+
     const results = [];
-    
+
     for (const session of sessions) {
       const assessment = await this.getAssessment(session.assessmentId);
       const role = assessment ? await this.getEmployeeRole(assessment.roleId) : null;
-      
+
       results.push({
         sessionId: session.id,
         assessmentId: session.assessmentId,
@@ -1563,14 +1661,14 @@ export class DatabaseStorage implements IStorage {
         competenciesResult: session.competenciesResult
       });
     }
-    
+
     return results;
   }
 
   async getDepartmentAssessmentResults(department: string): Promise<any> {
     // Получаем роли в данном департаменте
     const roles = await this.listEmployeeRolesByDepartment(department);
-    
+
     const departmentResults = {
       department,
       roleResults: [],
@@ -1585,14 +1683,14 @@ export class DatabaseStorage implements IStorage {
         }
       }
     } as any;
-    
+
     let totalScoreSum = 0;
-    
+
     // Получаем результаты по каждой роли
     for (const role of roles) {
       // Получаем ассесменты для этой роли
       const assessmentsForRole = await this.listAssessmentsByRole(role.id);
-      
+
       const roleResult = {
         roleId: role.id,
         roleTitle: role.title,
@@ -1601,22 +1699,22 @@ export class DatabaseStorage implements IStorage {
         completedSessions: 0,
         averageScore: 0
       } as any;
-      
+
       // Для каждого ассесмента получаем статистику
       for (const assessment of assessmentsForRole) {
         const stats = await this.getAssessmentStatistics(assessment.id);
-        
+
         roleResult.assessments.push({
           assessmentId: assessment.id,
           title: assessment.title,
           ...stats
         });
-        
+
         // Добавляем к общей статистике роли
         roleResult.totalSessions += stats.totalSessions;
         roleResult.completedSessions += stats.completedSessions;
         totalScoreSum += stats.averageScore * stats.completedSessions;
-        
+
         // Добавляем к общей статистике департамента
         departmentResults.overall.totalSessions += stats.totalSessions;
         departmentResults.overall.completedSessions += stats.completedSessions;
@@ -1624,21 +1722,544 @@ export class DatabaseStorage implements IStorage {
         departmentResults.overall.levelDistribution.middle += stats.levelDistribution.middle;
         departmentResults.overall.levelDistribution.senior += stats.levelDistribution.senior;
       }
-      
+
       // Рассчитываем средний балл для роли
-      roleResult.averageScore = roleResult.completedSessions > 0 
-        ? totalScoreSum / roleResult.completedSessions 
+      roleResult.averageScore = roleResult.completedSessions > 0
+        ? totalScoreSum / roleResult.completedSessions
         : 0;
-      
+
       departmentResults.roleResults.push(roleResult);
     }
-    
+
     // Рассчитываем средний балл для департамента
-    departmentResults.overall.averageScore = departmentResults.overall.completedSessions > 0 
-      ? totalScoreSum / departmentResults.overall.completedSessions 
+    departmentResults.overall.averageScore = departmentResults.overall.completedSessions > 0
+      ? totalScoreSum / departmentResults.overall.completedSessions
       : 0;
-    
+
     return departmentResults;
+  }
+
+  // ================ Реализация операций с микро-обучающим контентом ================
+
+  // Операции с микро-обучающим контентом
+  async getMicroLearningContent(id: number): Promise<MicroLearningContent | undefined> {
+    const [content] = await db.select().from(microLearningContent).where(eq(microLearningContent.id, id));
+    return content;
+  }
+
+  async createMicroLearningContent(content: InsertMicroLearningContent): Promise<MicroLearningContent> {
+    const [newContent] = await db.insert(microLearningContent).values(content).returning();
+    return newContent;
+  }
+
+  async updateMicroLearningContent(id: number, contentData: Partial<InsertMicroLearningContent>): Promise<MicroLearningContent | undefined> {
+    const [updatedContent] = await db
+      .update(microLearningContent)
+      .set(contentData)
+      .where(eq(microLearningContent.id, id))
+      .returning();
+    return updatedContent;
+  }
+
+  async deleteMicroLearningContent(id: number): Promise<boolean> {
+    const result = await db.delete(microLearningContent).where(eq(microLearningContent.id, id));
+    return !!result;
+  }
+
+  async listMicroLearningContent(): Promise<MicroLearningContent[]> {
+    return await db.select().from(microLearningContent);
+  }
+
+  async listMicroLearningContentByCompetency(competencyId: number): Promise<MicroLearningContent[]> {
+    return await db
+      .select()
+      .from(microLearningContent)
+      .where(eq(microLearningContent.competency_id, competencyId));
+  }
+
+  async listMicroLearningContentByTargetLevel(level: string): Promise<MicroLearningContent[]> {
+    return await db
+      .select()
+      .from(microLearningContent)
+      .where(eq(microLearningContent.target_level, level as any));
+  }
+
+  // Операции с назначениями микро-обучающего контента
+  async getMicroLearningAssignment(id: number): Promise<MicroLearningAssignment | undefined> {
+    const [assignment] = await db.select().from(microLearningAssignments).where(eq(microLearningAssignments.id, id));
+    return assignment;
+  }
+
+  async createMicroLearningAssignment(assignment: InsertMicroLearningAssignment): Promise<MicroLearningAssignment> {
+    const [newAssignment] = await db.insert(microLearningAssignments).values(assignment).returning();
+
+    // Создаем активность
+    await this.createActivity({
+      userId: assignment.user_id,
+      type: "assigned_micro_learning"
+    });
+
+    return newAssignment;
+  }
+
+  async updateMicroLearningAssignment(id: number, assignmentData: Partial<InsertMicroLearningAssignment>): Promise<MicroLearningAssignment | undefined> {
+    const [updatedAssignment] = await db
+      .update(microLearningAssignments)
+      .set(assignmentData)
+      .where(eq(microLearningAssignments.id, id))
+      .returning();
+    return updatedAssignment;
+  }
+
+  async completeMicroLearningAssignment(id: number, feedback?: string, rating?: number): Promise<MicroLearningAssignment | undefined> {
+    const [assignment] = await db.select().from(microLearningAssignments).where(eq(microLearningAssignments.id, id));
+
+    if (!assignment) return undefined;
+
+    const updateData: Partial<InsertMicroLearningAssignment> = {
+      is_completed: true,
+      completed_at: new Date()
+    };
+
+    if (feedback) {
+      updateData.user_feedback = feedback;
+    }
+
+    if (rating) {
+      updateData.effectiveness_rating = rating;
+    }
+
+    const [completedAssignment] = await db
+      .update(microLearningAssignments)
+      .set(updateData)
+      .where(eq(microLearningAssignments.id, id))
+      .returning();
+
+    // Создаем активность
+    await this.createActivity({
+      userId: assignment.user_id,
+      type: "completed_micro_learning"
+    });
+
+    return completedAssignment;
+  }
+
+  async listMicroLearningAssignmentsByUser(userId: number): Promise<MicroLearningAssignment[]> {
+    return await db
+      .select()
+      .from(microLearningAssignments)
+      .where(eq(microLearningAssignments.user_id, userId))
+      .orderBy(desc(microLearningAssignments.assigned_at));
+  }
+
+  async listMicroLearningAssignmentsByContent(contentId: number): Promise<MicroLearningAssignment[]> {
+    return await db
+      .select()
+      .from(microLearningAssignments)
+      .where(eq(microLearningAssignments.content_id, contentId));
+  }
+
+  // Операции с прогрессом по микро-обучающему контенту
+  async getMicroLearningProgress(id: number): Promise<MicroLearningProgress | undefined> {
+    const [progress] = await db.select().from(microLearningProgress).where(eq(microLearningProgress.id, id));
+    return progress;
+  }
+
+  async createMicroLearningProgress(progress: InsertMicroLearningProgress): Promise<MicroLearningProgress> {
+    const [newProgress] = await db.insert(microLearningProgress).values(progress).returning();
+    return newProgress;
+  }
+
+  async updateMicroLearningProgress(id: number, progressData: Partial<InsertMicroLearningProgress>): Promise<MicroLearningProgress | undefined> {
+    const [updatedProgress] = await db
+      .update(microLearningProgress)
+      .set(progressData)
+      .where(eq(microLearningProgress.id, id))
+      .returning();
+    return updatedProgress;
+  }
+
+  async completeMicroLearningProgress(id: number, quizScore?: number): Promise<MicroLearningProgress | undefined> {
+    const updateData: Partial<InsertMicroLearningProgress> = {
+      progress_percentage: 100,
+      completed_at: new Date()
+    };
+
+    if (quizScore !== undefined) {
+      updateData.quiz_score = quizScore;
+    }
+
+    const [completedProgress] = await db
+      .update(microLearningProgress)
+      .set(updateData)
+      .where(eq(microLearningProgress.id, id))
+      .returning();
+
+    return completedProgress;
+  }
+
+  // Генерация микро-обучающего контента на основе результатов ассесмента
+  async generateMicroLearningContent(assessmentSessionId: number, options: { type?: string, count?: number } = {}): Promise<MicroLearningContent[]> {
+    const { type = 'text', count = 3 } = options;
+
+    // Получаем данные о сессии ассесмента
+    const [session] = await db
+      .select({
+        session: assessmentSessions,
+        assessment: assessments,
+        role: employeeRoles
+      })
+      .from(assessmentSessions)
+      .where(eq(assessmentSessions.id, assessmentSessionId))
+      .innerJoin(assessments, eq(assessmentSessions.assessment_id, assessments.id))
+      .innerJoin(employeeRoles, eq(assessments.role_id, employeeRoles.id));
+
+    if (!session || !session.session.competencies_result) {
+      throw new Error("Сессия оценки не найдена или не содержит результатов по компетенциям");
+    }
+
+    // Находим компетенции, по которым самые низкие результаты
+    const competenciesResults = Object.entries(session.session.competencies_result)
+      .map(([id, result]) => ({
+        id: parseInt(id),
+        name: result.name,
+        percentage: result.percentage
+      }))
+      .sort((a, b) => a.percentage - b.percentage)
+      .slice(0, count);
+
+    if (competenciesResults.length === 0) {
+      return [];
+    }
+
+    const microLearningContents: MicroLearningContent[] = [];
+
+    // Для каждой компетенции генерируем микро-обучающий контент
+    for (const compResult of competenciesResults) {
+      // Получаем детали компетенции
+      const [competency] = await db
+        .select()
+        .from(competencies)
+        .where(eq(competencies.id, compResult.id));
+
+      if (!competency) continue;
+
+      // Создаем микро-обучающий контент
+      const content = await this.createMicroLearningContent({
+        title: `Улучшение навыка "${competency.name}"`,
+        type: type as any,
+        content: `# Микро-обучение по компетенции "${competency.name}"
+
+## Описание
+${competency.description}
+
+## Ключевые аспекты
+- Важность навыка ${competency.name} для роли ${session.role.title}
+- Практические рекомендации по развитию
+- Успешные практики в отельном бизнесе
+
+## Упражнения для улучшения
+1. Регулярная практика определенных аспектов навыка
+2. Наблюдение за коллегами с высоким уровнем этого навыка
+3. Применение полученных знаний в реальных рабочих ситуациях
+
+## Рекомендации
+Уделяйте особое внимание развитию этого навыка, так как результаты оценки показали, что это одна из областей, требующих улучшения.`,
+        competency_id: compResult.id,
+        target_level: session.session.level as any,
+        duration_minutes: 10,
+        created_by_id: 1, // По умолчанию создатель - администратор
+        keywords: [competency.name, competency.category, session.role.title, session.role.department]
+      });
+
+      microLearningContents.push(content);
+
+      // Назначаем микро-обучающий контент пользователю
+      await this.createMicroLearningAssignment({
+        user_id: session.session.user_id,
+        content_id: content.id,
+        assessment_session_id: assessmentSessionId,
+        competency_id: compResult.id
+      });
+    }
+
+    return microLearningContents;
+  }
+
+  // Рекомендации микро-обучающего контента
+  async recommendMicroLearningForUser(userId: number, count: number = 5): Promise<MicroLearningContent[]> {
+    // Получаем последнюю сессию оценки пользователя
+    const [lastSession] = await db
+      .select()
+      .from(assessmentSessions)
+      .where(eq(assessmentSessions.user_id, userId))
+      .orderBy(desc(assessmentSessions.completed_at))
+      .limit(1);
+
+    if (!lastSession) {
+      // Если нет данных о сессии, возвращаем случайный контент
+      return await db
+        .select()
+        .from(microLearningContent)
+        .limit(count);
+    }
+
+    // Если есть сессия, рекомендуем контент по компетенциям с низким результатом
+    const weakCompetencies = Object.entries(lastSession.competencies_result || {})
+      .map(([id, result]) => ({
+        id: parseInt(id),
+        percentage: result.percentage
+      }))
+      .filter(comp => comp.percentage < 70)
+      .map(comp => comp.id);
+
+    if (weakCompetencies.length === 0) {
+      // Если нет слабых компетенций, возвращаем контент по уровню
+      return await db
+        .select()
+        .from(microLearningContent)
+        .where(eq(microLearningContent.target_level, lastSession.level))
+        .limit(count);
+    }
+
+    // Получаем контент по слабым компетенциям
+    const content = await db
+      .select()
+      .from(microLearningContent)
+      .where(sql`${microLearningContent.competency_id} IN (${weakCompetencies.join(',')})`)
+      .limit(count);
+
+    return content;
+  }
+
+  async recommendMicroLearningByCompetency(competencyId: number, count: number = 3): Promise<MicroLearningContent[]> {
+    // Получаем контент по указанной компетенции
+    const content = await db
+      .select()
+      .from(microLearningContent)
+      .where(eq(microLearningContent.competency_id, competencyId))
+      .limit(count);
+
+    return content;
+  }
+
+  // Аналитика по микро-обучающему контенту
+  async getMicroLearningStatistics(): Promise<any> {
+    // Получаем общую статистику по микро-обучающему контенту
+    const [totalContent] = await db
+      .select({ count: sql`count(*)` })
+      .from(microLearningContent);
+
+    const [totalAssignments] = await db
+      .select({ count: sql`count(*)` })
+      .from(microLearningAssignments);
+
+    const [completedAssignments] = await db
+      .select({ count: sql`count(*)` })
+      .from(microLearningAssignments)
+      .where(eq(microLearningAssignments.is_completed, true));
+
+    // Статистика по типам контента
+    const contentByType = await db
+      .select({
+        type: microLearningContent.type,
+        count: sql`count(*)`
+      })
+      .from(microLearningContent)
+      .groupBy(microLearningContent.type);
+
+    // Статистика по целевым уровням
+    const contentByLevel = await db
+      .select({
+        level: microLearningContent.target_level,
+        count: sql`count(*)`
+      })
+      .from(microLearningContent)
+      .groupBy(microLearningContent.target_level);
+
+    // Статистика по компетенциям
+    const contentByCompetency = await db
+      .select({
+        competency: competencies,
+        count: sql`count(*)`
+      })
+      .from(microLearningContent)
+      .innerJoin(competencies, eq(microLearningContent.competency_id, competencies.id))
+      .groupBy(competencies.id);
+
+    return {
+      totalContent: totalContent?.count || 0,
+      totalAssignments: totalAssignments?.count || 0,
+      completedAssignments: completedAssignments?.count || 0,
+      completionRate: totalAssignments?.count ? (completedAssignments?.count / totalAssignments?.count) * 100 : 0,
+      contentByType,
+      contentByLevel,
+      contentByCompetency: contentByCompetency.map(item => ({
+        competencyId: item.competency.id,
+        name: item.competency.name,
+        category: item.competency.category,
+        count: item.count
+      }))
+    };
+  }
+
+  async getUserMicroLearningStatistics(userId: number): Promise<any> {
+    // Получаем назначения для пользователя
+    const assignments = await db
+      .select({
+        assignment: microLearningAssignments,
+        content: microLearningContent,
+        competency: competencies
+      })
+      .from(microLearningAssignments)
+      .where(eq(microLearningAssignments.user_id, userId))
+      .innerJoin(microLearningContent, eq(microLearningAssignments.content_id, microLearningContent.id))
+      .leftJoin(competencies, eq(microLearningContent.competency_id, competencies.id));
+
+    // Получаем прогресс по заданиям
+    const assignmentIds = assignments.map(a => a.assignment.id);
+
+    let progress = [];
+    if (assignmentIds.length > 0) {
+      progress = await db
+        .select()
+        .from(microLearningProgress)
+        .where(sql`${microLearningProgress.assignment_id} IN (${assignmentIds.join(',')})`);
+    }
+
+    // Статистика по компетенциям
+    const competencyStats: { [key: string]: any } = {};
+
+    for (const assignment of assignments) {
+      if (!assignment.competency) continue;
+
+      const compId = assignment.competency.id.toString();
+
+      if (!competencyStats[compId]) {
+        competencyStats[compId] = {
+          id: assignment.competency.id,
+          name: assignment.competency.name,
+          category: assignment.competency.category,
+          totalAssignments: 0,
+          completedAssignments: 0,
+          averageRating: 0,
+          totalRating: 0
+        };
+      }
+
+      competencyStats[compId].totalAssignments++;
+
+      if (assignment.assignment.is_completed) {
+        competencyStats[compId].completedAssignments++;
+      }
+
+      if (assignment.assignment.effectiveness_rating) {
+        competencyStats[compId].totalRating += assignment.assignment.effectiveness_rating;
+        competencyStats[compId].averageRating = competencyStats[compId].totalRating / competencyStats[compId].completedAssignments;
+      }
+    }
+
+    return {
+      userId,
+      totalAssignments: assignments.length,
+      completedAssignments: assignments.filter(a => a.assignment.is_completed).length,
+      completionRate: assignments.length ? (assignments.filter(a => a.assignment.is_completed).length / assignments.length) * 100 : 0,
+      averageRating: assignments.filter(a => a.assignment.effectiveness_rating !== null).length ?
+        assignments.reduce((sum, a) => sum + (a.assignment.effectiveness_rating || 0), 0) /
+        assignments.filter(a => a.assignment.effectiveness_rating !== null).length : 0,
+      competencyStats: Object.values(competencyStats),
+      contentTypes: [...new Set(assignments.map(a => a.content.type))],
+      recentAssignments: assignments
+        .sort((a, b) => new Date(b.assignment.assigned_at).getTime() - new Date(a.assignment.assigned_at).getTime())
+        .slice(0, 5)
+        .map(a => ({
+          id: a.assignment.id,
+          contentId: a.content.id,
+          title: a.content.title,
+          type: a.content.type,
+          assignedAt: a.assignment.assigned_at,
+          isCompleted: a.assignment.is_completed,
+          completedAt: a.assignment.completed_at
+        }))
+    };
+  }
+
+  async getCompetencyMicroLearningStatistics(competencyId: number): Promise<any> {
+    // Получаем данные о компетенции
+    const [competency] = await db.select().from(competencies).where(eq(competencies.id, competencyId));
+
+    if (!competency) {
+      throw new Error("Компетенция не найдена");
+    }
+
+    // Получаем микро-обучающий контент для этой компетенции
+    const content = await db
+      .select()
+      .from(microLearningContent)
+      .where(eq(microLearningContent.competency_id, competencyId));
+
+    // Получаем назначения для этого контента
+    const contentIds = content.map(c => c.id);
+
+    let assignments = [];
+    if (contentIds.length > 0) {
+      assignments = await db
+        .select()
+        .from(microLearningAssignments)
+        .where(sql`${microLearningAssignments.content_id} IN (${contentIds.join(',')})`);
+    }
+
+    // Статистика по типам контента
+    const contentByType: { [key: string]: number } = {};
+
+    for (const c of content) {
+      contentByType[c.type] = (contentByType[c.type] || 0) + 1;
+    }
+
+    // Статистика по целевым уровням
+    const contentByLevel: { [key: string]: number } = {};
+
+    for (const c of content) {
+      contentByLevel[c.target_level] = (contentByLevel[c.target_level] || 0) + 1;
+    }
+
+    // Статистика по эффективности обучения
+    const effectivenessRatings = assignments
+      .filter(a => a.effectiveness_rating !== null)
+      .map(a => a.effectiveness_rating);
+
+    const averageEffectiveness = effectivenessRatings.length
+      ? effectivenessRatings.reduce((sum, rating) => sum + rating, 0) / effectivenessRatings.length
+      : 0;
+
+    return {
+      competencyId,
+      name: competency.name,
+      category: competency.category,
+      description: competency.description,
+      contentCount: content.length,
+      assignmentsCount: assignments.length,
+      completedAssignmentsCount: assignments.filter(a => a.is_completed).length,
+      completionRate: assignments.length ? (assignments.filter(a => a.is_completed).length / assignments.length) * 100 : 0,
+      averageEffectiveness,
+      contentByType,
+      contentByLevel,
+      mostPopularContent: content
+        .map(c => ({
+          contentId: c.id,
+          title: c.title,
+          assignmentsCount: assignments.filter(a => a.content_id === c.id).length,
+          completionsCount: assignments.filter(a => a.content_id === c.id && a.is_completed).length,
+          averageRating: assignments.filter(a => a.content_id === c.id && a.effectiveness_rating !== null).length
+            ? assignments
+                .filter(a => a.content_id === c.id && a.effectiveness_rating !== null)
+                .reduce((sum, a) => sum + a.effectiveness_rating, 0) /
+              assignments.filter(a => a.content_id === c.id && a.effectiveness_rating !== null).length
+            : 0
+        }))
+        .sort((a, b) => b.assignmentsCount - a.assignmentsCount)
+        .slice(0, 5)
+    };
   }
 }
 

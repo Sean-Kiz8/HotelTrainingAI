@@ -12,7 +12,7 @@ import {
   insertEmployeeRoleSchema, insertCompetencySchema,
   insertAssessmentSchema, insertAssessmentQuestionSchema,
   insertAssessmentSessionSchema, insertAssessmentAnswerSchema,
-  mediaTypeEnum, employeeLevelEnum, questionTypeEnum, 
+  mediaTypeEnum, employeeLevelEnum, questionTypeEnum,
   difficultyLevelEnum, assessmentStatusEnum,
   learningPaths, courses
 } from "@shared/schema";
@@ -2032,11 +2032,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const role = await storage.getEmployeeRole(id);
-      
+
       if (!role) {
         return res.status(404).json({ message: "Employee role not found" });
       }
-      
+
       res.json(role);
     } catch (error) {
       console.error("Error fetching employee role:", error);
@@ -2063,11 +2063,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const roleData = insertEmployeeRoleSchema.partial().parse(req.body);
       const role = await storage.updateEmployeeRole(id, roleData);
-      
+
       if (!role) {
         return res.status(404).json({ message: "Employee role not found" });
       }
-      
+
       res.json(role);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2082,11 +2082,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteEmployeeRole(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Employee role not found" });
       }
-      
+
       res.status(204).end();
     } catch (error) {
       console.error("Error deleting employee role:", error);
@@ -2116,11 +2116,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const competency = await storage.getCompetency(id);
-      
+
       if (!competency) {
         return res.status(404).json({ message: "Competency not found" });
       }
-      
+
       res.json(competency);
     } catch (error) {
       console.error("Error fetching competency:", error);
@@ -2147,11 +2147,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const competencyData = insertCompetencySchema.partial().parse(req.body);
       const competency = await storage.updateCompetency(id, competencyData);
-      
+
       if (!competency) {
         return res.status(404).json({ message: "Competency not found" });
       }
-      
+
       res.json(competency);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2166,11 +2166,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteCompetency(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Competency not found" });
       }
-      
+
       res.status(204).end();
     } catch (error) {
       console.error("Error deleting competency:", error);
@@ -2200,11 +2200,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const assessment = await storage.getAssessment(id);
-      
+
       if (!assessment) {
         return res.status(404).json({ message: "Assessment not found" });
       }
-      
+
       res.json(assessment);
     } catch (error) {
       console.error("Error fetching assessment:", error);
@@ -2231,11 +2231,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const assessmentData = insertAssessmentSchema.partial().parse(req.body);
       const assessment = await storage.updateAssessment(id, assessmentData);
-      
+
       if (!assessment) {
         return res.status(404).json({ message: "Assessment not found" });
       }
-      
+
       res.json(assessment);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2250,11 +2250,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteAssessment(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Assessment not found" });
       }
-      
+
       res.status(204).end();
     } catch (error) {
       console.error("Error deleting assessment:", error);
@@ -2295,11 +2295,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const question = await storage.getAssessmentQuestion(id);
-      
+
       if (!question) {
         return res.status(404).json({ message: "Assessment question not found" });
       }
-      
+
       res.json(question);
     } catch (error) {
       console.error("Error fetching assessment question:", error);
@@ -2326,11 +2326,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const questionData = insertAssessmentQuestionSchema.partial().parse(req.body);
       const question = await storage.updateAssessmentQuestion(id, questionData);
-      
+
       if (!question) {
         return res.status(404).json({ message: "Assessment question not found" });
       }
-      
+
       res.json(question);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2345,11 +2345,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteAssessmentQuestion(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Assessment question not found" });
       }
-      
+
       res.status(204).end();
     } catch (error) {
       console.error("Error deleting assessment question:", error);
@@ -2384,11 +2384,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const session = await storage.getAssessmentSession(id);
-      
+
       if (!session) {
         return res.status(404).json({ message: "Assessment session not found" });
       }
-      
+
       res.json(session);
     } catch (error) {
       console.error("Error fetching assessment session:", error);
@@ -2415,11 +2415,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const sessionData = insertAssessmentSessionSchema.partial().parse(req.body);
       const session = await storage.updateAssessmentSession(id, sessionData);
-      
+
       if (!session) {
         return res.status(404).json({ message: "Assessment session not found" });
       }
-      
+
       res.json(session);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2427,6 +2427,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       console.error("Error updating assessment session:", error);
       res.status(500).json({ message: "Failed to update assessment session" });
+    }
+  });
+
+  app.post("/api/assessment-sessions/:id/start", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const session = await storage.getAssessmentSession(id);
+
+      if (!session) {
+        return res.status(404).json({ message: "Assessment session not found" });
+      }
+
+      // Обновляем статус сессии на "in_progress" и устанавливаем время начала
+      const updatedSession = await storage.updateAssessmentSession(id, {
+        status: "in_progress",
+        startedAt: new Date().toISOString()
+      });
+
+      res.json(updatedSession);
+    } catch (error) {
+      console.error("Error starting assessment session:", error);
+      res.status(500).json({ message: "Failed to start assessment session" });
     }
   });
 
@@ -2462,11 +2484,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const answer = await storage.getAssessmentAnswer(id);
-      
+
       if (!answer) {
         return res.status(404).json({ message: "Assessment answer not found" });
       }
-      
+
       res.json(answer);
     } catch (error) {
       console.error("Error fetching assessment answer:", error);
@@ -2493,11 +2515,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const id = parseInt(req.params.id);
       const answerData = insertAssessmentAnswerSchema.partial().parse(req.body);
       const answer = await storage.updateAssessmentAnswer(id, answerData);
-      
+
       if (!answer) {
         return res.status(404).json({ message: "Assessment answer not found" });
       }
-      
+
       res.json(answer);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -2513,13 +2535,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const assessmentId = parseInt(req.params.id);
       const count = parseInt(req.body.count || "5");
-      
+
       // Проверяем существование ассесмента
       const assessment = await storage.getAssessment(assessmentId);
       if (!assessment) {
         return res.status(404).json({ message: "Assessment not found" });
       }
-      
+
       const questions = await storage.generateAssessmentQuestions(assessmentId, count);
       res.json(questions);
     } catch (error) {
@@ -2548,6 +2570,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching user assessment results:", error);
       res.status(500).json({ message: "Failed to fetch user assessment results" });
+    }
+  });
+
+  // API для получения отчета по ассесменту
+  app.get("/api/assessment-sessions/:id/report", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const session = await storage.getAssessmentSession(id);
+
+      if (!session) {
+        return res.status(404).json({ message: "Assessment session not found" });
+      }
+
+      if (session.status !== "completed") {
+        return res.status(400).json({ message: "Assessment session is not completed yet" });
+      }
+
+      // Получаем данные для генерации отчета
+      const user = await storage.getUser(session.userId);
+      const assessment = await storage.getAssessment(session.assessmentId);
+      const questions = await storage.listAssessmentQuestions(session.assessmentId);
+      const answers = await storage.listAssessmentAnswersBySession(id);
+
+      // Получаем роль сотрудника
+      const role = user && user.roleId ? await storage.getEmployeeRole(user.roleId) : null;
+
+      if (!user || !assessment || !role) {
+        return res.status(404).json({ message: "Required data for report generation not found" });
+      }
+
+      // Получаем компетенции для отчета
+      let competencies = [];
+      if (assessment.targetCompetencies && Array.isArray(assessment.targetCompetencies)) {
+        const competencyIds = assessment.targetCompetencies.map(c => c.id || c);
+        competencies = await Promise.all(
+          competencyIds.map(async (id) => await storage.getCompetency(typeof id === 'object' ? id.id : id))
+        );
+        competencies = competencies.filter(Boolean);
+      }
+
+      // Если компетенции не указаны, берем из роли
+      if (competencies.length === 0 && role.requiredCompetencies) {
+        const competencyIds = role.requiredCompetencies.map(c => c.id || c);
+        competencies = await Promise.all(
+          competencyIds.map(async (id) => await storage.getCompetency(typeof id === 'object' ? id.id : id))
+        );
+        competencies = competencies.filter(Boolean);
+      }
+
+      // Генерируем отчет с помощью OpenAI
+      const { generateAssessmentReport } = await import('./utils/openai');
+
+      // Вычисляем общий результат
+      const totalQuestions = questions.length;
+      const correctAnswers = answers.filter(a => a.isCorrect).length;
+      const overallScore = Math.round((correctAnswers / totalQuestions) * 100);
+
+      const report = await generateAssessmentReport(
+        user.name,
+        role.title,
+        role.department,
+        competencies,
+        questions,
+        answers,
+        overallScore
+      );
+
+      // Сохраняем отчет в сессию
+      await storage.updateAssessmentSession(id, {
+        report: report,
+        level: report.level
+      });
+
+      res.json(report);
+    } catch (error) {
+      console.error("Error generating assessment report:", error);
+      res.status(500).json({ message: "Failed to generate assessment report" });
     }
   });
 
