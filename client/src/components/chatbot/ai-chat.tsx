@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useChatbot } from "@/context/chatbot-context";
+import { useAuth } from "@/context/auth-context";
 
 export function AIChat() {
   const { 
@@ -12,6 +13,7 @@ export function AIChat() {
     sendMessage,
     isLoading
   } = useChatbot();
+  const { user } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   
@@ -22,28 +24,37 @@ export function AIChat() {
     "Помощь"
   ];
   
-  // Scroll to bottom when messages change
+  // Log state for debugging
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+    console.log("AIChat rendered, isOpen:", isOpen);
+  }, [isOpen]);
+  
+  // Scroll to bottom when messages change or when chat opens
+  useEffect(() => {
+    if (isOpen || messages.length > 0) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages, isOpen]);
   
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!inputValue.trim()) return;
     
-    sendMessage(inputValue);
+    const userId = user?.id || 1;
+    sendMessage(inputValue, userId);
     setInputValue("");
   };
   
   const handleSuggestedQuestion = (question: string) => {
-    sendMessage(question);
+    const userId = user?.id || 1;
+    sendMessage(question, userId);
   };
   
   return (
     <div 
       className={cn(
-        "chat-window fixed bottom-0 right-0 md:right-6 z-20 w-full sm:w-80 flex flex-col transform",
-        isOpen ? "translate-y-0" : "translate-y-[calc(100%-3.5rem)]"
+        "chat-window fixed bottom-0 right-0 md:right-6 z-20 w-full sm:w-80 flex flex-col transform transition-all duration-300",
+        isOpen ? "translate-y-0 opacity-100" : "translate-y-[30rem] opacity-0 pointer-events-none"
       )}
     >
       <div 
