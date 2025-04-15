@@ -90,6 +90,12 @@ export function SmartCourseCreator() {
     }
   };
   
+  // Функция для удаления файла из списка
+  const handleRemoveFile = (fileId: string) => {
+    // Обновляем состояние, удаляя файл с указанным id
+    setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
+  };
+  
   // При переходе на шаг 3 (предпросмотр) загружаем файлы с сервера
   useEffect(() => {
     if (currentStep === 3) {
@@ -217,6 +223,7 @@ export function SmartCourseCreator() {
               isGenerating={isGenerating}
               onGenerateCourse={handleGenerateCourse}
               fetchFilesFromServer={fetchFilesFromServer}
+              onRemoveFile={handleRemoveFile}
             />
           </TabsContent>
           
