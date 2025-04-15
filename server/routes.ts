@@ -1549,55 +1549,93 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Получаем список всех курсов для подбора
       const allCourses = await storage.listCourses();
       
-      if (allCourses.length === 0) {
-        return res.status(400).json({ message: "No courses available for learning path generation" });
-      }
-      
       // Используем OpenAI для генерации подходящего плана обучения
-      const aiResult = await generateAILearningPath(
+      // Передаем true в качестве последнего параметра, чтобы разрешить генерацию новых курсов
+      const aiResult = await generateLearningPath(
         data.userRole,
         data.userLevel,
         data.userDepartment,
-        data.targetSkills,
-        allCourses
+        allCourses,
+        true // разрешаем предлагать новые курсы
       );
       
       // Создаем учебный план
       const learningPath = await storage.createLearningPath({
         userId: data.userId,
         createdById: data.createdById,
-        name: aiResult.name,
-        description: aiResult.description,
         position: data.userRole,
         level: data.userLevel as "junior" | "middle" | "senior",
         targetSkills: aiResult.targetSkills.join(", "),
         status: "active"
       });
       
-      // Добавляем рекомендованные курсы в план обучения
-      const coursePromises = aiResult.recommendedCourses.map(async (courseRec) => {
-        try {
-          const course = await storage.getCourse(courseRec.courseId);
-          if (!course) return null;
-          
-          return storage.createLearningPathCourse({
-            learningPathId: learningPath.id,
-            courseId: courseRec.courseId,
-            order: courseRec.order || 0,
-            priority: courseRec.priority || "normal"
-          });
-        } catch (e) {
-          console.error(`Failed to add course ${courseRec.courseId} to learning path:`, e);
-          return null;
-        }
-      });
+      // Обрабатываем рекомендованные курсы
+      const processedCourses = [];
       
-      const addedCourses = (await Promise.all(coursePromises)).filter(course => course !== null);
+      // Проходим по всем рекомендациям AI
+      for (const courseRec of aiResult.recommendedCourses) {
+        try {
+          if (courseRec.isNewCourse && courseRec.title) {
+            // Если это новый курс, рекомендованный AI - создаем его
+            const newCourse = await storage.createCourse({
+              title: courseRec.title,
+              description: courseRec.description || `Рекомендованный AI курс для ${data.userRole}`,
+              department: data.userDepartment,
+              durationHours: 2, // значение по умолчанию
+              image: null,
+              status: "draft", // создаем в статусе черновика
+              thumbnail: null,
+              level: data.userLevel as "beginner" | "intermediate" | "advanced"
+            });
+            
+            // Добавляем в учебный план
+            const learningPathCourse = await storage.createLearningPathCourse({
+              learningPathId: learningPath.id,
+              courseId: newCourse.id,
+              order: courseRec.order || processedCourses.length,
+              priority: courseRec.priority || "normal",
+              rationale: courseRec.rationale
+            });
+            
+            processedCourses.push({
+              ...learningPathCourse,
+              course: newCourse
+            });
+            
+          } else if (courseRec.courseId) {
+            // Если это существующий курс
+            const course = await storage.getCourse(courseRec.courseId);
+            if (course) {
+              const learningPathCourse = await storage.createLearningPathCourse({
+                learningPathId: learningPath.id,
+                courseId: courseRec.courseId,
+                order: courseRec.order || processedCourses.length,
+                priority: courseRec.priority || "normal",
+                rationale: courseRec.rationale
+              });
+              
+              processedCourses.push({
+                ...learningPathCourse,
+                course: course
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error processing course recommendation:", error);
+          // Продолжаем обработку других курсов
+        }
+      }
+      
+      // Регистрируем активность
+      await storage.createActivity({
+        userId: data.createdById,
+        type: "generated_learning_path"
+      });
       
       // Возвращаем созданный план обучения
       res.status(201).json({
         learningPath,
-        courses: addedCourses,
+        courses: processedCourses,
         details: {
           targetSkills: aiResult.targetSkills,
           recommendedCourses: aiResult.recommendedCourses

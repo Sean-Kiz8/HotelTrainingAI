@@ -8,14 +8,19 @@ export async function generateLearningPath(
   userRole: string,
   userLevel: string,
   userDepartment: string,
-  availableCourses: any[]
+  availableCourses: any[],
+  suggestNewCourses: boolean = false
 ): Promise<{
   name: string;
   description: string;
   targetSkills: string[];
   recommendedCourses: {
-    courseId: number;
-    priority: number;
+    courseId?: number;
+    title?: string;
+    description?: string;
+    isNewCourse?: boolean;
+    priority: string;
+    order: number;
     rationale: string;
   }[];
 }> {
@@ -29,8 +34,8 @@ export async function generateLearningPath(
     - Уровень: ${userLevel}
     - Отдел: ${userDepartment}
 
-    Доступные курсы:
-    ${availableCourses.map(course => `- ID: ${course.id}, Название: "${course.title}", Описание: "${course.description}", Отдел: "${course.department}"`).join('\n')}
+    ${availableCourses.length > 0 ? `Доступные курсы:
+    ${availableCourses.map(course => `- ID: ${course.id}, Название: "${course.title}", Описание: "${course.description || "Нет описания"}", Отдел: "${course.department || "Общий"}"`).join('\n')}` : 'В системе пока нет курсов.'}
 
     Создай персонализированный учебный план, который поможет сотруднику развить необходимые навыки для его должности и карьерного роста.
     
@@ -40,20 +45,49 @@ export async function generateLearningPath(
       "description": "Подробное описание учебного плана и его целей",
       "targetSkills": ["Навык 1", "Навык 2", "Навык 3"],
       "recommendedCourses": [
+        ${suggestNewCourses ? `
+        // Для существующего курса:
         {
           "courseId": ID_курса,
-          "priority": число_от_1_до_10,
+          "isNewCourse": false,
+          "priority": "high|normal|low",
+          "order": порядковый_номер_начиная_с_0,
+          "rationale": "Объяснение, почему этот курс важен"
+        },
+        // Для нового предлагаемого курса:
+        {
+          "title": "Название нового курса",
+          "description": "Описание нового курса",
+          "isNewCourse": true,
+          "priority": "high|normal|low",
+          "order": порядковый_номер_начиная_с_0,
           "rationale": "Объяснение, почему этот курс важен"
         }
+        ` : `
+        {
+          "courseId": ID_курса,
+          "priority": "high|normal|low",
+          "order": порядковый_номер_начиная_с_0,
+          "rationale": "Объяснение, почему этот курс важен"
+        }
+        `}
       ]
     }
 
     Важно: 
+    ${suggestNewCourses ? `
+    1. Рекомендуй как существующие курсы (используя их ID), так и предлагай новые курсы, которых еще нет в системе
+    2. Для существующих курсов установи isNewCourse = false и укажи courseId
+    3. Для новых курсов установи isNewCourse = true, придумай подходящее название и описание
+    ` : `
     1. Рекомендуй только курсы из списка доступных курсов, используя их реальные ID
-    2. Приоритет должен быть числом от 1 до 10, где 10 - наивысший приоритет
-    3. Рекомендуй от 3 до 5 курсов, в зависимости от их релевантности
-    4. Учитывай отдел сотрудника при выборе курсов
-    5. Название и описание плана должны быть на русском языке
+    `}
+    2. Приоритет должен быть строкой с одним из значений: "high" (высокий), "normal" (средний), "low" (низкий)
+    3. Order должен начинаться с 0 и указывать оптимальный порядок прохождения курсов
+    4. Рекомендуй от 3 до 5 курсов, в зависимости от их релевантности
+    5. Учитывай отдел сотрудника при выборе курсов
+    6. Название и описание плана должны быть на русском языке
+    ${suggestNewCourses ? `7. Предложи минимум 1-2 новых курса, которые могли бы дополнить обучение сотрудника` : ""}
     `;
 
     const response = await openai.chat.completions.create({
