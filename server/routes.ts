@@ -2008,6 +2008,560 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Примечание: Основной маршрут для генерации персонализированных планов обучения
   // определен выше, в начале секции AI Personal Learning Path routes
 
+  // ===================== API для системы оценки компетенций сотрудников =====================
+
+  // API для работы с ролями сотрудников
+  app.get("/api/employee-roles", async (req, res) => {
+    try {
+      const department = req.query.department as string | undefined;
+
+      if (department) {
+        const roles = await storage.listEmployeeRolesByDepartment(department);
+        return res.json(roles);
+      }
+
+      const roles = await storage.listEmployeeRoles();
+      res.json(roles);
+    } catch (error) {
+      console.error("Error fetching employee roles:", error);
+      res.status(500).json({ message: "Failed to fetch employee roles" });
+    }
+  });
+
+  app.get("/api/employee-roles/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const role = await storage.getEmployeeRole(id);
+      
+      if (!role) {
+        return res.status(404).json({ message: "Employee role not found" });
+      }
+      
+      res.json(role);
+    } catch (error) {
+      console.error("Error fetching employee role:", error);
+      res.status(500).json({ message: "Failed to fetch employee role" });
+    }
+  });
+
+  app.post("/api/employee-roles", async (req, res) => {
+    try {
+      const roleData = insertEmployeeRoleSchema.parse(req.body);
+      const role = await storage.createEmployeeRole(roleData);
+      res.status(201).json(role);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid role data", errors: error.errors });
+      }
+      console.error("Error creating employee role:", error);
+      res.status(500).json({ message: "Failed to create employee role" });
+    }
+  });
+
+  app.patch("/api/employee-roles/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const roleData = insertEmployeeRoleSchema.partial().parse(req.body);
+      const role = await storage.updateEmployeeRole(id, roleData);
+      
+      if (!role) {
+        return res.status(404).json({ message: "Employee role not found" });
+      }
+      
+      res.json(role);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid role data", errors: error.errors });
+      }
+      console.error("Error updating employee role:", error);
+      res.status(500).json({ message: "Failed to update employee role" });
+    }
+  });
+
+  app.delete("/api/employee-roles/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteEmployeeRole(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Employee role not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting employee role:", error);
+      res.status(500).json({ message: "Failed to delete employee role" });
+    }
+  });
+
+  // API для работы с компетенциями
+  app.get("/api/competencies", async (req, res) => {
+    try {
+      const category = req.query.category as string | undefined;
+
+      if (category) {
+        const competencies = await storage.listCompetenciesByCategory(category);
+        return res.json(competencies);
+      }
+
+      const competencies = await storage.listCompetencies();
+      res.json(competencies);
+    } catch (error) {
+      console.error("Error fetching competencies:", error);
+      res.status(500).json({ message: "Failed to fetch competencies" });
+    }
+  });
+
+  app.get("/api/competencies/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const competency = await storage.getCompetency(id);
+      
+      if (!competency) {
+        return res.status(404).json({ message: "Competency not found" });
+      }
+      
+      res.json(competency);
+    } catch (error) {
+      console.error("Error fetching competency:", error);
+      res.status(500).json({ message: "Failed to fetch competency" });
+    }
+  });
+
+  app.post("/api/competencies", async (req, res) => {
+    try {
+      const competencyData = insertCompetencySchema.parse(req.body);
+      const competency = await storage.createCompetency(competencyData);
+      res.status(201).json(competency);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid competency data", errors: error.errors });
+      }
+      console.error("Error creating competency:", error);
+      res.status(500).json({ message: "Failed to create competency" });
+    }
+  });
+
+  app.patch("/api/competencies/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const competencyData = insertCompetencySchema.partial().parse(req.body);
+      const competency = await storage.updateCompetency(id, competencyData);
+      
+      if (!competency) {
+        return res.status(404).json({ message: "Competency not found" });
+      }
+      
+      res.json(competency);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid competency data", errors: error.errors });
+      }
+      console.error("Error updating competency:", error);
+      res.status(500).json({ message: "Failed to update competency" });
+    }
+  });
+
+  app.delete("/api/competencies/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteCompetency(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Competency not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting competency:", error);
+      res.status(500).json({ message: "Failed to delete competency" });
+    }
+  });
+
+  // API для работы с ассесментами
+  app.get("/api/assessments", async (req, res) => {
+    try {
+      const roleId = req.query.roleId ? parseInt(req.query.roleId as string) : undefined;
+
+      if (roleId) {
+        const assessments = await storage.listAssessmentsByRole(roleId);
+        return res.json(assessments);
+      }
+
+      const assessments = await storage.listAssessments();
+      res.json(assessments);
+    } catch (error) {
+      console.error("Error fetching assessments:", error);
+      res.status(500).json({ message: "Failed to fetch assessments" });
+    }
+  });
+
+  app.get("/api/assessments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const assessment = await storage.getAssessment(id);
+      
+      if (!assessment) {
+        return res.status(404).json({ message: "Assessment not found" });
+      }
+      
+      res.json(assessment);
+    } catch (error) {
+      console.error("Error fetching assessment:", error);
+      res.status(500).json({ message: "Failed to fetch assessment" });
+    }
+  });
+
+  app.post("/api/assessments", async (req, res) => {
+    try {
+      const assessmentData = insertAssessmentSchema.parse(req.body);
+      const assessment = await storage.createAssessment(assessmentData);
+      res.status(201).json(assessment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid assessment data", errors: error.errors });
+      }
+      console.error("Error creating assessment:", error);
+      res.status(500).json({ message: "Failed to create assessment" });
+    }
+  });
+
+  app.patch("/api/assessments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const assessmentData = insertAssessmentSchema.partial().parse(req.body);
+      const assessment = await storage.updateAssessment(id, assessmentData);
+      
+      if (!assessment) {
+        return res.status(404).json({ message: "Assessment not found" });
+      }
+      
+      res.json(assessment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid assessment data", errors: error.errors });
+      }
+      console.error("Error updating assessment:", error);
+      res.status(500).json({ message: "Failed to update assessment" });
+    }
+  });
+
+  app.delete("/api/assessments/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteAssessment(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Assessment not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting assessment:", error);
+      res.status(500).json({ message: "Failed to delete assessment" });
+    }
+  });
+
+  // API для работы с вопросами ассесмента
+  app.get("/api/assessment-questions", async (req, res) => {
+    try {
+      const assessmentId = req.query.assessmentId ? parseInt(req.query.assessmentId as string) : undefined;
+      const difficulty = req.query.difficulty as string | undefined;
+      const competencyId = req.query.competencyId ? parseInt(req.query.competencyId as string) : undefined;
+
+      if (!assessmentId) {
+        return res.status(400).json({ message: "Assessment ID is required" });
+      }
+
+      if (difficulty) {
+        const questions = await storage.listAssessmentQuestionsByDifficulty(assessmentId, difficulty);
+        return res.json(questions);
+      }
+
+      if (competencyId) {
+        const questions = await storage.listAssessmentQuestionsByCompetency(assessmentId, competencyId);
+        return res.json(questions);
+      }
+
+      const questions = await storage.listAssessmentQuestions(assessmentId);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching assessment questions:", error);
+      res.status(500).json({ message: "Failed to fetch assessment questions" });
+    }
+  });
+
+  app.get("/api/assessment-questions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const question = await storage.getAssessmentQuestion(id);
+      
+      if (!question) {
+        return res.status(404).json({ message: "Assessment question not found" });
+      }
+      
+      res.json(question);
+    } catch (error) {
+      console.error("Error fetching assessment question:", error);
+      res.status(500).json({ message: "Failed to fetch assessment question" });
+    }
+  });
+
+  app.post("/api/assessment-questions", async (req, res) => {
+    try {
+      const questionData = insertAssessmentQuestionSchema.parse(req.body);
+      const question = await storage.createAssessmentQuestion(questionData);
+      res.status(201).json(question);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid question data", errors: error.errors });
+      }
+      console.error("Error creating assessment question:", error);
+      res.status(500).json({ message: "Failed to create assessment question" });
+    }
+  });
+
+  app.patch("/api/assessment-questions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const questionData = insertAssessmentQuestionSchema.partial().parse(req.body);
+      const question = await storage.updateAssessmentQuestion(id, questionData);
+      
+      if (!question) {
+        return res.status(404).json({ message: "Assessment question not found" });
+      }
+      
+      res.json(question);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid question data", errors: error.errors });
+      }
+      console.error("Error updating assessment question:", error);
+      res.status(500).json({ message: "Failed to update assessment question" });
+    }
+  });
+
+  app.delete("/api/assessment-questions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const success = await storage.deleteAssessmentQuestion(id);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Assessment question not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting assessment question:", error);
+      res.status(500).json({ message: "Failed to delete assessment question" });
+    }
+  });
+
+  // API для работы с сессиями ассесмента
+  app.get("/api/assessment-sessions", async (req, res) => {
+    try {
+      const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
+      const assessmentId = req.query.assessmentId ? parseInt(req.query.assessmentId as string) : undefined;
+
+      if (userId) {
+        const sessions = await storage.listAssessmentSessionsByUser(userId);
+        return res.json(sessions);
+      }
+
+      if (assessmentId) {
+        const sessions = await storage.listAssessmentSessionsByAssessment(assessmentId);
+        return res.json(sessions);
+      }
+
+      return res.status(400).json({ message: "User ID or Assessment ID is required" });
+    } catch (error) {
+      console.error("Error fetching assessment sessions:", error);
+      res.status(500).json({ message: "Failed to fetch assessment sessions" });
+    }
+  });
+
+  app.get("/api/assessment-sessions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const session = await storage.getAssessmentSession(id);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Assessment session not found" });
+      }
+      
+      res.json(session);
+    } catch (error) {
+      console.error("Error fetching assessment session:", error);
+      res.status(500).json({ message: "Failed to fetch assessment session" });
+    }
+  });
+
+  app.post("/api/assessment-sessions", async (req, res) => {
+    try {
+      const sessionData = insertAssessmentSessionSchema.parse(req.body);
+      const session = await storage.createAssessmentSession(sessionData);
+      res.status(201).json(session);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid session data", errors: error.errors });
+      }
+      console.error("Error creating assessment session:", error);
+      res.status(500).json({ message: "Failed to create assessment session" });
+    }
+  });
+
+  app.patch("/api/assessment-sessions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const sessionData = insertAssessmentSessionSchema.partial().parse(req.body);
+      const session = await storage.updateAssessmentSession(id, sessionData);
+      
+      if (!session) {
+        return res.status(404).json({ message: "Assessment session not found" });
+      }
+      
+      res.json(session);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid session data", errors: error.errors });
+      }
+      console.error("Error updating assessment session:", error);
+      res.status(500).json({ message: "Failed to update assessment session" });
+    }
+  });
+
+  app.post("/api/assessment-sessions/:id/complete", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const session = await storage.completeAssessmentSession(id, req.body);
+      res.json(session);
+    } catch (error) {
+      console.error("Error completing assessment session:", error);
+      res.status(500).json({ message: "Failed to complete assessment session" });
+    }
+  });
+
+  // API для работы с ответами на вопросы ассесмента
+  app.get("/api/assessment-answers", async (req, res) => {
+    try {
+      const sessionId = req.query.sessionId ? parseInt(req.query.sessionId as string) : undefined;
+
+      if (!sessionId) {
+        return res.status(400).json({ message: "Session ID is required" });
+      }
+
+      const answers = await storage.listAssessmentAnswersBySession(sessionId);
+      res.json(answers);
+    } catch (error) {
+      console.error("Error fetching assessment answers:", error);
+      res.status(500).json({ message: "Failed to fetch assessment answers" });
+    }
+  });
+
+  app.get("/api/assessment-answers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const answer = await storage.getAssessmentAnswer(id);
+      
+      if (!answer) {
+        return res.status(404).json({ message: "Assessment answer not found" });
+      }
+      
+      res.json(answer);
+    } catch (error) {
+      console.error("Error fetching assessment answer:", error);
+      res.status(500).json({ message: "Failed to fetch assessment answer" });
+    }
+  });
+
+  app.post("/api/assessment-answers", async (req, res) => {
+    try {
+      const answerData = insertAssessmentAnswerSchema.parse(req.body);
+      const answer = await storage.createAssessmentAnswer(answerData);
+      res.status(201).json(answer);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid answer data", errors: error.errors });
+      }
+      console.error("Error creating assessment answer:", error);
+      res.status(500).json({ message: "Failed to create assessment answer" });
+    }
+  });
+
+  app.patch("/api/assessment-answers/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const answerData = insertAssessmentAnswerSchema.partial().parse(req.body);
+      const answer = await storage.updateAssessmentAnswer(id, answerData);
+      
+      if (!answer) {
+        return res.status(404).json({ message: "Assessment answer not found" });
+      }
+      
+      res.json(answer);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Invalid answer data", errors: error.errors });
+      }
+      console.error("Error updating assessment answer:", error);
+      res.status(500).json({ message: "Failed to update assessment answer" });
+    }
+  });
+
+  // API для генерации вопросов с помощью ИИ
+  app.post("/api/assessments/:id/generate-questions", async (req, res) => {
+    try {
+      const assessmentId = parseInt(req.params.id);
+      const count = parseInt(req.body.count || "5");
+      
+      // Проверяем существование ассесмента
+      const assessment = await storage.getAssessment(assessmentId);
+      if (!assessment) {
+        return res.status(404).json({ message: "Assessment not found" });
+      }
+      
+      const questions = await storage.generateAssessmentQuestions(assessmentId, count);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error generating assessment questions:", error);
+      res.status(500).json({ message: "Failed to generate assessment questions" });
+    }
+  });
+
+  // API для получения статистики и аналитики
+  app.get("/api/assessments/:id/statistics", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const stats = await storage.getAssessmentStatistics(id);
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching assessment statistics:", error);
+      res.status(500).json({ message: "Failed to fetch assessment statistics" });
+    }
+  });
+
+  app.get("/api/users/:id/assessment-results", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const results = await storage.getUserAssessmentResults(id);
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching user assessment results:", error);
+      res.status(500).json({ message: "Failed to fetch user assessment results" });
+    }
+  });
+
+  app.get("/api/departments/:department/assessment-results", async (req, res) => {
+    try {
+      const department = req.params.department;
+      const results = await storage.getDepartmentAssessmentResults(department);
+      res.json(results);
+    } catch (error) {
+      console.error("Error fetching department assessment results:", error);
+      res.status(500).json({ message: "Failed to fetch department assessment results" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
