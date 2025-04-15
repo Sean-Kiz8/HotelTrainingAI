@@ -85,7 +85,7 @@ export default function CourseDetailsPage() {
   
   // Fetch modules for this course
   const { data: modules = [], isLoading: isLoadingModules } = useQuery<IModule[]>({
-    queryKey: [`/api/modules`, { courseId }],
+    queryKey: [`/api/modules?courseId=${courseId}`],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!courseId
   });
@@ -101,7 +101,7 @@ export default function CourseDetailsPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/modules`, { courseId }] });
+      queryClient.invalidateQueries({ queryKey: [`/api/modules?courseId=${courseId}`] });
       toast({
         title: "Модуль создан",
         description: "Новый модуль был успешно добавлен в курс",
@@ -124,7 +124,7 @@ export default function CourseDetailsPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/modules`, { courseId }] });
+      queryClient.invalidateQueries({ queryKey: [`/api/modules?courseId=${courseId}`] });
       toast({
         title: "Урок создан",
         description: "Новый урок был успешно добавлен в модуль",
