@@ -20,12 +20,10 @@ import { Loader2, BookOpen, Award, BriefcaseBusiness } from "lucide-react";
 
 // Схема формы для создания учебного плана
 const formSchema = z.object({
-  userId: z.string(),
-  position: z.string().min(3, { message: "Должность должна содержать как минимум 3 символа" }),
-  level: z.enum(["junior", "middle", "senior"], {
-    required_error: "Пожалуйста, выберите уровень сотрудника",
-  }),
-  userLevel: z.string().min(1, { message: "Выберите уровень" }),
+  userId: z.string().min(1, { message: "Выберите пользователя" }),
+  position: z.string().min(1, { message: "Укажите должность" }),
+  level: z.enum(["junior", "middle", "senior"], { required_error: "Выберите уровень" }),
+  userLevel: z.enum(["junior", "middle", "senior"], { required_error: "Выберите уровень" }),
   userDepartment: z.string().min(1, { message: "Выберите отдел" }),
   targetSkills: z.string().min(5, { message: "Опишите навыки, которые нужно развить" }),
 });
@@ -51,7 +49,7 @@ export default function LearningPathGenerator() {
       userId: "",
       position: "",
       level: "junior",
-      userLevel: "",
+      userLevel: "junior",
       userDepartment: "",
       targetSkills: "",
     },
@@ -78,7 +76,7 @@ export default function LearningPathGenerator() {
         userDepartment: data.userDepartment,
         targetSkills: data.targetSkills,
       };
-      
+
       return apiRequest(
         "POST",
         "/api/learning-paths/generate",
@@ -88,12 +86,12 @@ export default function LearningPathGenerator() {
     onSuccess: (data) => {
       // Инвалидируем кеш для обновления списка учебных планов
       queryClient.invalidateQueries({ queryKey: ["/api/learning-paths"] });
-      
+
       toast({
         title: "План обучения создан",
         description: "Персональный план обучения успешно создан с использованием ИИ",
       });
-      
+
       // Переходим на страницу просмотра созданного плана
       navigate(`/learning-paths/${data.learningPath.id}`);
     },
@@ -224,9 +222,9 @@ export default function LearningPathGenerator() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            <SelectItem value="beginner">Начальный</SelectItem>
-                            <SelectItem value="intermediate">Средний</SelectItem>
-                            <SelectItem value="advanced">Продвинутый</SelectItem>
+                            <SelectItem value="junior">Начальный</SelectItem>
+                            <SelectItem value="middle">Средний</SelectItem>
+                            <SelectItem value="senior">Продвинутый</SelectItem>
                           </SelectContent>
                         </Select>
                         <FormDescription>
