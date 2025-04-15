@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useRef, useEffect } from "react";
-import { apiRequest } from "@/lib/queryClient";
+import { sendChatMessage, getChatHistory } from "@/lib/openai";
 import type { ChatMessage } from "@shared/schema";
+import { AuthUser } from "./auth-context";
 
 interface ChatbotContextType {
   isOpen: boolean;
@@ -10,9 +11,22 @@ interface ChatbotContextType {
   messages: ChatMessage[];
   sendMessage: (message: string, userId?: number) => Promise<void>;
   isLoading: boolean;
+  loadUserChatHistory: (userId: number) => Promise<void>;
 }
 
-const ChatbotContext = createContext<ChatbotContextType | null>(null);
+// Create default context values
+const defaultContextValue: ChatbotContextType = {
+  isOpen: false,
+  toggleChatbot: () => {},
+  closeChatbot: () => {},
+  openChatbot: () => {},
+  messages: [],
+  sendMessage: async () => {},
+  isLoading: false,
+  loadUserChatHistory: async () => {}
+};
+
+const ChatbotContext = createContext<ChatbotContextType>(defaultContextValue);
 
 // Default welcome message
 const createWelcomeMessage = (userId = 1): ChatMessage => ({
@@ -33,6 +47,24 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
   const closeChatbot = () => setIsOpen(false);
   const openChatbot = () => setIsOpen(true);
   
+  // Load chat history for a specific user
+  const loadUserChatHistory = async (userId: number) => {
+    if (hasLoadedHistory.current) return;
+    
+    try {
+      const history = await getChatHistory(userId);
+      if (history.length === 0) {
+        setMessages([createWelcomeMessage(userId)]);
+      } else {
+        setMessages(history);
+      }
+      hasLoadedHistory.current = true;
+    } catch (error) {
+      console.error("Failed to load chat history:", error);
+      setMessages([createWelcomeMessage(userId)]);
+    }
+  };
+  
   const sendMessage = async (message: string, userId = 1) => {
     if (!message.trim()) return;
     
@@ -50,12 +82,7 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
     
     try {
-      const response = await apiRequest("POST", "/api/chat", {
-        userId,
-        message
-      });
-      
-      const chatResponse = await response.json();
+      const chatResponse = await sendChatMessage(userId, message);
       
       // Replace the temp message with the actual response
       setMessages((prev) => 
@@ -90,7 +117,8 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
         openChatbot,
         messages,
         sendMessage,
-        isLoading
+        isLoading,
+        loadUserChatHistory
       }}
     >
       {children}
@@ -98,10 +126,6 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useChatbot(): ChatbotContextType {
-  const context = useContext(ChatbotContext);
-  if (!context) {
-    throw new Error("useChatbot must be used within a ChatbotProvider");
-  }
-  return context;
+export function useChatbot() {
+  return useContext(ChatbotContext);
 }

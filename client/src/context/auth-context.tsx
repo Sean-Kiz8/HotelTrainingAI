@@ -2,16 +2,22 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import { User } from "@shared/schema";
 
-type AuthUser = Omit<User, "password">;
+// Type for user object without password
+export type AuthUser = Omit<User, "password">;
 
-interface AuthContextType {
+export interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  loading: true,
+  login: async () => {},
+  logout: () => {}
+});
 
 // Mock user for development
 const mockUser: AuthUser = {
@@ -26,11 +32,30 @@ const mockUser: AuthUser = {
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  // Initialize with mock user in development
+  // Initialize with mock user for ease of development
   const [user, setUser] = useState<AuthUser | null>(mockUser);
   const [loading, setLoading] = useState(false);
   
-  // In a real app, we would check if user is already logged in
+  const login = async (username: string, password: string) => {
+    try {
+      setLoading(true);
+      const response = await apiRequest("POST", "/api/auth/login", { username, password });
+      const userData = await response.json();
+      setUser(userData);
+      localStorage.setItem("user", JSON.stringify(userData));
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const logout = () => {
+    setUser(null);
+    localStorage.removeItem("user");
+  };
+  
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
@@ -44,27 +69,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setLoading(false);
   }, []);
   
-  const login = async (username: string, password: string) => {
-    try {
-      // In a real implementation, this would make an actual API call
-      // For now, just use mock data
-      setUser(mockUser);
-      localStorage.setItem("user", JSON.stringify(mockUser));
-      return Promise.resolve();
-    } catch (error) {
-      console.error("Login failed:", error);
-      throw error;
-    }
-  };
-  
-  const logout = () => {
-    // For development, we'll keep the mock user logged in
-    // In production, we would uncomment these lines
-    // setUser(null);
-    // localStorage.removeItem("user");
-    console.log("Logout clicked - in development mode, user remains logged in");
-  };
-  
   return (
     <AuthContext.Provider value={{ user, loading, login, logout }}>
       {children}
@@ -72,10 +76,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useAuth(): AuthContextType {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-  return context;
+export function useAuth() {
+  return useContext(AuthContext);
 }
