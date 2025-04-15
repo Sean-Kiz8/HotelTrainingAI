@@ -128,20 +128,21 @@ export function CreateAssessmentDialog({ open, onOpenChange }: CreateAssessmentD
 
       // Если выбран сотрудник, создаем сессию ассесмента для него
       if (data.userId) {
-        try {
-          await apiRequest("POST", "/api/assessment-sessions", {
-            userId: parseInt(data.userId),
-            assessmentId: data.id,
-            status: "created"
-          });
-
+        // Используем промис вместо await, так как мы не в async функции
+        apiRequest("POST", "/api/assessment-sessions", {
+          userId: parseInt(data.userId),
+          assessmentId: data.id,
+          status: "created"
+        })
+        .then(() => {
           toast({
             title: "Ассесмент назначен",
             description: `Ассесмент успешно назначен сотруднику`,
           });
-        } catch (error) {
+        })
+        .catch((error) => {
           console.error("Error assigning assessment:", error);
-        }
+        });
       }
     },
     onError: (error: Error) => {
