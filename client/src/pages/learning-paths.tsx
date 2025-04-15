@@ -12,11 +12,11 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { 
-  PlusCircle, 
-  GraduationCap, 
-  User, 
-  Briefcase, 
+import {
+  PlusCircle,
+  GraduationCap,
+  User,
+  Briefcase,
   CheckCircle,
   Clock,
   AlertCircle
@@ -53,14 +53,14 @@ function getStatusIcon(status: string) {
 // Компонент карточки учебного плана
 function LearningPathCard({ learningPath, onClick }: { learningPath: any, onClick: () => void }) {
   const { id, userId, position, level, targetSkills, status, progress } = learningPath;
-  
+
   // Конвертируем уровень в читаемый вид
   const levelLabel = {
     junior: "Начинающий",
     middle: "Средний",
     senior: "Опытный"
   }[level] || level;
-  
+
   return (
     <Card className="h-full">
       <CardHeader className="pb-2">
@@ -87,16 +87,16 @@ function LearningPathCard({ learningPath, onClick }: { learningPath: any, onClic
             <GraduationCap className="h-4 w-4 mr-2 text-muted-foreground" />
             <span>Уровень: {levelLabel}</span>
           </div>
-          
+
           <Separator />
-          
+
           <div>
             <div className="text-sm font-medium mb-1">Целевые навыки:</div>
             <p className="text-sm text-muted-foreground line-clamp-2">
               {targetSkills}
             </p>
           </div>
-          
+
           <div className="space-y-1">
             <div className="flex justify-between text-sm">
               <span>Прогресс</span>
@@ -107,8 +107,8 @@ function LearningPathCard({ learningPath, onClick }: { learningPath: any, onClic
         </div>
       </CardContent>
       <CardFooter>
-        <Button 
-          className="w-full" 
+        <Button
+          className="w-full"
           variant={status === "completed" ? "outline" : "default"}
           onClick={onClick}
         >
@@ -140,15 +140,15 @@ function LearningPathSkeleton() {
             <Skeleton className="h-4 w-4 mr-2" />
             <Skeleton className="h-4 w-1/3" />
           </div>
-          
+
           <Skeleton className="h-[1px] w-full" />
-          
+
           <div>
             <Skeleton className="h-4 w-1/4 mb-2" />
             <Skeleton className="h-4 w-full" />
             <Skeleton className="h-4 w-5/6 mt-1" />
           </div>
-          
+
           <div className="space-y-1">
             <div className="flex justify-between">
               <Skeleton className="h-4 w-20" />
@@ -181,7 +181,7 @@ export default function LearningPaths() {
   // Получаем список учебных планов текущего пользователя (если он админ, то это планы, созданные им)
   const isAdmin = user?.role === "admin";
   const pathsQueryKey = isAdmin ? ["/api/learning-paths", { createdById: user?.id }] : ["/api/learning-paths", { userId: user?.id }];
-  
+
   const { data: learningPaths, isLoading } = useQuery({
     queryKey: pathsQueryKey,
     // Запрос будет выполнен только если пользователь авторизован
@@ -198,7 +198,7 @@ export default function LearningPaths() {
   // Фильтрация по поисковому запросу
   const filteredPaths = (activeTab === "my" ? learningPaths : allLearningPaths)?.filter((path: any) => {
     if (!searchQuery) return true;
-    
+
     const searchLower = searchQuery.toLowerCase();
     return (
       path.position?.toLowerCase().includes(searchLower) ||
@@ -217,25 +217,27 @@ export default function LearningPaths() {
         title="Персональные планы обучения"
         subtitle="Просмотр и управление индивидуальными планами обучения сотрудников"
         action={
-          <div className="flex gap-2">
-            <Button asChild variant="outline">
-              <Link href="/ai-learning-path">
-                <div className="flex items-center gap-2">
-                  <span className="relative flex h-3 w-3 items-center justify-center">
-                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40"></span>
-                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                  </span>
-                  AI-генерация
-                </div>
-              </Link>
-            </Button>
-            <Button asChild>
-              <Link href="/learning-path-generator">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Создать план
-              </Link>
-            </Button>
-          </div>
+          filteredPaths?.length > 0 && (
+            <div className="flex gap-2">
+              <Button asChild variant="outline">
+                <Link href="/ai-learning-path">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3 items-center justify-center">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                    </span>
+                    AI-генерация
+                  </div>
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/learning-path-generator">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Создать план
+                </Link>
+              </Button>
+            </div>
+          )
         }
         headerRight={
           <SearchInput
@@ -248,8 +250,8 @@ export default function LearningPaths() {
       />
 
       {isAdmin && (
-        <Tabs 
-          value={activeTab} 
+        <Tabs
+          value={activeTab}
           onValueChange={setActiveTab}
           className="mt-6"
         >
@@ -267,9 +269,9 @@ export default function LearningPaths() {
         ) : filteredPaths?.length > 0 ? (
           // Отображение списка учебных планов
           filteredPaths.map((path: any) => (
-            <LearningPathCard 
-              key={path.id} 
-              learningPath={path} 
+            <LearningPathCard
+              key={path.id}
+              learningPath={path}
               onClick={() => handlePathClick(path.id)}
             />
           ))
@@ -278,10 +280,10 @@ export default function LearningPaths() {
           <div className="col-span-full text-center p-6">
             <h3 className="text-lg font-medium mb-2">Планы обучения не найдены</h3>
             <p className="text-muted-foreground mb-4">
-              {searchQuery 
-                ? "Попробуйте изменить параметры поиска" 
-                : isAdmin 
-                  ? "Нет созданных планов обучения. Создайте первый план, чтобы он появился здесь" 
+              {searchQuery
+                ? "Попробуйте изменить параметры поиска"
+                : isAdmin
+                  ? "Нет созданных планов обучения. Создайте первый план, чтобы он появился здесь"
                   : "У вас пока нет персональных планов обучения"
               }
             </p>

@@ -37,15 +37,52 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Всегда используем мок-пользователя для разработки
   const [user, setUser] = useState<AuthUser | null>(mockAdminUser);
   const [loading, setLoading] = useState(false);
-  
-  // Функция для обновления данных пользователя - в режиме разработки всегда возвращает мок-пользователя
+
+  // Функция для обновления данных пользователя
   const refreshUser = async () => {
-    // Для разработки всегда используем мок-пользователя
-    setUser(mockAdminUser);
-    setLoading(false);
-    return;
+    try {
+      setLoading(true);
+
+      // Пытаемся получить актуальные данные пользователя из базы данных
+      try {
+        // Запрашиваем данные пользователя из API
+        const response = await fetch(`/api/users/${mockAdminUser.id}`);
+
+        if (response.ok) {
+          // Если запрос успешен, обновляем данные пользователя
+          const userData = await response.json();
+          console.log('Получены данные пользователя из API:', userData);
+          setUser(userData);
+          return;
+        }
+      } catch (apiError) {
+        console.warn('Не удалось получить данные пользователя из API:', apiError);
+      }
+
+      // Если не удалось получить данные из API, проверяем localStorage
+      const updatedUserData = localStorage.getItem('updatedUserData');
+
+      if (updatedUserData) {
+        // Если есть обновленные данные, обновляем мок-пользователя
+        try {
+          const parsedData = JSON.parse(updatedUserData);
+          setUser({ ...mockAdminUser, ...parsedData });
+        } catch (e) {
+          console.error('Ошибка при парсинге данных пользователя:', e);
+          setUser(mockAdminUser);
+        }
+      } else {
+        // Иначе используем стандартного мок-пользователя
+        setUser(mockAdminUser);
+      }
+    } catch (error) {
+      console.error('Ошибка при обновлении данных пользователя:', error);
+      setUser(mockAdminUser);
+    } finally {
+      setLoading(false);
+    }
   };
-  
+
   const login = async (username: string, password: string) => {
     try {
       setLoading(true);
@@ -58,18 +95,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   };
-  
+
   const logout = async () => {
     // В режиме разработки просто логируем действие и не выходим из системы
     console.log("Logout attempted - in development mode, staying logged in as mock user");
   };
-  
+
   useEffect(() => {
-    // В режиме разработки всегда используем мок пользователя
-    setUser(mockAdminUser);
-    setLoading(false);
+    // Загружаем данные пользователя при инициализации
+    refreshUser();
   }, []);
-  
+
   return (
     <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
       {children}

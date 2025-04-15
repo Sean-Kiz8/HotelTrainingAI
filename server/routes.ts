@@ -3,15 +3,16 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { db } from "./db";
 import { z } from "zod";
-import { 
-  insertUserSchema, insertCourseSchema, 
+import {
+  insertUserSchema, insertCourseSchema,
   insertEnrollmentSchema, insertActivitySchema,
   insertChatMessageSchema, insertMediaFileSchema,
   insertModuleSchema, insertLessonSchema, insertLessonMediaSchema,
   insertLearningPathSchema, insertLearningPathCourseSchema,
   mediaTypeEnum, employeeLevelEnum,
-  learningPaths
+  learningPaths, courses
 } from "@shared/schema";
+import { eq } from "drizzle-orm";
 import { setupAuth } from "./auth";
 import OpenAI from "openai";
 import { generateAILearningPath } from "./utils/openai";
@@ -19,16 +20,16 @@ import multer from "multer";
 import path from "path-browserify";
 import fs from "fs-extra";
 import sharp from "sharp";
-import { 
-  generateLearningPath, 
-  analyzeUserProfileAndRecommend, 
-  generateCourseInsight 
+import {
+  generateLearningPath,
+  analyzeUserProfileAndRecommend,
+  generateCourseInsight
 } from "./utils/openai";
 
 // Initialize OpenAI для совместимости с существующим кодом
 // (новый код будет использовать функции из ./utils/openai)
-const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY 
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 // Configure multer storage
@@ -64,13 +65,13 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
     // Audio
     'audio/mpeg', 'audio/wav', 'audio/webm',
     // Documents
-    'application/pdf', 'application/msword', 
+    'application/pdf', 'application/msword',
     'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     'application/vnd.ms-powerpoint',
     'application/vnd.openxmlformats-officedocument.presentationml.presentation',
     'text/plain', 'text/html'
   ];
-  
+
   if (allowedMimeTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
@@ -78,8 +79,8 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
   }
 };
 
-const upload = multer({ 
-  storage: uploadStorage, 
+const upload = multer({
+  storage: uploadStorage,
   fileFilter,
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB max size
 });
@@ -109,7 +110,7 @@ async function generateThumbnail(filePath: string, mediaType: string, thumbnailP
         .toFile(thumbnailPath);
       return thumbnailPath;
     }
-    
+
     // For other media types, we would need more specific tools
     // For now, just return null for non-image files
     return null;
@@ -127,7 +128,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     const users = await storage.listUsers();
     res.json(users);
   });
-  
+
   app.get("/api/users/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     const user = await storage.getUser(id);
@@ -136,7 +137,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     res.json(user);
   });
-  
+
   app.post("/api/users", async (req, res) => {
     try {
       const userData = insertUserSchema.parse(req.body);
@@ -149,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create user" });
     }
   });
-  
+
   app.patch("/api/users/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -166,24 +167,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update user" });
     }
   });
-  
+
   // Auth route for login
   app.post("/api/auth/login", async (req, res) => {
     const loginSchema = z.object({
       username: z.string(),
       password: z.string(),
     });
-    
+
     try {
       const { username, password } = loginSchema.parse(req.body);
       const user = await storage.getUserByUsername(username);
-      
+
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
-      
+
       // In a real app, we would use sessions or JWT
-      res.json({ 
+      res.json({
         id: user.id,
         username: user.username,
         name: user.name,
@@ -200,20 +201,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Login failed" });
     }
   });
-  
+
   // Course routes
   app.get("/api/courses", async (req, res) => {
     const department = req.query.department as string | undefined;
-    
+
     if (department) {
       const courses = await storage.listCoursesByDepartment(department);
       return res.json(courses);
     }
-    
+
     const courses = await storage.listCourses();
     res.json(courses);
   });
-  
+
   app.get("/api/courses/:id", async (req, res) => {
     const id = parseInt(req.params.id);
     const course = await storage.getCourse(id);
@@ -222,12 +223,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     res.json(course);
   });
-  
+
   app.post("/api/courses", async (req, res) => {
     try {
       const courseData = insertCourseSchema.parse(req.body);
       const course = await storage.createCourse(courseData);
-      
+
       // Создаем запись в активити
       await storage.createActivity({
         userId: req.session.userId || 1,
@@ -235,7 +236,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         type: "created_course",
         timestamp: new Date()
       });
-      
+
       res.status(201).json(course);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -244,17 +245,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create course" });
     }
   });
-  
+
   // API для генерации курса с использованием ИИ
   app.post("/api/courses/generate", async (req, res) => {
     try {
       const { files, settings } = req.body;
-      
+
       // Проверяем обязательные поля
       if (!settings || !settings.title || !settings.description) {
         return res.status(400).json({ error: "Отсутствуют обязательные параметры курса" });
       }
-      
+
       // Получаем информацию о загруженных файлах
       const mediaFiles = [];
       if (files && files.length > 0) {
@@ -265,7 +266,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           }
         }
       }
-      
+
       // Функции для генерации заголовков и содержимого уроков
       const generateModuleTitle = (courseTitle: string, moduleIndex: number) => {
         const moduleTitles = [
@@ -277,7 +278,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ];
         return moduleTitles[moduleIndex % moduleTitles.length];
       };
-      
+
       const generateLessonTitle = (courseTitle: string, moduleIndex: number, lessonIndex: number) => {
         const lessonTitles = [
           ["Обзор и введение", "Ключевые концепции", "Практические основы"],
@@ -286,10 +287,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           ["Практическое применение", "Работа с реальными примерами", "Интеграция в рабочий процесс"],
           ["Оптимизация процессов", "Инновационные подходы", "Повышение эффективности"]
         ];
-        
+
         return lessonTitles[moduleIndex % lessonTitles.length][lessonIndex % 3];
       };
-      
+
       const generateLessonContent = (courseTitle: string, moduleIndex: number, lessonIndex: number) => {
         const lorem = `
 Данный урок охватывает важные аспекты работы в гостиничном бизнесе. Рассмотрим ключевые принципы обслуживания гостей и обеспечения высокого уровня сервиса.
@@ -322,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 `;
         return lorem;
       };
-      
+
       // Создаем базовый курс в базе данных
       const newCourse = await storage.createCourse({
         title: settings.title,
@@ -333,7 +334,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: null, // Опциональный JSON-контент
         active: true // Курс активен по умолчанию
       });
-      
+
       // Создаем модули курса
       const modules = [];
       for (let i = 0; i < settings.modulesCount; i++) {
@@ -344,7 +345,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           description: `Описание модуля ${moduleNumber} курса "${settings.title}"`,
           order: i // Используем order вместо orderIndex
         });
-        
+
         // Создаем уроки для каждого модуля
         const lessons = [];
         for (let j = 0; j < 3; j++) {
@@ -357,7 +358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             duration: (Math.floor(Math.random() * 10) + 10).toString(), // duration должен быть строкой
             type: 'text' // Добавляем тип урока
           });
-          
+
           lessons.push({
             id: newLesson.id,
             title: newLesson.title,
@@ -366,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             hasQuiz: newLesson.hasQuiz
           });
         }
-        
+
         modules.push({
           id: newModule.id,
           title: newModule.title,
@@ -374,14 +375,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lessons: lessons
         });
       }
-      
+
       // Создаем запись в активити
       await storage.createActivity({
         userId: req.session?.userId || 1,
         courseId: newCourse.id,
         type: "created_course"
       });
-      
+
       // Возвращаем сгенерированный курс
       res.status(201).json({
         id: newCourse.id,
@@ -394,7 +395,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Ошибка при генерации курса" });
     }
   });
-  
+
   app.patch("/api/courses/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -411,26 +412,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update course" });
     }
   });
-  
+
+  // Удалить курс
+  app.delete("/api/courses/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+
+      // Проверяем существование курса
+      const existingCourse = await storage.getCourse(id);
+      if (!existingCourse) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+
+      // Получаем модули курса для удаления
+      const modules = await storage.listModulesByCourse(id);
+
+      // Удаляем все модули и их уроки
+      for (const module of modules) {
+        await storage.deleteModule(module.id);
+      }
+
+      // Удаляем все записи на курс
+      const enrollments = await storage.listEnrollmentsByCourse(id);
+      for (const enrollment of enrollments) {
+        // Здесь можно добавить логику удаления записей о прогрессе уроков
+        // если это необходимо
+      }
+
+      // Удаляем сам курс из базы данных
+      const success = await db.delete(courses).where(eq(courses.id, id));
+
+      if (success) {
+        res.status(204).end();
+      } else {
+        res.status(500).json({ message: "Failed to delete course" });
+      }
+    } catch (error) {
+      console.error("Error deleting course:", error);
+      res.status(500).json({ message: "Failed to delete course" });
+    }
+  });
+
   // Enrollment routes
   app.get("/api/enrollments", async (req, res) => {
     const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
     const courseId = req.query.courseId ? parseInt(req.query.courseId as string) : undefined;
-    
+
     if (userId && courseId) {
       const enrollment = await storage.getEnrollment(userId, courseId);
       return res.json(enrollment || null);
     }
-    
+
     if (userId) {
       const enrollments = await storage.listEnrollmentsByUser(userId);
       return res.json(enrollments);
     }
-    
+
     if (courseId) {
       // Получаем записи на курс и добавляем данные пользователей
       const enrollments = await storage.listEnrollmentsByCourse(courseId);
-      
+
       // Добавляем информацию о пользователях для каждой записи
       const populatedEnrollments = await Promise.all(enrollments.map(async (enrollment) => {
         const user = await storage.getUser(enrollment.userId);
@@ -442,30 +483,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
           } : null
         };
       }));
-      
+
       return res.json(populatedEnrollments);
     }
-    
+
     res.status(400).json({ message: "Missing userId or courseId parameter" });
   });
-  
+
   app.post("/api/enrollments", async (req, res) => {
     try {
       const enrollmentData = insertEnrollmentSchema.parse(req.body);
-      
+
       // Check if enrollment already exists
       const existingEnrollment = await storage.getEnrollment(
         enrollmentData.userId,
         enrollmentData.courseId
       );
-      
+
       if (existingEnrollment) {
-        return res.status(409).json({ 
+        return res.status(409).json({
           message: "User is already enrolled in this course",
           enrollment: existingEnrollment
         });
       }
-      
+
       const enrollment = await storage.createEnrollment(enrollmentData);
       res.status(201).json(enrollment);
     } catch (error) {
@@ -475,7 +516,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create enrollment" });
     }
   });
-  
+
   app.patch("/api/enrollments/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -492,7 +533,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update enrollment" });
     }
   });
-  
+
   app.post("/api/enrollments/:id/complete", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -505,17 +546,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to complete enrollment" });
     }
   });
-  
+
   // Activity routes
   app.get("/api/activities", async (req, res) => {
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
     const activities = await storage.listRecentActivities(limit);
-    
+
     // Populate user and course information for frontend display
     const populatedActivities = await Promise.all(activities.map(async (activity) => {
       const user = await storage.getUser(activity.userId);
       const course = activity.courseId ? await storage.getCourse(activity.courseId) : null;
-      
+
       return {
         ...activity,
         user: user ? {
@@ -530,48 +571,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
         } : null
       };
     }));
-    
+
     res.json(populatedActivities);
   });
-  
+
   // Chat routes
   app.post("/api/chat", async (req, res) => {
     try {
       const chatData = insertChatMessageSchema.parse(req.body);
-      
+
       // Create chat message in database
       const chatMessage = await storage.createChatMessage(chatData);
-      
+
       try {
         // Get user for context
         const user = await storage.getUser(chatData.userId);
-        
+
         // Get all courses for context
         const courses = await storage.listCourses();
-        
+
         // Get the user's enrollments to know which courses they're taking
         const userEnrollments = user ? await storage.listEnrollmentsByUser(user.id) : [];
         const enrolledCourseIds = userEnrollments.map(e => e.courseId);
-        
+
         // Get more details about enrolled courses, including modules and lessons
         let detailedCourseContent = "";
-        
+
         if (enrolledCourseIds.length > 0) {
           for (const courseId of enrolledCourseIds) {
             const course = await storage.getCourse(courseId);
             if (!course) continue;
-            
+
             const modules = await storage.listModulesByCourse(courseId);
-            
+
             detailedCourseContent += `\nCourse: ${course.title}\nDescription: ${course.description}\nModules:\n`;
-            
+
             for (const module of modules) {
               detailedCourseContent += `- Module: ${module.title}\n  Description: ${module.description}\n  Lessons:\n`;
-              
+
               const lessons = await storage.listLessonsByModule(module.id);
               for (const lesson of lessons) {
                 detailedCourseContent += `    * ${lesson.title}: ${lesson.description}\n`;
-                
+
                 // Get lesson media to have more context about the content
                 const lessonMedia = await storage.listMediaByLesson(lesson.id);
                 if (lessonMedia.length > 0) {
@@ -588,32 +629,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
           }
         }
-        
+
         // Create context about the hotel training system
         const systemPrompt = `
           You are an AI assistant for a hotel staff training system called HotelLearn.
           The system helps with onboarding new staff and providing ongoing training.
-          
+
           You have knowledge about the following courses:
           ${courses.map(c => `- ${c.title}: ${c.description} (Department: ${c.department})`).join('\n')}
-          
-          The user asking this question is ${user?.name || 'a hotel staff member'} 
-          who is a ${user?.role || 'staff member'} 
+
+          The user asking this question is ${user?.name || 'a hotel staff member'}
+          who is a ${user?.role || 'staff member'}
           ${user?.department ? `in the ${user?.department} department` : ''}.
-          
+
           ${detailedCourseContent ? `
           Here is detailed information about the courses this user is enrolled in:
           ${detailedCourseContent}
           ` : ''}
-          
+
           Be helpful, concise, and knowledgeable about hotel operations and training.
           If you don't know something specific about this hotel, provide general best practices
           for the hospitality industry.
-          
+
           If the user is asking about specific course content, refer to the detailed course information provided.
           If the user asks about modules or lessons they're enrolled in, you can provide specific information about those.
         `;
-        
+
         // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
         const openaiResponse = await openai.chat.completions.create({
           model: "gpt-4o",
@@ -622,20 +663,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
             { role: "user", content: chatData.message }
           ],
         });
-        
+
         const aiResponse = openaiResponse.choices[0].message.content || "I'm sorry, I couldn't process that request.";
-        
+
         // Update the chat message with AI response
         const updatedChatMessage = await storage.updateChatResponse(chatMessage.id, aiResponse);
-        
+
         res.json(updatedChatMessage);
       } catch (aiError) {
         console.error("OpenAI API error:", aiError);
-        
+
         // Still return the chat message, but with an error response
         const errorResponse = "I'm sorry, I'm having trouble connecting to my knowledge base right now. Please try again later.";
         const updatedChatMessage = await storage.updateChatResponse(chatMessage.id, errorResponse);
-        
+
         res.json(updatedChatMessage);
       }
     } catch (error) {
@@ -645,36 +686,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to process chat message" });
     }
   });
-  
+
   app.get("/api/chat/history/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
-      
+
       const chatHistory = await storage.listChatMessagesByUser(userId, limit);
       res.json(chatHistory);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch chat history" });
     }
   });
-  
+
   // Эндпоинт для загрузки файлов для анализа чат-ботом
   app.post("/api/chat/upload", upload.single("file"), async (req, res) => {
     try {
       if (!req.file) {
         return res.status(400).json({ message: "Файл не был загружен" });
       }
-      
+
       const { userId } = req.body;
       if (!userId) {
         return res.status(400).json({ message: "ID пользователя обязателен" });
       }
-      
+
       // Сохраняем информацию о файле в базе данных
       const filePath = req.file.path;
       const relativePath = `/uploads/media/${req.file.filename}`;
       const fileType = getMediaTypeFromMimeType(req.file.mimetype);
-      
+
       // Создаем запись о медиафайле
       const mediaFile = await storage.createMediaFile({
         originalFilename: req.file.originalname,
@@ -685,15 +726,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         url: relativePath,
         uploadedById: parseInt(userId),
         mediaType: fileType,
-        metadata: { 
-          description: "Файл для анализа чат-ботом", 
+        metadata: {
+          description: "Файл для анализа чат-ботом",
           uploadedFor: "chatbot"
         }
       });
-      
+
       // Извлекаем текст или содержимое файла (зависит от типа файла)
       let fileContent = "";
-      
+
       if (fileType === "document" && (req.file.mimetype === "application/pdf" || req.file.mimetype.includes("text/plain"))) {
         // Для PDF или текстовых файлов можно использовать библиотеку для извлечения текста
         // Здесь упрощенный вариант для текстовых файлов
@@ -704,7 +745,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fileContent = "Содержимое PDF-файла. В реальном проекте здесь был бы извлеченный текст.";
         }
       }
-      
+
       // Формируем сообщение от пользователя
       const chatData = {
         userId: parseInt(userId),
@@ -716,34 +757,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fileContent: fileContent
         }
       };
-      
+
       // Создаем запись о сообщении в чате
       const chatMessage = await storage.createChatMessage(chatData);
-      
+
       try {
         // Получаем пользователя для контекста
         const user = await storage.getUser(parseInt(userId));
-        
+
         let systemPrompt = `
           Ты помощник по обучению в системе HotelLearn.
           Тебе предоставлен файл для анализа: ${req.file.originalname} (тип: ${fileType}).
-          
+
           Пользователь ${user?.name || 'отель-менеджер'} просит проанализировать этот файл.
         `;
-        
+
         // Добавляем содержимое файла в контекст, если оно доступно
         if (fileContent) {
           systemPrompt += `\n\nСодержимое файла:\n"""${fileContent}"""\n`;
         } else {
           systemPrompt += `\n\nСодержимое файла не может быть извлечено автоматически.`;
         }
-        
+
         systemPrompt += `
           Проанализируй файл и предоставь полезную информацию для обучения сотрудников отеля.
           Если содержимое недоступно, предложи, как пользователь может предоставить информацию из файла
           в текстовом формате для анализа.
         `;
-        
+
         // Запрос к OpenAI
         const openaiResponse = await openai.chat.completions.create({
           model: "gpt-4o",
@@ -752,12 +793,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
             { role: "user", content: `Проанализируй файл "${req.file.originalname}" и предоставь полезную информацию.` }
           ],
         });
-        
+
         const aiResponse = openaiResponse.choices[0].message.content || "Извините, не удалось проанализировать файл.";
-        
+
         // Обновляем сообщение с ответом AI
         const updatedChatMessage = await storage.updateChatResponse(chatMessage.id, aiResponse);
-        
+
         res.json({
           success: true,
           message: "Файл успешно загружен и проанализирован",
@@ -766,11 +807,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         });
       } catch (aiError) {
         console.error("OpenAI API error:", aiError);
-        
+
         // Всё равно возвращаем сообщение, но с ошибкой
         const errorResponse = "Извините, у меня возникли трудности с анализом файла. Пожалуйста, попробуйте позже или загрузите файл в другом формате.";
         const updatedChatMessage = await storage.updateChatResponse(chatMessage.id, errorResponse);
-        
+
         res.json({
           success: true,
           message: "Файл загружен, но возникли проблемы с анализом",
@@ -783,28 +824,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Не удалось обработать файл" });
     }
   });
-  
+
   // Statistics routes for dashboard
   app.get("/api/stats", async (req, res) => {
     try {
       const users = await storage.listUsers();
       const courses = await storage.listCourses();
-      
+
       // Create simulated enrollments for stats
-      const enrollments = courses.flatMap(course => 
+      const enrollments = courses.flatMap(course =>
         Array.from({ length: course.participantCount }, () => ({
           courseId: course.id,
           completed: Math.random() > 0.3  // Simulate some completed courses
         }))
       );
-      
+
       const totalEmployees = users.filter(user => user.role === "staff").length;
       const activeCourses = courses.filter(course => course.active).length;
       const completedCourses = enrollments.filter(e => e.completed).length;
-      
+
       // Calculate average progress (in a real app, this would come from actual enrollment data)
       const averageProgress = Math.floor(Math.random() * 30) + 70; // Random between 70-99
-      
+
       res.json({
         totalEmployees,
         activeCourses,
@@ -815,46 +856,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch statistics" });
     }
   });
-  
+
   // Здесь были обработчики медиа-маршрутов, теперь они перемещены далее в файл
-  
+
   // ====================================================================
   // API для модулей и уроков
   // ====================================================================
-  
+
   // Получить все модули для курса
   app.get("/api/modules", async (req, res) => {
     try {
       const courseId = req.query.courseId ? parseInt(req.query.courseId as string) : undefined;
-      
+
       if (!courseId) {
         return res.status(400).json({ error: "Требуется ID курса" });
       }
-      
+
       // Получаем модули
       const modules = await storage.listModulesByCourse(courseId);
-      
+
       // Для каждого модуля получаем уроки
       const modulesWithLessons = await Promise.all(modules.map(async (module) => {
         const lessons = await storage.listLessonsByModule(module.id);
         return { ...module, lessons };
       }));
-      
+
       res.json(modulesWithLessons);
     } catch (error) {
       console.error("Ошибка при получении модулей:", error);
       res.status(500).json({ error: "Не удалось получить модули курса" });
     }
   });
-  
+
   // Создать новый модуль
   app.post("/api/modules", async (req, res) => {
     try {
       const parsedData = insertModuleSchema.parse(req.body);
-      
+
       // Создаем модуль в базе данных
       const module = await storage.createModule(parsedData);
-      
+
       res.status(201).json(module);
     } catch (error) {
       console.error("Ошибка при создании модуля:", error);
@@ -864,64 +905,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Не удалось создать модуль" });
     }
   });
-  
+
   // Получить модуль по ID
   app.get("/api/modules/:id", async (req, res) => {
     try {
       const moduleId = parseInt(req.params.id);
-      
+
       // Получаем модуль из базы данных
       const module = await storage.getModule(moduleId);
-      
+
       if (!module) {
         return res.status(404).json({ error: "Модуль не найден" });
       }
-      
+
       // Получаем уроки для модуля
       const lessons = await storage.listLessonsByModule(moduleId);
-      
+
       res.json({ ...module, lessons });
     } catch (error) {
       console.error("Ошибка при получении модуля:", error);
       res.status(500).json({ error: "Не удалось получить модуль" });
     }
   });
-  
+
   // Обновить модуль
   app.patch("/api/modules/:id", async (req, res) => {
     try {
       const moduleId = parseInt(req.params.id);
-      
+
       // Проверяем существование модуля
       const existingModule = await storage.getModule(moduleId);
       if (!existingModule) {
         return res.status(404).json({ error: "Модуль не найден" });
       }
-      
+
       // Обновляем модуль
       const updatedModule = await storage.updateModule(moduleId, req.body);
-      
+
       res.json(updatedModule);
     } catch (error) {
       console.error("Ошибка при обновлении модуля:", error);
       res.status(500).json({ error: "Не удалось обновить модуль" });
     }
   });
-  
+
   // Удалить модуль
   app.delete("/api/modules/:id", async (req, res) => {
     try {
       const moduleId = parseInt(req.params.id);
-      
+
       // Проверяем существование модуля
       const existingModule = await storage.getModule(moduleId);
       if (!existingModule) {
         return res.status(404).json({ error: "Модуль не найден" });
       }
-      
+
       // Удаляем модуль
       const success = await storage.deleteModule(moduleId);
-      
+
       if (success) {
         res.status(204).end();
       } else {
@@ -932,35 +973,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Не удалось удалить модуль" });
     }
   });
-  
+
   // API для уроков
-  
+
   // Создать новый урок
   app.post("/api/lessons", async (req, res) => {
     try {
       const parsedData = insertLessonSchema.parse(req.body);
-      
+
       // Проверяем существование модуля
       const module = await storage.getModule(parsedData.moduleId);
       if (!module) {
         return res.status(404).json({ error: "Модуль не найден" });
       }
-      
+
       // Получаем существующие уроки для определения порядка
       const existingLessons = await storage.listLessonsByModule(parsedData.moduleId);
       if (!parsedData.order) {
         parsedData.order = existingLessons.length + 1;
       }
-      
+
       // Конвертируем durationMinutes в строку для поля duration, если оно есть
       if ((parsedData as any).durationMinutes) {
         parsedData.duration = `${(parsedData as any).durationMinutes} мин.`;
         delete (parsedData as any).durationMinutes;
       }
-      
+
       // Создаем урок
       const lesson = await storage.createLesson(parsedData);
-      
+
       res.status(201).json(lesson);
     } catch (error) {
       console.error("Ошибка при создании урока:", error);
@@ -970,64 +1011,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Не удалось создать урок" });
     }
   });
-  
+
   // Получить урок по ID
   app.get("/api/lessons/:id", async (req, res) => {
     try {
       const lessonId = parseInt(req.params.id);
-      
+
       // Получаем урок из базы данных
       const lesson = await storage.getLesson(lessonId);
-      
+
       if (!lesson) {
         return res.status(404).json({ error: "Урок не найден" });
       }
-      
+
       // Получаем медиа для урока
       const media = await storage.listMediaByLesson(lessonId);
-      
+
       res.json({ ...lesson, media });
     } catch (error) {
       console.error("Ошибка при получении урока:", error);
       res.status(500).json({ error: "Не удалось получить урок" });
     }
   });
-  
+
   // Обновить урок
   app.patch("/api/lessons/:id", async (req, res) => {
     try {
       const lessonId = parseInt(req.params.id);
-      
+
       // Проверяем существование урока
       const existingLesson = await storage.getLesson(lessonId);
       if (!existingLesson) {
         return res.status(404).json({ error: "Урок не найден" });
       }
-      
+
       // Обновляем урок
       const updatedLesson = await storage.updateLesson(lessonId, req.body);
-      
+
       res.json(updatedLesson);
     } catch (error) {
       console.error("Ошибка при обновлении урока:", error);
       res.status(500).json({ error: "Не удалось обновить урок" });
     }
   });
-  
+
   // Удалить урок
   app.delete("/api/lessons/:id", async (req, res) => {
     try {
       const lessonId = parseInt(req.params.id);
-      
+
       // Проверяем существование урока
       const existingLesson = await storage.getLesson(lessonId);
       if (!existingLesson) {
         return res.status(404).json({ error: "Урок не найден" });
       }
-      
+
       // Удаляем урок
       const success = await storage.deleteLesson(lessonId);
-      
+
       if (success) {
         res.status(204).end();
       } else {
@@ -1038,7 +1079,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Не удалось удалить урок" });
     }
   });
-  
+
   // Onboarding progress for dashboard
   app.get("/api/onboarding-progress", async (req, res) => {
     try {
@@ -1071,7 +1112,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch onboarding data" });
     }
   });
-  
+
   // Onboarding steps for walk-through guide
   app.get("/api/onboarding", async (req, res) => {
     try {
@@ -1079,7 +1120,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         {
           id: 1,
           name: "Добро пожаловать в HotelLearn",
-          description: "Система обучения персонала гостиницы. Здесь вы найдете все необходимые учебные материалы, курсы и инструменты для эффективного обучения.", 
+          description: "Система обучения персонала гостиницы. Здесь вы найдете все необходимые учебные материалы, курсы и инструменты для эффективного обучения.",
           position: "bottom",
           selector: ".logo-container",
           action: "Давайте начнем знакомство с системой!"
@@ -1144,22 +1185,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/media/list", async (req, res) => {
     try {
       console.log("[DEBUG] Запрос к /api/media/list получен");
-      
+
       const limit = 100;
       const offset = 0;
-      
+
       // Получаем список файлов
       const mediaFiles = await storage.listMediaFiles(limit, offset);
-      
+
       if (!mediaFiles || !Array.isArray(mediaFiles)) {
         console.error("[DEBUG] Media files is not an array:", mediaFiles);
         return res.status(500).json({ message: "Invalid media files format" });
       }
-      
+
       // Добавляем необходимые поля для совместимости с клиентским интерфейсом
       const formattedFiles = mediaFiles.map(file => {
         if (!file) return null;
-        
+
         return {
           id: file.id?.toString() || '',
           name: file.originalFilename || 'Untitled',
@@ -1172,41 +1213,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
           mimeType: file.mimeType || 'application/octet-stream'
         };
       }).filter(Boolean);
-      
+
       res.json(formattedFiles);
     } catch (error) {
       console.error("[DEBUG] Error fetching media files:", error);
       res.status(500).json({ message: "Failed to fetch media files" });
     }
   });
-  
+
   // Затем общий маршрут для получения списка медиафайлов
   app.get("/api/media", async (req, res) => {
     try {
       const mediaType = req.query.type as string | undefined;
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
       const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
-      
+
       let mediaFiles;
       if (mediaType) {
         mediaFiles = await storage.listMediaFilesByType(mediaType, limit, offset);
       } else {
         mediaFiles = await storage.listMediaFiles(limit, offset);
       }
-      
+
       // Добавляем виртуальное поле name для совместимости с клиентским кодом
       const mediaFilesWithName = mediaFiles.map(file => ({
         ...file,
         name: file.originalFilename // Добавляем виртуальное поле name
       }));
-      
+
       res.json(mediaFilesWithName);
     } catch (error) {
       console.error("Error fetching media:", error);
       res.status(500).json({ message: "Failed to fetch media files" });
     }
   });
-  
+
   // И наконец, маршрут с параметром :id
   app.get("/api/media/:id", async (req, res) => {
     try {
@@ -1214,24 +1255,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (req.params.id === "list") {
         return res.status(404).json({ message: "Invalid media id" });
       }
-      
+
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
         return res.status(400).json({ message: "Invalid media id format" });
       }
-      
+
       const mediaFile = await storage.getMediaFile(id);
-      
+
       if (!mediaFile) {
         return res.status(404).json({ message: "Media file not found" });
       }
-      
+
       // Добавляем виртуальное поле name для совместимости с клиентским кодом
       const mediaFileWithName = {
         ...mediaFile,
         name: mediaFile.originalFilename
       };
-      
+
       res.json(mediaFileWithName);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch media file" });
@@ -1244,38 +1285,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!req.file) {
         return res.status(400).json({ message: "No file uploaded" });
       }
-      
+
       const { uploadedById } = req.body;
       const userId = parseInt(uploadedById);
-      
+
       // Generate file paths
       const filePath = req.file.path;
       const relativePath = `./uploads/media/${req.file.filename}`;
       const fileUrl = `/uploads/media/${req.file.filename}`;
-      
+
       // Determine media type from mime type
       const mediaType = getMediaTypeFromMimeType(req.file.mimetype);
-      
+
       // Generate thumbnail for supported media types
       let thumbnail = null;
       const thumbnailName = `thumb_${req.file.filename}`;
       const thumbnailPath = path.join(thumbnailsDir, thumbnailName);
-      
+
       const thumbnailResult = await generateThumbnail(filePath, mediaType, thumbnailPath);
       if (thumbnailResult) {
         thumbnail = `/uploads/thumbnails/${thumbnailName}`;
       }
-      
+
       // Create the media file record in the database
       // Приведение mediaType к правильному типу данных согласно схеме
       const mediaTypeEnum = ["image", "video", "audio", "document", "presentation"] as const;
       let validMediaType = mediaType as "image" | "video" | "audio" | "document" | "presentation";
-      
+
       // Проверяем, что mediaType является допустимым значением
       if (!mediaTypeEnum.includes(validMediaType as any)) {
         validMediaType = "document"; // Значение по умолчанию, если неизвестный тип
       }
-      
+
       const mediaFileData = {
         filename: req.file.filename,
         originalFilename: req.file.originalname,
@@ -1288,31 +1329,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
         uploadedById: userId,
         metadata: req.body.metadata ? JSON.parse(req.body.metadata) : null
       };
-      
+
       const mediaFile = await storage.createMediaFile(mediaFileData);
-      
+
       // Добавляем виртуальное поле name для совместимости с клиентским кодом
       const mediaFileWithName = {
         ...mediaFile,
         name: mediaFile.originalFilename
       };
-      
+
       res.status(201).json(mediaFileWithName);
     } catch (error) {
       console.error("Error uploading file:", error);
       res.status(500).json({ message: "Failed to upload file" });
     }
   });
-  
+
   app.delete("/api/media/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const mediaFile = await storage.getMediaFile(id);
-      
+
       if (!mediaFile) {
         return res.status(404).json({ message: "Media file not found" });
       }
-      
+
       // Delete the file from the filesystem
       if (mediaFile.url) {
         const filePath = path.join(".", mediaFile.url);
@@ -1320,7 +1361,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fs.unlinkSync(filePath);
         }
       }
-      
+
       // Delete the thumbnail if it exists
       if (mediaFile.thumbnail) {
         const thumbnailPath = path.join(".", mediaFile.thumbnail);
@@ -1328,10 +1369,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           fs.unlinkSync(thumbnailPath);
         }
       }
-      
+
       // Delete from database
       const success = await storage.deleteMediaFile(id);
-      
+
       if (success) {
         res.json({ success: true, message: "Media file deleted successfully" });
       } else {
@@ -1342,10 +1383,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to delete media file" });
     }
   });
-  
+
   // Serve static files from uploads directory
   app.use("/uploads", express.static(uploadDir));
-  
+
   // Геймификация - Достижения
   app.get("/api/achievements", async (req, res) => {
     try {
@@ -1356,23 +1397,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch achievements" });
     }
   });
-  
+
   app.get("/api/achievements/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const achievement = await storage.getAchievement(id);
-      
+
       if (!achievement) {
         return res.status(404).json({ error: "Achievement not found" });
       }
-      
+
       res.json(achievement);
     } catch (error) {
       console.error("Error fetching achievement:", error);
       res.status(500).json({ error: "Failed to fetch achievement" });
     }
   });
-  
+
   app.post("/api/achievements", async (req, res) => {
     try {
       const achievement = await storage.createAchievement(req.body);
@@ -1382,7 +1423,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create achievement" });
     }
   });
-  
+
   // Геймификация - Достижения пользователей
   app.get("/api/user-achievements/:userId", async (req, res) => {
     try {
@@ -1394,7 +1435,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch user achievements" });
     }
   });
-  
+
   app.post("/api/user-achievements", async (req, res) => {
     try {
       const userAchievement = await storage.createUserAchievement(req.body);
@@ -1404,12 +1445,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create user achievement" });
     }
   });
-  
+
   // Геймификация - Вознаграждения
   app.get("/api/rewards", async (req, res) => {
     try {
       const onlyActive = req.query.active === "true";
-      const rewards = onlyActive 
+      const rewards = onlyActive
         ? await storage.listActiveRewards()
         : await storage.listRewards();
       res.json(rewards);
@@ -1418,23 +1459,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch rewards" });
     }
   });
-  
+
   app.get("/api/rewards/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const reward = await storage.getReward(id);
-      
+
       if (!reward) {
         return res.status(404).json({ error: "Reward not found" });
       }
-      
+
       res.json(reward);
     } catch (error) {
       console.error("Error fetching reward:", error);
       res.status(500).json({ error: "Failed to fetch reward" });
     }
   });
-  
+
   app.post("/api/rewards", async (req, res) => {
     try {
       const reward = await storage.createReward(req.body);
@@ -1444,7 +1485,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create reward" });
     }
   });
-  
+
   // Геймификация - Вознаграждения пользователей
   app.get("/api/user-rewards/:userId", async (req, res) => {
     try {
@@ -1456,7 +1497,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch user rewards" });
     }
   });
-  
+
   app.post("/api/user-rewards", async (req, res) => {
     try {
       const userReward = await storage.createUserReward(req.body);
@@ -1466,13 +1507,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to create user reward" });
     }
   });
-  
+
   // Геймификация - Уровни пользователей
   app.get("/api/user-level/:userId", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
       const userLevel = await storage.getUserLevel(userId);
-      
+
       if (!userLevel) {
         // Если уровень пользователя не найден, возвращаем базовый уровень
         return res.json({
@@ -1483,22 +1524,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
           lastActivity: new Date(),
         });
       }
-      
+
       res.json(userLevel);
     } catch (error) {
       console.error("Error fetching user level:", error);
       res.status(500).json({ error: "Failed to fetch user level" });
     }
   });
-  
+
   app.post("/api/user-level/add-points", async (req, res) => {
     try {
       const { userId, points } = req.body;
-      
+
       if (!userId || !points) {
         return res.status(400).json({ error: "userId and points are required" });
       }
-      
+
       const userLevel = await storage.addUserPoints(userId, points);
       res.json(userLevel);
     } catch (error) {
@@ -1506,7 +1547,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to add points to user" });
     }
   });
-  
+
   app.get("/api/leaderboard", async (req, res) => {
     try {
       const limit = req.query.limit ? parseInt(req.query.limit as string) : 10;
@@ -1517,9 +1558,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch leaderboard" });
     }
   });
-  
+
   // AI Personal Learning Path routes
-  
+
   // Маршрут для генерации персонализированного учебного плана с помощью AI
   app.post("/api/learning-paths/generate", async (req, res) => {
     try {
@@ -1531,24 +1572,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userDepartment: z.string(),
         targetSkills: z.array(z.string())
       });
-      
+
       const data = schema.parse(req.body);
-      
+
       // Проверяем существование пользователя
       const user = await storage.getUser(data.userId);
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
-      
+
       // Проверяем существование создателя
       const creator = await storage.getUser(data.createdById);
       if (!creator) {
         return res.status(404).json({ message: "Creator not found" });
       }
-      
+
       // Получаем список всех курсов для подбора
       const allCourses = await storage.listCourses();
-      
+
       // Используем OpenAI для генерации подходящего плана обучения
       // Передаем true в качестве последнего параметра, чтобы разрешить генерацию новых курсов
       const aiResult = await generateLearningPath(
@@ -1558,7 +1599,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         allCourses,
         true // разрешаем предлагать новые курсы
       );
-      
+
       // Создаем учебный план
       const learningPath = await storage.createLearningPath({
         userId: data.userId,
@@ -1568,10 +1609,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         targetSkills: aiResult.targetSkills.join(", "),
         status: "active"
       });
-      
+
       // Обрабатываем рекомендованные курсы
       const processedCourses = [];
-      
+
       // Проходим по всем рекомендациям AI
       for (const courseRec of aiResult.recommendedCourses) {
         try {
@@ -1585,7 +1626,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               active: true,
               image: null
             });
-            
+
             // Добавляем в учебный план
             // Удаляем поле rationale, если оно присутствует в запросе, но не существует в схеме
             const learningPathCourse = await storage.createLearningPathCourse({
@@ -1594,12 +1635,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               order: courseRec.order || processedCourses.length,
               priority: courseRec.priority || "normal"
             });
-            
+
             processedCourses.push({
               ...learningPathCourse,
               course: newCourse
             });
-            
+
           } else if (courseRec.courseId) {
             // Если это существующий курс
             const course = await storage.getCourse(courseRec.courseId);
@@ -1611,7 +1652,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 order: courseRec.order || processedCourses.length,
                 priority: courseRec.priority || "normal"
               });
-              
+
               processedCourses.push({
                 ...learningPathCourse,
                 course: course
@@ -1623,13 +1664,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Продолжаем обработку других курсов
         }
       }
-      
+
       // Регистрируем активность
       await storage.createActivity({
         userId: data.createdById,
         type: "generated_learning_path"
       });
-      
+
       // Возвращаем созданный план обучения
       res.status(201).json({
         learningPath,
@@ -1639,12 +1680,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
           recommendedCourses: aiResult.recommendedCourses
         }
       });
-      
+
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Invalid data for learning path generation", errors: error.errors });
       }
-      
+
       console.error("Error generating AI learning path:", error);
       res.status(500).json({ message: "Failed to generate AI learning path" });
     }
@@ -1660,15 +1701,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userRole: z.string(),
         userLevel: z.string()
       });
-      
+
       const data = schema.parse(req.body);
-      
+
       // Получаем информацию о курсе
       const course = await storage.getCourse(data.courseId);
       if (!course) {
         return res.status(404).json({ message: "Курс не найден" });
       }
-      
+
       // Генерируем подробное объяснение пользы курса для данного пользователя
       const courseInsight = await generateCourseInsight(
         data.courseId,
@@ -1677,21 +1718,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data.userRole,
         data.userLevel
       );
-      
+
       res.json({
         courseId: data.courseId,
         courseTitle: course.title,
         insight: courseInsight
       });
-      
+
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Некорректные данные для анализа курса", 
-          errors: error.errors 
+        return res.status(400).json({
+          message: "Некорректные данные для анализа курса",
+          errors: error.errors
         });
       }
-      
+
       console.error("Error generating course insight:", error);
       res.status(500).json({ message: "Не удалось сгенерировать анализ курса" });
     }
@@ -1704,40 +1745,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const schema = z.object({
         userId: z.number()
       });
-      
+
       const data = schema.parse(req.body);
-      
+
       // Получаем профиль пользователя
       const userProfile = await storage.getUser(data.userId);
       if (!userProfile) {
         return res.status(404).json({ message: "Пользователь не найден" });
       }
-      
+
       // Получаем завершенные курсы пользователя
       const enrollments = await storage.listEnrollmentsByUser(data.userId);
       const completedEnrollments = enrollments.filter(e => e.completed);
-      
+
       // Получаем ID завершенных курсов
       const completedCourseIds = completedEnrollments.map(e => e.courseId);
-      
+
       // Получаем детали завершенных курсов
       const completedCourses = await Promise.all(
         completedCourseIds.map(async (courseId) => storage.getCourse(courseId))
       );
-      
+
       // Фильтруем null значения (на случай, если какие-то курсы не существуют)
       const validCompletedCourses = completedCourses.filter(course => course !== null);
-      
+
       // Получаем список всех доступных курсов
       const availableCourses = await storage.listCourses();
-      
+
       // Генерируем рекомендации на основе профиля и истории обучения
       const recommendations = await analyzeUserProfileAndRecommend(
         userProfile,
         validCompletedCourses,
         availableCourses
       );
-      
+
       res.json({
         userId: data.userId,
         userName: userProfile.name || userProfile.username,
@@ -1746,15 +1787,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
         completedCourses: validCompletedCourses.map(c => ({ id: c.id, title: c.title })),
         recommendations
       });
-      
+
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return res.status(400).json({ 
-          message: "Некорректные данные для анализа профиля", 
-          errors: error.errors 
+        return res.status(400).json({
+          message: "Некорректные данные для анализа профиля",
+          errors: error.errors
         });
       }
-      
+
       console.error("Error analyzing user profile:", error);
       res.status(500).json({ message: "Не удалось проанализировать профиль и сформировать рекомендации" });
     }
@@ -1764,17 +1805,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
       const createdById = req.query.createdById ? parseInt(req.query.createdById as string) : undefined;
-      
+
       if (userId) {
         const learningPaths = await storage.listLearningPathsByUser(userId);
         return res.json(learningPaths);
       }
-      
+
       if (createdById) {
         const learningPaths = await storage.listLearningPathsByCreator(createdById);
         return res.json(learningPaths);
       }
-      
+
       // Если не указаны параметры userId или createdById,
       // возвращаем все доступные планы обучения
       const allPaths = await storage.listAllLearningPaths();
@@ -1784,18 +1825,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch learning paths" });
     }
   });
-  
+
   app.get("/api/learning-paths/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const learningPath = await storage.getLearningPath(id);
-      
+
       if (!learningPath) {
         return res.status(404).json({ message: "Learning path not found" });
       }
-      
+
       const courses = await storage.listDetailedCoursesByLearningPath(id);
-      
+
       res.json({
         ...learningPath,
         courses
@@ -1805,7 +1846,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch learning path" });
     }
   });
-  
+
   app.post("/api/learning-paths", async (req, res) => {
     try {
       const learningPathData = insertLearningPathSchema.parse(req.body);
@@ -1819,17 +1860,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create learning path" });
     }
   });
-  
+
   app.patch("/api/learning-paths/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const learningPathData = insertLearningPathSchema.partial().parse(req.body);
       const learningPath = await storage.updateLearningPath(id, learningPathData);
-      
+
       if (!learningPath) {
         return res.status(404).json({ message: "Learning path not found" });
       }
-      
+
       res.json(learningPath);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1839,48 +1880,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update learning path" });
     }
   });
-  
+
   app.post("/api/learning-paths/:id/complete", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const learningPath = await storage.completeLearningPath(id);
-      
+
       if (!learningPath) {
         return res.status(404).json({ message: "Learning path not found" });
       }
-      
+
       res.json(learningPath);
     } catch (error) {
       console.error("Error completing learning path:", error);
       res.status(500).json({ message: "Failed to complete learning path" });
     }
   });
-  
+
   app.delete("/api/learning-paths/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteLearningPath(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Learning path not found" });
       }
-      
+
       res.status(204).end();
     } catch (error) {
       console.error("Error deleting learning path:", error);
       res.status(500).json({ message: "Failed to delete learning path" });
     }
   });
-  
+
   // AI personal learning path courses routes
   app.get("/api/learning-path-courses", async (req, res) => {
     try {
       const learningPathId = req.query.learningPathId ? parseInt(req.query.learningPathId as string) : undefined;
-      
+
       if (!learningPathId) {
         return res.status(400).json({ message: "Missing learningPathId parameter" });
       }
-      
+
       const courses = await storage.listCoursesByLearningPath(learningPathId);
       res.json(courses);
     } catch (error) {
@@ -1888,7 +1929,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to fetch learning path courses" });
     }
   });
-  
+
   app.post("/api/learning-path-courses", async (req, res) => {
     try {
       // Удаляем поле rationale, если оно присутствует в запросе, но не существует в схеме
@@ -1907,17 +1948,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to create learning path course" });
     }
   });
-  
+
   app.patch("/api/learning-path-courses/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const learningPathCourseData = insertLearningPathCourseSchema.partial().parse(req.body);
       const learningPathCourse = await storage.updateLearningPathCourse(id, learningPathCourseData);
-      
+
       if (!learningPathCourse) {
         return res.status(404).json({ message: "Learning path course not found" });
       }
-      
+
       res.json(learningPathCourse);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -1927,40 +1968,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to update learning path course" });
     }
   });
-  
+
   app.post("/api/learning-path-courses/:id/complete", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const learningPathCourse = await storage.completeLearningPathCourse(id);
-      
+
       if (!learningPathCourse) {
         return res.status(404).json({ message: "Learning path course not found" });
       }
-      
+
       res.json(learningPathCourse);
     } catch (error) {
       console.error("Error completing learning path course:", error);
       res.status(500).json({ message: "Failed to complete learning path course" });
     }
   });
-  
+
   app.delete("/api/learning-path-courses/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const success = await storage.deleteLearningPathCourse(id);
-      
+
       if (!success) {
         return res.status(404).json({ message: "Learning path course not found" });
       }
-      
+
       res.status(204).end();
     } catch (error) {
       console.error("Error deleting learning path course:", error);
       res.status(500).json({ message: "Failed to delete learning path course" });
     }
   });
-  
-  // Примечание: Основной маршрут для генерации персонализированных планов обучения 
+
+  // Примечание: Основной маршрут для генерации персонализированных планов обучения
   // определен выше, в начале секции AI Personal Learning Path routes
 
   const httpServer = createServer(app);

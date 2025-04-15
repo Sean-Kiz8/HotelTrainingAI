@@ -9,6 +9,7 @@ import LessonView from "./pages/lesson-view";
 import CreateCourse from "./pages/create-course";
 import SmartCourse from "./pages/smart-course";
 import Employees from "./pages/employees";
+import EmployeeProfile from "./pages/employee-profile";
 import Analytics from "./pages/analytics";
 import Settings from "./pages/settings";
 import MyLearning from "./pages/my-learning";
@@ -38,24 +39,24 @@ function App() {
     link.href = 'https://fonts.googleapis.com/icon?family=Material+Icons';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
-    
+
     return () => {
       document.head.removeChild(link);
     };
   }, []);
-  
+
   // Add fonts
   useEffect(() => {
     const link = document.createElement('link');
     link.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@300;400;500;700&display=swap';
     link.rel = 'stylesheet';
     document.head.appendChild(link);
-    
+
     return () => {
       document.head.removeChild(link);
     };
   }, []);
-  
+
   return (
     <Switch>
       {/* Auth route - с AuthProvider */}
@@ -64,7 +65,7 @@ function App() {
           <AuthPage />
         </AuthProvider>
       </Route>
-      
+
       {/* Защищенные маршруты - с TempMainLayout и AuthProvider */}
       <Route path="*">
         <AuthProvider>
@@ -79,30 +80,31 @@ function App() {
                   <ProtectedRoute path="/smart-course" component={SmartCourse} />
                   <ProtectedRoute path="/lesson/:id" component={LessonView} />
                   <ProtectedRoute path="/employees" component={Employees} />
+                  <ProtectedRoute path="/employee-profile/:id" component={EmployeeProfile} />
                   <ProtectedRoute path="/analytics" component={Analytics} />
                   <ProtectedRoute path="/media" component={MediaLibrary} />
                   <ProtectedRoute path="/settings" component={Settings} />
-                  
+
                   {/* Staff routes */}
                   <ProtectedRoute path="/my-learning" component={MyLearning} />
                   <ProtectedRoute path="/achievements" component={Achievements} />
                   <ProtectedRoute path="/leaderboard" component={Leaderboard} />
                   <ProtectedRoute path="/rewards" component={Rewards} />
                   <ProtectedRoute path="/discussions" component={Discussions} />
-                  
+
                   {/* AI Personal Learning Path routes */}
                   <ProtectedRoute path="/learning-paths" component={LearningPaths} />
                   <ProtectedRoute path="/learning-path/:id" component={LearningPathDetails} />
                   <ProtectedRoute path="/learning-path-generator" component={LearningPathGenerator} />
                   <ProtectedRoute path="/ai-learning-path" component={AILearningPath} />
-                  
+
                   {/* Debug route */}
                   <ProtectedRoute path="/debug" component={DebugPage} />
-                  
+
                   {/* Fallback to 404 */}
                   <Route component={NotFound} />
                 </Switch>
-                
+
                 {/* Онбординг компонент */}
                 <Onboarding />
               </TempMainLayout>

@@ -4,10 +4,10 @@ import { z } from "zod";
 
 // Enum для типов медиафайлов
 export const mediaTypeEnum = pgEnum("media_type", [
-  "image", 
-  "video", 
-  "audio", 
-  "document", 
+  "image",
+  "video",
+  "audio",
+  "document",
   "presentation"
 ]);
 
@@ -29,6 +29,7 @@ export const users = pgTable("users", {
   department: text("department"),
   position: text("position"),
   avatar: text("avatar"),
+  preferences: jsonb("preferences"), // Для хранения настроек пользователя
 });
 
 export const insertUserSchema = createInsertSchema(users).omit({
@@ -283,6 +284,23 @@ export const insertUserLevelSchema = createInsertSchema(userLevels).omit({
   lastActivity: true,
 });
 
+// Таблица для настроек пользователя
+export const userSettings = pgTable("user_settings", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(),
+  emailNotifications: boolean("email_notifications").notNull().default(true),
+  courseCompletions: boolean("course_completions").notNull().default(true),
+  newCourses: boolean("new_courses").notNull().default(true),
+  systemUpdates: boolean("system_updates").notNull().default(false),
+  preferences: jsonb("preferences"),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertUserSettingsSchema = createInsertSchema(userSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
 // Type definitions
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -328,6 +346,9 @@ export type InsertUserReward = z.infer<typeof insertUserRewardSchema>;
 
 export type UserLevel = typeof userLevels.$inferSelect;
 export type InsertUserLevel = z.infer<typeof insertUserLevelSchema>;
+
+export type UserSettings = typeof userSettings.$inferSelect;
+export type InsertUserSettings = z.infer<typeof insertUserSettingsSchema>;
 
 // AI-генерированные персональные планы обучения
 export const learningPaths = pgTable("learning_paths", {

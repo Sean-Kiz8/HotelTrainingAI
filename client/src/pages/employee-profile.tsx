@@ -1,0 +1,291 @@
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useParams, useLocation } from "wouter";
+import { PageHeader } from "@/components/layout/page-header";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useToast } from "@/hooks/use-toast";
+import { CourseCard } from "@/components/dashboard/course-card";
+
+export default function EmployeeProfile() {
+  const { id } = useParams<{ id: string }>();
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const userId = parseInt(id);
+
+  // Получаем данные сотрудника
+  const { data: employee, isLoading: isLoadingEmployee } = useQuery({
+    queryKey: [`/api/users/${userId}`],
+    enabled: !!userId && !isNaN(userId),
+  });
+
+  // Получаем записи на курсы для сотрудника
+  const { data: enrollments = [], isLoading: isLoadingEnrollments } = useQuery({
+    queryKey: [`/api/enrollments?userId=${userId}`],
+    enabled: !!userId && !isNaN(userId),
+  });
+
+  // Получаем все курсы
+  const { data: allCourses = [], isLoading: isLoadingCourses } = useQuery({
+    queryKey: ["/api/courses"],
+  });
+
+  // Получаем уровень пользователя
+  const { data: userLevel, isLoading: isLoadingUserLevel } = useQuery({
+    queryKey: [`/api/user-level/${userId}`],
+    enabled: !!userId && !isNaN(userId),
+  });
+
+  // Получаем достижения пользователя
+  const { data: userAchievements = [], isLoading: isLoadingAchievements } = useQuery({
+    queryKey: [`/api/user-achievements/${userId}`],
+    enabled: !!userId && !isNaN(userId),
+  });
+
+  // Разделяем курсы на завершенные и в процессе
+  const inProgressCourses = enrollments
+    .filter((enrollment: any) => !enrollment.completed)
+    .map((enrollment: any) => {
+      const course = allCourses.find((c: any) => c.id === enrollment.courseId);
+      return course ? {
+        ...course,
+        progress: enrollment.progress,
+        completed: enrollment.completed,
+        enrollmentId: enrollment.id
+      } : null;
+    })
+    .filter(Boolean);
+
+  const completedCourses = enrollments
+    .filter((enrollment: any) => enrollment.completed)
+    .map((enrollment: any) => {
+      const course = allCourses.find((c: any) => c.id === enrollment.courseId);
+      return course ? {
+        ...course,
+        progress: enrollment.progress,
+        completed: enrollment.completed,
+        enrollmentId: enrollment.id
+      } : null;
+    })
+    .filter(Boolean);
+
+  // Вычисляем общий прогресс обучения
+  const totalProgress = enrollments.length > 0
+    ? Math.round(
+        enrollments.reduce((sum: number, enrollment: any) => sum + enrollment.progress, 0) / 
+        enrollments.length
+      )
+    : 0;
+
+  if (isLoadingEmployee) {
+    return (
+      <div className="p-4 md:p-6 pb-24 md:pb-6">
+        <PageHeader title="Профиль сотрудника" />
+        <div className="space-y-4">
+          <Skeleton className="h-64 w-full" />
+          <Skeleton className="h-96 w-full" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!employee) {
+    return (
+      <div className="p-4 md:p-6 pb-24 md:pb-6">
+        <PageHeader title="Профиль сотрудника" />
+        <Card>
+          <CardContent className="p-8 text-center">
+            <h2 className="text-xl font-medium mb-2">Сотрудник не найден</h2>
+            <p className="text-neutral-500 mb-4">Сотрудник с указанным ID не существует или был удален</p>
+            <Button onClick={() => navigate('/employees')}>
+              Вернуться к списку сотрудников
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="p-4 md:p-6 pb-24 md:pb-6">
+      <PageHeader title="Профиль сотрудника" />
+      
+      {/* Карточка профиля */}
+      <Card className="mb-6">
+        <CardContent className="p-6">
+          <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
+            <Avatar className="h-24 w-24">
+              <AvatarImage src={employee.avatar || ""} alt={employee.name} />
+              <AvatarFallback className="text-2xl">{employee.name.charAt(0)}</AvatarFallback>
+            </Avatar>
+            
+            <div className="flex-1">
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                  <h2 className="text-2xl font-medium">{employee.name}</h2>
+                  <p className="text-neutral-500">{employee.position || "Должность не указана"}</p>
+                  {employee.department && (
+                    <Badge variant="outline" className="mt-1">
+                      {employee.department}
+                    </Badge>
+                  )}
+                </div>
+                
+                <div className="flex flex-col items-start md:items-end">
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-sm text-neutral-500">Email:</span>
+                    <span>{employee.email}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-neutral-500">Логин:</span>
+                    <span>{employee.username}</span>
+                  </div>
+                </div>
+              </div>
+              
+              {/* Прогресс обучения */}
+              <div className="mt-6">
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-sm text-neutral-500">Общий прогресс обучения</span>
+                  <span className="text-sm font-medium">{totalProgress}%</span>
+                </div>
+                <Progress value={totalProgress} className="h-2" />
+              </div>
+              
+              {/* Уровень и достижения */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-md">
+                  <span className="material-icons text-primary">military_tech</span>
+                  <div>
+                    <div className="font-medium">Уровень {isLoadingUserLevel ? '...' : userLevel?.level || 1}</div>
+                    <div className="text-xs text-neutral-500">
+                      {isLoadingUserLevel ? 'Загрузка...' : `${userLevel?.points || 0} XP`}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-3 p-3 bg-primary/10 rounded-md">
+                  <span className="material-icons text-primary">emoji_events</span>
+                  <div>
+                    <div className="font-medium">Достижения</div>
+                    <div className="text-xs text-neutral-500">
+                      {isLoadingAchievements ? 'Загрузка...' : `${userAchievements.length} получено`}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Вкладки с курсами */}
+      <Tabs defaultValue="in-progress" className="mb-6">
+        <TabsList>
+          <TabsTrigger value="in-progress">В процессе обучения</TabsTrigger>
+          <TabsTrigger value="completed">Завершенные курсы</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="in-progress" className="mt-4">
+          {isLoadingEnrollments || isLoadingCourses ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-64" />
+              ))}
+            </div>
+          ) : (
+            <>
+              {inProgressCourses.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {inProgressCourses.map((course: any) => (
+                    <CourseCard
+                      key={course.id}
+                      id={course.id}
+                      title={course.title}
+                      description={course.description}
+                      department={course.department}
+                      participantCount={course.participantCount || 0}
+                      image={course.image}
+                      rating={course.rating || 0}
+                      ratingCount={course.ratingCount || 0}
+                      completionRate={course.progress}
+                      onClick={() => navigate(`/course-details/${course.id}`)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-neutral-500">
+                  <p>Нет курсов в процессе обучения</p>
+                  <Button 
+                    variant="outline" 
+                    className="mt-4"
+                    onClick={() => navigate('/courses')}
+                  >
+                    Просмотреть доступные курсы
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="completed" className="mt-4">
+          {isLoadingEnrollments || isLoadingCourses ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {[...Array(3)].map((_, i) => (
+                <Skeleton key={i} className="h-64" />
+              ))}
+            </div>
+          ) : (
+            <>
+              {completedCourses.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {completedCourses.map((course: any) => (
+                    <CourseCard
+                      key={course.id}
+                      id={course.id}
+                      title={course.title}
+                      description={course.description}
+                      department={course.department}
+                      participantCount={course.participantCount || 0}
+                      image={course.image}
+                      rating={course.rating || 0}
+                      ratingCount={course.ratingCount || 0}
+                      completionRate={100}
+                      onClick={() => navigate(`/course-details/${course.id}`)}
+                    />
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12 text-neutral-500">
+                  <p>Нет завершенных курсов</p>
+                </div>
+              )}
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
+      
+      <div className="flex justify-end">
+        <Button 
+          variant="outline" 
+          className="mr-2"
+          onClick={() => navigate('/employees')}
+        >
+          Назад к списку сотрудников
+        </Button>
+        <Button 
+          onClick={() => navigate(`/learning-path-generator?userId=${userId}`)}
+        >
+          Создать учебный план
+        </Button>
+      </div>
+    </div>
+  );
+}
