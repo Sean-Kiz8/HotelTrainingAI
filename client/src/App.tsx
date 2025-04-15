@@ -5,6 +5,7 @@ import { TempMainLayout } from "./components/layout/temp-main-layout";
 import Dashboard from "./pages/dashboard";
 import Courses from "./pages/courses";
 import CourseDetails from "./pages/course-details";
+import LessonView from "./pages/lesson-view";
 import CreateCourse from "./pages/create-course";
 import SmartCourse from "./pages/smart-course";
 import Employees from "./pages/employees";
@@ -71,6 +72,7 @@ function App() {
                   <ProtectedRoute path="/course-details/:id" component={CourseDetails} />
                   <ProtectedRoute path="/create-course" component={CreateCourse} />
                   <ProtectedRoute path="/smart-course" component={SmartCourse} />
+                  <ProtectedRoute path="/lesson/:id" component={LessonView} />
                   <ProtectedRoute path="/employees" component={Employees} />
                   <ProtectedRoute path="/analytics" component={Analytics} />
                   <ProtectedRoute path="/media" component={MediaLibrary} />
