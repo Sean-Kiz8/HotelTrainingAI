@@ -111,6 +111,8 @@ export default function Dashboard() {
                 image={course.image}
                 rating={4}
                 ratingCount={16}
+                completionRate={Math.floor(Math.random() * 100)} // Для теста
+                duration={Math.floor(Math.random() * 10) + 5} // Для теста
                 onClick={() => toast({
                   title: "Просмотр курса",
                   description: `Выбран курс: ${course.title}`,
