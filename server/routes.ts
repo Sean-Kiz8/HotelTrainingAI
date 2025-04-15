@@ -587,8 +587,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Получаем существующие уроки для определения порядка
       const existingLessons = await storage.listLessonsByModule(parsedData.moduleId);
-      if (!parsedData.orderIndex) {
-        parsedData.orderIndex = existingLessons.length + 1;
+      if (!parsedData.order) {
+        parsedData.order = existingLessons.length + 1;
+      }
+      
+      // Конвертируем durationMinutes в строку для поля duration, если оно есть
+      if ((parsedData as any).durationMinutes) {
+        parsedData.duration = `${(parsedData as any).durationMinutes} мин.`;
+        delete (parsedData as any).durationMinutes;
       }
       
       // Создаем урок

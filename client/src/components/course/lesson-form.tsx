@@ -20,7 +20,8 @@ export const createLessonSchema = z.object({
   content: z.string().min(20, "Содержимое урока должно содержать минимум 20 символов"),
   durationMinutes: z.number().min(1, "Длительность урока должна быть не менее 1 минуты"),
   moduleId: z.number(),
-  orderIndex: z.number().optional(),
+  order: z.number().optional(),
+  type: z.string().default("text"),
 });
 
 // Компонент формы для добавления урока
@@ -41,6 +42,7 @@ export function AddLessonForm({
       content: "",
       durationMinutes: 30,
       moduleId: moduleId,
+      type: "text",
     },
   });
 

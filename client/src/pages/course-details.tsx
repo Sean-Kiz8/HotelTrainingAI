@@ -449,9 +449,12 @@ export default function CourseDetailsPage() {
                 </div>
                 
                 <SharePreviewCard 
+                  id={course.id}
                   title={course.title} 
                   description={course.description}
-                  author="Ваше Имя"
+                  instructor={{
+                    name: "Ваше Имя"
+                  }}
                   department={course.department}
                 />
               </div>
