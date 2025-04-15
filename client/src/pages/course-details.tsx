@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useLocation } from "wouter";
+
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { getQueryFn, apiRequest, queryClient } from "@/lib/queryClient";
 import { Course } from "@shared/schema";
@@ -15,7 +16,6 @@ import {
   ChevronLeft, Users, Clock, Award, BookOpen, Copy, Mail, 
   Plus, Edit, Eye, Trash2, MoreHorizontal 
 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { ShareWidget } from "@/components/course/share-widget";
 import { SharePreviewCard } from "@/components/course/share-preview-card";
 import { ModuleToast, LessonToast } from "@/components/course/module-toast";
@@ -414,7 +414,17 @@ export default function CourseDetailsPage() {
               
               <div className="text-center py-12 text-muted-foreground">
                 <p>У этого курса пока нет участников</p>
-                <Button className="mt-3" variant="outline">
+                <Button 
+                  className="mt-3" 
+                  variant="outline"
+                  onClick={() => {
+                    toast({
+                      title: "Добавление участников",
+                      description: "Функция добавления участников в режиме разработки. Будет доступна в ближайшем обновлении.",
+                    });
+                    // В будущем здесь будет диалог добавления участников
+                  }}
+                >
                   Добавить участников
                 </Button>
               </div>
@@ -452,12 +462,31 @@ export default function CourseDetailsPage() {
                         value={`https://lms.hotel-training.com/course/${course.id}`} 
                         className="flex-1" 
                       />
-                      <Button variant="outline" size="icon">
+                      <Button 
+                        variant="outline" 
+                        size="icon"
+                        onClick={() => {
+                          navigator.clipboard.writeText(`https://lms.hotel-training.com/course/${course.id}`);
+                          toast({
+                            title: "Ссылка скопирована",
+                            description: "Ссылка на курс скопирована в буфер обмена",
+                          });
+                        }}
+                      >
                         <Copy className="h-4 w-4" />
                       </Button>
                     </div>
                     
-                    <Button variant="outline" className="w-full sm:w-auto">
+                    <Button 
+                      variant="outline" 
+                      className="w-full sm:w-auto"
+                      onClick={() => {
+                        toast({
+                          title: "Отправка по email",
+                          description: "Функция отправки по email в режиме разработки. Будет доступна в ближайшем обновлении.",
+                        });
+                      }}
+                    >
                       <Mail className="mr-2 h-4 w-4" />
                       Отправить по email
                     </Button>
