@@ -30,10 +30,7 @@ export default function Dashboard() {
         <SearchInput placeholder="Поиск..." />
         <CreateButton 
           label="Создать курс"
-          onClick={() => toast({
-            title: "Создание курса",
-            description: "Функциональность находится в разработке",
-          })}
+          onClick={() => setLocation('/create-course')}
         />
       </PageHeader>
       

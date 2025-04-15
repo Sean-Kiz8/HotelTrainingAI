@@ -4,6 +4,7 @@ import { MainLayout } from "./components/layout/main-layout";
 import Dashboard from "./pages/dashboard";
 import Courses from "./pages/courses";
 import CourseDetails from "./pages/course-details";
+import CreateCourse from "./pages/create-course";
 import Employees from "./pages/employees";
 import Analytics from "./pages/analytics";
 import Settings from "./pages/settings";
@@ -32,6 +33,7 @@ function Router() {
       <Route path="/" component={Dashboard} />
       <Route path="/courses" component={Courses} />
       <Route path="/course-details/:id" component={CourseDetails} />
+      <Route path="/create-course" component={CreateCourse} />
       <Route path="/employees" component={Employees} />
       <Route path="/analytics" component={Analytics} />
       <Route path="/media" component={MediaLibrary} />
