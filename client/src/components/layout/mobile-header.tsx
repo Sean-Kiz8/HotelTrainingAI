@@ -1,156 +1,178 @@
 import { useState } from "react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { useAuth } from "@/context/auth-context";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Link, useLocation } from "wouter";
+import { useAuth } from "@/context/auth-context";
+import { useChatbot } from "@/context/chatbot-context";
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Menu, User, MessageCircle, X, LogOut } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
-interface NavItem {
-  label: string;
-  icon: string;
-  href: string;
-}
-
-const adminNavItems: NavItem[] = [
+const adminNavItems = [
   { label: "Дашборд", icon: "dashboard", href: "/" },
   { label: "Курсы", icon: "school", href: "/courses" },
   { label: "Сотрудники", icon: "groups", href: "/employees" },
+  { label: "Медиатека", icon: "collections", href: "/media" },
   { label: "Аналитика", icon: "insert_chart", href: "/analytics" },
   { label: "Настройки", icon: "settings", href: "/settings" },
 ];
 
-const staffNavItems: NavItem[] = [
+const staffNavItems = [
   { label: "Мое обучение", icon: "menu_book", href: "/my-learning" },
   { label: "Достижения", icon: "stars", href: "/achievements" },
   { label: "Обсуждения", icon: "forum", href: "/discussions" },
 ];
 
 export function MobileHeader() {
-  const [isOpen, setIsOpen] = useState(false);
   const [location] = useLocation();
   const { user, logout } = useAuth();
+  const { openChatbot } = useChatbot();
+  const [isOpen, setIsOpen] = useState(false);
   
   if (!user) return null;
-
+  
+  const handleMenuItemClick = () => {
+    setIsOpen(false);
+  };
+  
+  const handleChatOpen = () => {
+    openChatbot();
+  };
+  
+  const handleLogout = () => {
+    logout();
+    setIsOpen(false);
+  };
+  
   return (
-    <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-neutral-200 z-10">
-      <div className="flex items-center justify-between p-4">
+    <header className="fixed top-0 left-0 right-0 h-16 bg-white border-b border-neutral-200 flex items-center px-4 md:hidden z-10">
+      <div className="flex items-center justify-between w-full">
         <div className="flex items-center">
-          <span className="material-icons text-primary mr-2">hotel</span>
-          <h1 className="font-sans font-bold text-lg text-primary">HotelLearn</h1>
-        </div>
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button variant="ghost" size="icon">
-              <span className="material-icons text-neutral-700">menu</span>
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="w-[300px] sm:w-[300px] p-0">
-            <div className="p-4 border-b border-neutral-200">
-              <div className="flex items-center">
-                <span className="material-icons text-primary mr-2">hotel</span>
-                <h1 className="font-sans font-bold text-xl text-primary">HotelLearn</h1>
-              </div>
-              <p className="text-sm text-neutral-600 mt-1">Система обучения персонала</p>
-            </div>
-            
-            {/* User profile */}
-            <div className="p-4 border-b border-neutral-200">
-              <div className="flex items-center">
-                <Avatar className="w-8 h-8 mr-3">
-                  <AvatarImage src={user.avatar || ""} alt={user.name} />
-                  <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <p className="text-sm font-medium">{user.name}</p>
-                  <p className="text-xs text-neutral-500">{user.role === "admin" ? "Тренинг-менеджер" : user.position}</p>
+          <Sheet open={isOpen} onOpenChange={setIsOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="icon" className="mr-2">
+                <Menu className="h-5 w-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-[280px] p-0">
+              <SheetHeader className="p-4 border-b border-neutral-200">
+                <div className="flex items-center">
+                  <span className="material-icons text-primary mr-2">hotel</span>
+                  <SheetTitle className="font-sans font-bold text-xl text-primary">HotelLearn</SheetTitle>
+                </div>
+                <p className="text-sm text-neutral-600 mt-1">Система обучения персонала</p>
+              </SheetHeader>
+              
+              {/* User info */}
+              <div className="p-4 border-b border-neutral-200">
+                <div className="flex items-center">
+                  <Avatar className="w-10 h-10 mr-3">
+                    <AvatarImage src={user.avatar || ""} alt={user.name} />
+                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{user.name}</p>
+                    <p className="text-xs text-neutral-500">{user.role === "admin" ? "Тренинг-менеджер" : user.position}</p>
+                  </div>
                 </div>
               </div>
-            </div>
-            
-            {/* Admin Navigation */}
-            <div className="py-2 px-4 border-b border-neutral-200">
-              <p className="text-xs uppercase text-neutral-500 font-semibold tracking-wider mb-2">
-                Тренинг-менеджер
-              </p>
-              <nav>
-                <ul>
-                  {adminNavItems.map((item) => (
-                    <li key={item.href} className="mb-1">
-                      <Link href={item.href}>
-                        <a 
-                          className={cn(
-                            "flex items-center px-2 py-2 rounded-md",
-                            location === item.href 
-                              ? "text-primary font-medium bg-primary bg-opacity-10" 
-                              : "text-neutral-700 hover:bg-neutral-100"
-                          )}
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <span className={cn(
-                            "material-icons mr-3 text-sm",
-                            location === item.href ? "text-primary" : "text-neutral-500"
-                          )}>
-                            {item.icon}
-                          </span>
-                          {item.label}
-                        </a>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            </div>
-            
-            {/* Staff Navigation */}
-            <div className="py-2 px-4">
-              <p className="text-xs uppercase text-neutral-500 font-semibold tracking-wider mb-2">
-                Персонал
-              </p>
-              <nav>
-                <ul>
-                  {staffNavItems.map((item) => (
-                    <li key={item.href} className="mb-1">
-                      <Link href={item.href}>
-                        <a 
-                          className={cn(
-                            "flex items-center px-2 py-2 rounded-md",
-                            location === item.href 
-                              ? "text-primary font-medium bg-primary bg-opacity-10" 
-                              : "text-neutral-700 hover:bg-neutral-100"
-                          )}
-                          onClick={() => setIsOpen(false)}
-                        >
-                          <span className={cn(
-                            "material-icons mr-3 text-sm",
-                            location === item.href ? "text-primary" : "text-neutral-500"
-                          )}>
-                            {item.icon}
-                          </span>
-                          {item.label}
-                        </a>
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              </nav>
-            </div>
-            
-            {/* Logout Button */}
-            <div className="p-4 border-t border-neutral-200 mt-auto">
-              <Button 
-                variant="outline" 
-                className="w-full" 
-                onClick={logout}
-              >
-                <span className="material-icons mr-2 text-sm">logout</span>
-                Выйти
-              </Button>
-            </div>
-          </SheetContent>
-        </Sheet>
+              
+              {/* Navigation */}
+              <div className="py-2 px-0">
+                <p className="text-xs uppercase text-neutral-500 font-semibold tracking-wider px-4 mb-2">
+                  Тренинг-менеджер
+                </p>
+                <nav>
+                  <ul>
+                    {adminNavItems.map((item) => (
+                      <li key={item.href}>
+                        <Link href={item.href}>
+                          <a 
+                            className={cn(
+                              "flex items-center px-4 py-2",
+                              location === item.href 
+                                ? "text-primary font-medium bg-primary bg-opacity-10" 
+                                : "text-neutral-700 hover:bg-neutral-100"
+                            )}
+                            onClick={handleMenuItemClick}
+                          >
+                            <span className={cn(
+                              "material-icons mr-3 text-sm",
+                              location === item.href ? "text-primary" : "text-neutral-500"
+                            )}>
+                              {item.icon}
+                            </span>
+                            {item.label}
+                          </a>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+                
+                <p className="text-xs uppercase text-neutral-500 font-semibold tracking-wider px-4 mt-4 mb-2">
+                  Персонал
+                </p>
+                <nav>
+                  <ul>
+                    {staffNavItems.map((item) => (
+                      <li key={item.href}>
+                        <Link href={item.href}>
+                          <a 
+                            className={cn(
+                              "flex items-center px-4 py-2",
+                              location === item.href 
+                                ? "text-primary font-medium bg-primary bg-opacity-10" 
+                                : "text-neutral-700 hover:bg-neutral-100"
+                            )}
+                            onClick={handleMenuItemClick}
+                          >
+                            <span className={cn(
+                              "material-icons mr-3 text-sm",
+                              location === item.href ? "text-primary" : "text-neutral-500"
+                            )}>
+                              {item.icon}
+                            </span>
+                            {item.label}
+                          </a>
+                        </Link>
+                      </li>
+                    ))}
+                  </ul>
+                </nav>
+              </div>
+              
+              {/* Logout button */}
+              <div className="mt-auto p-4 border-t border-neutral-200">
+                <Button 
+                  variant="ghost" 
+                  className="w-full justify-start text-neutral-700" 
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Выйти
+                </Button>
+              </div>
+            </SheetContent>
+          </Sheet>
+          
+          <div className="flex items-center">
+            <span className="material-icons text-primary mr-2">hotel</span>
+            <h1 className="font-sans font-bold text-xl text-primary">HotelLearn</h1>
+          </div>
+        </div>
+        
+        <div className="flex items-center">
+          <Button variant="ghost" size="icon" onClick={handleChatOpen} className="mr-2">
+            <MessageCircle className="h-5 w-5" />
+          </Button>
+          
+          <Avatar className="w-8 h-8">
+            <AvatarImage src={user.avatar || ""} alt={user.name} />
+            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+          </Avatar>
+        </div>
       </div>
-    </div>
+    </header>
   );
 }

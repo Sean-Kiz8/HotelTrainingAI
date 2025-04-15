@@ -1,12 +1,19 @@
 import { cn } from "@/lib/utils";
+import { HTMLAttributes } from "react";
 
 export function PageHeader({
   className,
   children,
   ...props
-}: React.HTMLAttributes<HTMLDivElement>) {
+}: HTMLAttributes<HTMLDivElement>) {
   return (
-    <div className={cn("flex flex-col items-start gap-1", className)} {...props}>
+    <div
+      className={cn(
+        "flex flex-col items-start gap-2 md:flex-row md:justify-between md:gap-0",
+        className
+      )}
+      {...props}
+    >
       {children}
     </div>
   );
@@ -15,11 +22,11 @@ export function PageHeader({
 export function PageHeaderHeading({
   className,
   ...props
-}: React.HTMLAttributes<HTMLHeadingElement>) {
+}: HTMLAttributes<HTMLHeadingElement>) {
   return (
     <h1
       className={cn(
-        "text-3xl font-bold tracking-tight md:text-4xl",
+        "text-3xl font-bold tracking-tight md:text-4xl mb-1",
         className
       )}
       {...props}
@@ -30,10 +37,10 @@ export function PageHeaderHeading({
 export function PageHeaderDescription({
   className,
   ...props
-}: React.HTMLAttributes<HTMLParagraphElement>) {
+}: HTMLAttributes<HTMLParagraphElement>) {
   return (
     <p
-      className={cn("text-muted-foreground", className)}
+      className={cn("text-muted-foreground text-sm md:text-base", className)}
       {...props}
     />
   );

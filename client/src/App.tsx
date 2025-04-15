@@ -134,12 +134,9 @@ function App() {
   }, []);
   
   return (
-    <>
-      <MainLayout>
-        <Router />
-      </MainLayout>
-      <AIChat />
-    </>
+    <MainLayout>
+      <Router />
+    </MainLayout>
   );
 }
 
