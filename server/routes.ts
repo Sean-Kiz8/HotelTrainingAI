@@ -1453,18 +1453,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const mediaFiles = await storage.listMediaFiles(100, 0);
       
+      if (!mediaFiles || !Array.isArray(mediaFiles)) {
+        console.error('Media files is not an array:', mediaFiles);
+        return res.status(500).json({ message: "Invalid media files format" });
+      }
+      
       // Добавляем необходимые поля для совместимости с клиентским интерфейсом
-      const formattedFiles = mediaFiles.map(file => ({
-        id: file.id.toString(),
-        name: file.originalFilename,
-        type: file.mimeType,
-        size: file.fileSize,  // Используем fileSize вместо size, т.к. в схеме поле называется fileSize
-        url: file.url || `/uploads/${file.filename}`,
-        status: 'completed',
-        path: file.path || '',
-        originalFilename: file.originalFilename,
-        mimeType: file.mimeType
-      }));
+      const formattedFiles = mediaFiles.map(file => {
+        if (!file) {
+          console.error('File is null or undefined');
+          return null;
+        }
+        
+        return {
+          id: file.id?.toString() || '',
+          name: file.originalFilename || 'Untitled',
+          type: file.mimeType || 'application/octet-stream',
+          size: file.fileSize || 0,
+          url: file.url || (file.filename ? `/uploads/media/${file.filename}` : ''),
+          status: 'completed',
+          path: file.path || '',
+          originalFilename: file.originalFilename || 'Untitled',
+          mimeType: file.mimeType || 'application/octet-stream'
+        };
+      }).filter(Boolean); // Фильтруем null значения
       
       res.json(formattedFiles);
     } catch (error) {
