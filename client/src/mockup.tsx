@@ -204,10 +204,10 @@ export default function Mockup() {
         <div>
           <div className="flex items-center justify-between mb-4">
             <h3 className="font-semibold text-lg">Недавние курсы</h3>
-            <button className="text-primary text-sm hover:text-primary-dark flex items-center">
+            <a href="/courses" className="text-primary text-sm hover:text-primary-dark flex items-center">
               Все курсы
               <span className="material-icons text-sm ml-1">arrow_forward</span>
-            </button>
+            </a>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
