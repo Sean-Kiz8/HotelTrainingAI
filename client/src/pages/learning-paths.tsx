@@ -209,14 +209,12 @@ export default function LearningPaths() {
         title="Персональные планы обучения"
         subtitle="Просмотр и управление индивидуальными планами обучения сотрудников"
         action={
-          isAdmin && (
-            <Button asChild>
-              <Link href="/learning-path-generator">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Создать новый план
-              </Link>
-            </Button>
-          )
+          <Button asChild>
+            <Link href="/learning-path-generator">
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Создать новый план
+            </Link>
+          </Button>
         }
         headerRight={
           <SearchInput
@@ -266,14 +264,12 @@ export default function LearningPaths() {
                   : "У вас пока нет персональных планов обучения"
               }
             </p>
-            {isAdmin && (
-              <Button asChild>
-                <Link href="/learning-path-generator">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Создать новый план
-                </Link>
-              </Button>
-            )}
+            <Button asChild>
+              <Link href="/learning-path-generator">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Создать новый план
+              </Link>
+            </Button>
           </div>
         )}
       </div>
