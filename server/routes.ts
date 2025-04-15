@@ -1458,7 +1458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: file.id.toString(),
         name: file.originalFilename,
         type: file.mimeType,
-        size: file.size,
+        size: file.fileSize,  // Используем fileSize вместо size, т.к. в схеме поле называется fileSize
         url: file.url || `/uploads/${file.filename}`,
         status: 'completed',
         path: file.path || '',

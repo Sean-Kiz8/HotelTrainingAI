@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -71,6 +71,31 @@ export function SmartCourseCreator() {
   const [generatedCourse, setGeneratedCourse] = useState<GeneratedCourse | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Функция для загрузки файлов с сервера
+  const fetchFilesFromServer = async () => {
+    try {
+      const response = await fetch('/api/media/list');
+      if (response.ok) {
+        const mediaFiles = await response.json();
+        console.log('Loaded media files from server:', mediaFiles);
+        
+        if (mediaFiles && mediaFiles.length > 0) {
+          // Обновляем состояние файлов
+          setFiles(mediaFiles);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading media files:', error);
+    }
+  };
+  
+  // При переходе на шаг 3 (предпросмотр) загружаем файлы с сервера
+  useEffect(() => {
+    if (currentStep === 3) {
+      fetchFilesFromServer();
+    }
+  }, [currentStep]);
 
   const steps = [
     { id: 1, name: "Загрузка материалов", component: Step1FileUpload },

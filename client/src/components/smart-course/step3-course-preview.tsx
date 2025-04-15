@@ -11,7 +11,9 @@ import {
   CheckCircle,
   BarChart3,
   Puzzle,
-  Video
+  Video,
+  RefreshCw,
+  FileX
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
@@ -237,6 +239,19 @@ export function Step3CoursePreview({
               <CardTitle className="text-lg">Загруженные материалы</CardTitle>
             </CardHeader>
             <CardContent>
+              <div className="flex justify-between items-center mb-2">
+                <h4 className="text-sm font-medium">Материалы ({files.length})</h4>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => fetchFilesFromServer && fetchFilesFromServer()}
+                  className="text-xs"
+                >
+                  <RefreshCw className="h-3 w-3 mr-1" />
+                  Обновить
+                </Button>
+              </div>
+              
               {files.length > 0 ? (
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                   {files.map((file) => (
@@ -259,16 +274,20 @@ export function Step3CoursePreview({
                           {file.name}
                         </p>
                         <p className="text-xs text-muted-foreground">
-                          ID: {file.id} • Статус: {file.status === 'completed' ? 'Загружен' : file.status}
+                          ID: {file.id} • Тип: {file.type.split('/')[1] || file.type}
                         </p>
                       </div>
                     </div>
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">
-                  Нет загруженных материалов. Вернитесь к шагу 1, чтобы загрузить файлы.
-                </p>
+                <div className="text-center py-4">
+                  <FileX className="h-12 w-12 text-muted-foreground/40 mx-auto mb-2" />
+                  <p className="text-sm text-muted-foreground">
+                    Нет загруженных материалов. Вернитесь к шагу 1, чтобы загрузить файлы,
+                    или нажмите кнопку "Обновить".
+                  </p>
+                </div>
               )}
             </CardContent>
           </Card>
