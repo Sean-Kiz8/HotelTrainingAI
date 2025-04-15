@@ -10,6 +10,7 @@ import MyLearning from "./pages/my-learning";
 import Achievements from "./pages/achievements";
 import Discussions from "./pages/discussions";
 import MediaLibrary from "./pages/media-library";
+import DebugPage from "./pages/debug";
 import { useAuth } from "./context/auth-context";
 import { useEffect, useState } from "react";
 import { Button } from "./components/ui/button";
@@ -38,6 +39,9 @@ function Router() {
       <Route path="/my-learning" component={MyLearning} />
       <Route path="/achievements" component={Achievements} />
       <Route path="/discussions" component={Discussions} />
+      
+      {/* Debug route */}
+      <Route path="/debug" component={DebugPage} />
       
       {/* Fallback to 404 */}
       <Route component={NotFound} />
