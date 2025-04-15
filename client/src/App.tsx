@@ -19,9 +19,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "./components/ui/card";
 function Router() {
   const { user } = useAuth();
   
-  if (!user) {
-    return null;
-  }
+  // На время разработки всегда показываем маршруты
+  // if (!user) {
+  //   return null;
+  // }
   
   return (
     <Switch>
@@ -134,9 +135,10 @@ function App() {
     };
   }, []);
   
-  if (!user) {
-    return <LoginForm />;
-  }
+  // Для разработки всегда переходим на главную страницу
+  // if (!user) {
+  //   return <LoginForm />;
+  // }
   
   return (
     <MainLayout>
