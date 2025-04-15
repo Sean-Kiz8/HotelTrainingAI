@@ -184,6 +184,7 @@ export default function LearningPaths() {
 
   const { data: learningPaths, isLoading } = useQuery({
     queryKey: pathsQueryKey,
+    queryFn: () => apiRequest('GET', isAdmin ? `/api/learning-paths?createdById=${user?.id}` : `/api/learning-paths?userId=${user?.id}`),
     // Запрос будет выполнен только если пользователь авторизован
     enabled: !!user?.id,
   });
