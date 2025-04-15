@@ -100,11 +100,14 @@ export default function CourseDetailsPage() {
       });
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (createdModule) => {
       queryClient.invalidateQueries({ queryKey: [`/api/modules?courseId=${courseId}`] });
       toast({
-        title: "Модуль создан",
-        description: "Новый модуль был успешно добавлен в курс",
+        description: (
+          <ModuleToast module={createdModule} courseId={Number(courseId)} />
+        ),
+        duration: 5000,
+        className: "group p-4"
       });
       setShowAddModuleDialog(false);
     },
