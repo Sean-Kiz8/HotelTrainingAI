@@ -11,6 +11,13 @@ export const mediaTypeEnum = pgEnum("media_type", [
   "presentation"
 ]);
 
+// Enum для уровней сотрудников в обучении
+export const employeeLevelEnum = pgEnum("employee_level", [
+  "junior",
+  "middle",
+  "senior"
+]);
+
 // Users table
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
@@ -321,3 +328,46 @@ export type InsertUserReward = z.infer<typeof insertUserRewardSchema>;
 
 export type UserLevel = typeof userLevels.$inferSelect;
 export type InsertUserLevel = z.infer<typeof insertUserLevelSchema>;
+
+// AI-генерированные персональные планы обучения
+export const learningPaths = pgTable("learning_paths", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(), // Для кого создан план обучения
+  createdById: integer("created_by_id").notNull(), // Кто создал план обучения
+  position: text("position").notNull(), // Должность сотрудника
+  level: employeeLevelEnum("level").notNull(), // Уровень сотрудника (junior, middle, senior)
+  targetSkills: text("target_skills").notNull(), // Целевые навыки через запятую
+  status: text("status").notNull().default("active"), // active, completed, canceled
+  progress: integer("progress").notNull().default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+
+export const insertLearningPathSchema = createInsertSchema(learningPaths).omit({
+  id: true,
+  progress: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+// Курсы, включенные в персональный план обучения
+export const learningPathCourses = pgTable("learning_path_courses", {
+  id: serial("id").primaryKey(),
+  learningPathId: integer("learning_path_id").notNull(),
+  courseId: integer("course_id").notNull(),
+  order: integer("order").notNull().default(0),
+  completed: boolean("completed").notNull().default(false),
+  priority: text("priority").notNull().default("normal"), // high, normal, low
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertLearningPathCourseSchema = createInsertSchema(learningPathCourses).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type LearningPath = typeof learningPaths.$inferSelect;
+export type InsertLearningPath = z.infer<typeof insertLearningPathSchema>;
+
+export type LearningPathCourse = typeof learningPathCourses.$inferSelect;
+export type InsertLearningPathCourse = z.infer<typeof insertLearningPathCourseSchema>;

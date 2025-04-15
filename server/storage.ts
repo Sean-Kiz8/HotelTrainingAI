@@ -14,7 +14,10 @@ import {
   userAchievements, type UserAchievement, type InsertUserAchievement,
   rewards, type Reward, type InsertReward,
   userRewards, type UserReward, type InsertUserReward,
-  userLevels, type UserLevel, type InsertUserLevel
+  userLevels, type UserLevel, type InsertUserLevel,
+  // Импорты для персональных учебных путей
+  learningPaths, type LearningPath, type InsertLearningPath,
+  learningPathCourses, type LearningPathCourse, type InsertLearningPathCourse
 } from "@shared/schema";
 
 export interface IStorage {
@@ -116,6 +119,24 @@ export interface IStorage {
   updateUserLevel(userId: number, userLevelData: Partial<InsertUserLevel>): Promise<UserLevel | undefined>;
   addUserPoints(userId: number, points: number): Promise<UserLevel | undefined>;
   getLeaderboard(limit?: number): Promise<UserLevel[]>;
+  
+  // AI Personal Learning Path operations
+  getLearningPath(id: number): Promise<LearningPath | undefined>;
+  createLearningPath(learningPath: InsertLearningPath): Promise<LearningPath>;
+  updateLearningPath(id: number, learningPathData: Partial<InsertLearningPath>): Promise<LearningPath | undefined>;
+  completeLearningPath(id: number): Promise<LearningPath | undefined>;
+  deleteLearningPath(id: number): Promise<boolean>;
+  listLearningPathsByUser(userId: number): Promise<LearningPath[]>;
+  listLearningPathsByCreator(createdById: number): Promise<LearningPath[]>;
+  
+  // Learning Path Courses operations
+  getLearningPathCourse(id: number): Promise<LearningPathCourse | undefined>;
+  createLearningPathCourse(learningPathCourse: InsertLearningPathCourse): Promise<LearningPathCourse>;
+  updateLearningPathCourse(id: number, learningPathCourseData: Partial<InsertLearningPathCourse>): Promise<LearningPathCourse | undefined>;
+  completeLearningPathCourse(id: number): Promise<LearningPathCourse | undefined>;
+  deleteLearningPathCourse(id: number): Promise<boolean>;
+  listCoursesByLearningPath(learningPathId: number): Promise<LearningPathCourse[]>;
+  listDetailedCoursesByLearningPath(learningPathId: number): Promise<(LearningPathCourse & { course: Course })[]>;
 }
 
 import { db } from "./db";
