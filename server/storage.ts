@@ -2277,7 +2277,7 @@ ${competency.description}
       assignments = await db
         .select()
         .from(microLearningAssignments)
-        .where(sql`${microLearningAssignments.content_id} IN (${contentIds.join(',')})`);
+        .where(sql`${microLearningAssignments.content_id} IN (${sql.join(contentIds)})`);
     }
 
     // Статистика по типам контента
