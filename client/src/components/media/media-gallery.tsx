@@ -39,7 +39,7 @@ interface MediaGalleryProps {
 export function MediaGallery({ userId, selectable = false, onSelect, mediaTypeFilter: initialMediaTypeFilter }: MediaGalleryProps) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [mediaTypeFilter, setMediaTypeFilter] = useState<string | null>(null);
+  const [mediaTypeFilter, setMediaTypeFilter] = useState<string | null>(initialMediaTypeFilter || null);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
   const [selectedMedia, setSelectedMedia] = useState<MediaFile | null>(null);
@@ -47,7 +47,7 @@ export function MediaGallery({ userId, selectable = false, onSelect, mediaTypeFi
   // Получаем список медиафайлов с поддержкой фильтрации
   const mediaQuery = useQuery<MediaFile[]>({
     queryKey: ['/api/media', mediaTypeFilter],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "throw" }),
   });
   
   const deleteMutation = useMutation({

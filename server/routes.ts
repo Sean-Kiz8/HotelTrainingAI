@@ -553,12 +553,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Create the media file record in the database
+      // Приведение mediaType к правильному типу данных согласно схеме
+      const mediaTypeEnum = ["image", "video", "audio", "document", "presentation"] as const;
+      let validMediaType = mediaType as "image" | "video" | "audio" | "document" | "presentation";
+      
+      // Проверяем, что mediaType является допустимым значением
+      if (!mediaTypeEnum.includes(validMediaType as any)) {
+        validMediaType = "document"; // Значение по умолчанию, если неизвестный тип
+      }
+      
       const mediaFileData = {
         filename: req.file.filename,
         originalFilename: req.file.originalname,
         path: relativePath,
         url: fileUrl,
-        mediaType,
+        mediaType: validMediaType,
         thumbnail,
         fileSize: req.file.size,
         mimeType: req.file.mimetype,
