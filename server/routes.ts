@@ -1513,9 +1513,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(learningPaths);
       }
       
-      // В режиме разработки возвращаем все доступные планы
-      // В реальном приложении здесь будет проверка прав доступа
-      const allPaths = await db.select().from(learningPaths);
+      // Если не указаны параметры userId или createdById,
+      // возвращаем все доступные планы обучения
+      const allPaths = await storage.listAllLearningPaths();
       return res.json(allPaths);
     } catch (error) {
       console.error("Error fetching learning paths:", error);

@@ -833,6 +833,14 @@ export class DatabaseStorage implements IStorage {
       .where(eq(learningPaths.createdById, createdById))
       .orderBy(desc(learningPaths.createdAt));
   }
+  
+  // Дополнительный метод для получения всех учебных планов
+  async listAllLearningPaths(): Promise<LearningPath[]> {
+    return await db
+      .select()
+      .from(learningPaths)
+      .orderBy(desc(learningPaths.createdAt));
+  }
 
   // Learning Path Courses operations
   async getLearningPathCourse(id: number): Promise<LearningPathCourse | undefined> {
