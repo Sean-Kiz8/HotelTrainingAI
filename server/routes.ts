@@ -1616,10 +1616,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Используем OpenAI для генерации подходящего плана обучения
       // Передаем true в качестве последнего параметра, чтобы разрешить генерацию новых курсов
+      const userDepartment = data.userDepartment || "General";
+
       const aiResult = await generateLearningPath(
         data.userRole,
         data.userLevel,
-        data.userDepartment,
+        userDepartment,
         allCourses,
         true // разрешаем предлагать новые курсы
       );
@@ -1645,7 +1647,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const newCourse = await storage.createCourse({
               title: courseRec.title,
               description: courseRec.description || `Рекомендованный AI курс для ${data.userRole}`,
-              department: data.userDepartment,
+              department: userDepartment, // Используем локальную переменную
               createdById: data.createdById, // Добавляем идентификатор создателя
               active: true,
               image: null
