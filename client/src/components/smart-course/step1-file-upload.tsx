@@ -93,16 +93,24 @@ export function Step1FileUpload({ files, onFilesChange }: Step1FileUploadProps) 
       const result = await response.json();
       
       // Обновляем список файлов с полученными данными от сервера
-      onFilesChange(files.map(f => 
+      const updatedFiles = files.map(f => 
         f.id === tempFile.id 
           ? { 
               ...f, 
               id: result.id.toString(), // ID файла в базе данных
-              status: 'completed',
-              progress: 100
+              status: 'completed' as const,
+              progress: 100,
+              // Добавляем свойства из результата сервера
+              name: result.originalFilename || f.name,
+              url: result.url || f.url,
+              path: result.path || '',
+              type: result.mimeType || f.type,
             } 
           : f
-      ));
+      );
+      
+      // Применяем обновленный список файлов
+      onFilesChange(updatedFiles);
 
       toast({
         title: "Файл загружен",

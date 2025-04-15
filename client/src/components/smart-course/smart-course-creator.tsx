@@ -19,6 +19,7 @@ export interface UploadedFile {
   status: 'uploading' | 'completed' | 'error';
   progress?: number;
   error?: string;
+  path?: string;
 }
 
 export interface CourseSettings {

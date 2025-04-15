@@ -244,6 +244,12 @@ export function Step3CoursePreview({
                       <div className="mr-2">
                         {file.type.includes('image') ? (
                           <FileImage className="h-5 w-5 text-blue-500" />
+                        ) : file.type.includes('pdf') ? (
+                          <FileText className="h-5 w-5 text-red-500" />
+                        ) : file.type.includes('word') || file.type.includes('doc') ? (
+                          <FileText className="h-5 w-5 text-blue-700" />
+                        ) : file.type.includes('ppt') || file.type.includes('presentation') ? (
+                          <FileText className="h-5 w-5 text-orange-500" />
                         ) : (
                           <FileText className="h-5 w-5 text-primary" />
                         )}
@@ -251,6 +257,9 @@ export function Step3CoursePreview({
                       <div className="truncate flex-1">
                         <p className="text-sm font-medium truncate" title={file.name}>
                           {file.name}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          ID: {file.id} • Статус: {file.status === 'completed' ? 'Загружен' : file.status}
                         </p>
                       </div>
                     </div>
