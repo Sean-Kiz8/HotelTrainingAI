@@ -1121,6 +1121,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Media routes
+  // Специфичные маршруты должны быть объявлены до общих маршрутов с параметрами
+  // Сначала объявляем /api/media/list
+  app.get("/api/media/list", async (req, res) => {
+    try {
+      console.log("[DEBUG] Запрос к /api/media/list получен");
+      
+      const limit = 100;
+      const offset = 0;
+      
+      // Получаем список файлов
+      const mediaFiles = await storage.listMediaFiles(limit, offset);
+      
+      if (!mediaFiles || !Array.isArray(mediaFiles)) {
+        console.error("[DEBUG] Media files is not an array:", mediaFiles);
+        return res.status(500).json({ message: "Invalid media files format" });
+      }
+      
+      // Добавляем необходимые поля для совместимости с клиентским интерфейсом
+      const formattedFiles = mediaFiles.map(file => {
+        if (!file) return null;
+        
+        return {
+          id: file.id?.toString() || '',
+          name: file.originalFilename || 'Untitled',
+          type: file.mimeType || 'application/octet-stream',
+          size: file.fileSize || 0,
+          url: file.url || (file.filename ? `/uploads/media/${file.filename}` : ''),
+          status: 'completed',
+          path: file.path || '',
+          originalFilename: file.originalFilename || 'Untitled',
+          mimeType: file.mimeType || 'application/octet-stream'
+        };
+      }).filter(Boolean);
+      
+      res.json(formattedFiles);
+    } catch (error) {
+      console.error("[DEBUG] Error fetching media files:", error);
+      res.status(500).json({ message: "Failed to fetch media files" });
+    }
+  });
+  
+  // Затем общий маршрут для получения списка медиафайлов
   app.get("/api/media", async (req, res) => {
     try {
       const mediaType = req.query.type as string | undefined;
@@ -1147,9 +1189,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // И наконец, маршрут с параметром :id
   app.get("/api/media/:id", async (req, res) => {
     try {
+      // Проверяем, что id - число, а не строка "list"
+      if (req.params.id === "list") {
+        return res.status(404).json({ message: "Invalid media id" });
+      }
+      
       const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid media id format" });
+      }
+      
       const mediaFile = await storage.getMediaFile(id);
       
       if (!mediaFile) {
@@ -1448,75 +1500,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Эндпоинт для получения списка всех файлов (для поддержки SmartCourse)
-  app.get("/api/media/list", async (req, res) => {
-    try {
-      console.log("[DEBUG] Запрос к /api/media/list получен");
-      
-      // Используем тот же запрос, что и в обычном /api/media
-      const limit = 100;
-      const offset = 0;
-      console.log(`[DEBUG] Запрашиваем медиафайлы с limit=${limit}, offset=${offset}`);
-      
-      // Используем listMediaFiles вместо напрямую из хранилища
-      let mediaFiles;
-      try {
-        mediaFiles = await storage.listMediaFiles(limit, offset);
-        console.log(`[DEBUG] Получено медиафайлов: ${mediaFiles?.length || 0}`);
-        console.log(`[DEBUG] Тип mediaFiles: ${typeof mediaFiles}`);
-        console.log(`[DEBUG] Это массив: ${Array.isArray(mediaFiles)}`);
-      } catch (listError) {
-        console.error('[DEBUG] Ошибка при запросе listMediaFiles:', listError);
-        return res.status(500).json({ message: "Database query error", details: listError.message });
-      }
-      
-      if (!mediaFiles || !Array.isArray(mediaFiles)) {
-        console.error('[DEBUG] Media files is not an array:', mediaFiles);
-        return res.status(500).json({ message: "Invalid media files format" });
-      }
-      
-      // Логируем образец данных
-      if (mediaFiles.length > 0) {
-        console.log('[DEBUG] Пример первого файла:', JSON.stringify(mediaFiles[0]));
-      }
-      
-      // Добавляем необходимые поля для совместимости с клиентским интерфейсом
-      const formattedFiles = mediaFiles.map(file => {
-        if (!file) {
-          console.error('[DEBUG] File is null or undefined');
-          return null;
-        }
-        
-        try {
-          return {
-            id: file.id?.toString() || '',
-            name: file.originalFilename || 'Untitled',
-            type: file.mimeType || 'application/octet-stream',
-            size: file.fileSize || 0,
-            url: file.url || (file.filename ? `/uploads/media/${file.filename}` : ''),
-            status: 'completed',
-            path: file.path || '',
-            originalFilename: file.originalFilename || 'Untitled',
-            mimeType: file.mimeType || 'application/octet-stream'
-          };
-        } catch (mapError) {
-          console.error('[DEBUG] Ошибка при маппинге файла:', mapError, 'для файла:', file);
-          return null;
-        }
-      }).filter(Boolean); // Фильтруем null значения
-      
-      console.log(`[DEBUG] Отформатировано файлов: ${formattedFiles.length}`);
-      
-      res.json(formattedFiles);
-    } catch (error) {
-      console.error('[DEBUG] Error fetching media files:', error);
-      if (error instanceof Error) {
-        console.error('[DEBUG] Error message:', error.message);
-        console.error('[DEBUG] Error stack:', error.stack);
-      }
-      res.status(500).json({ message: "Failed to fetch media files", details: error.message });
-    }
-  });
+
 
   const httpServer = createServer(app);
   return httpServer;
