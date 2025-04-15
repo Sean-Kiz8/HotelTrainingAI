@@ -913,7 +913,8 @@ export class DatabaseStorage implements IStorage {
   }
 
   async listDetailedCoursesByLearningPath(learningPathId: number): Promise<(LearningPathCourse & { course: Course })[]> {
-    const learningPathCourses = await db
+    // Используем другое имя переменной, чтобы избежать конфликта с импортом таблицы
+    const pathCourses = await db
       .select()
       .from(learningPathCourses)
       .where(eq(learningPathCourses.learningPathId, learningPathId))
@@ -921,7 +922,7 @@ export class DatabaseStorage implements IStorage {
     
     // Получаем подробную информацию о каждом курсе
     const detailedCourses = await Promise.all(
-      learningPathCourses.map(async (lpc) => {
+      pathCourses.map(async (lpc) => {
         const course = await this.getCourse(lpc.courseId);
         return {
           ...lpc,
