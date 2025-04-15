@@ -66,9 +66,6 @@ export function CourseForm({
       image: "",
       createdById: user?.id || 1,
       active: true,
-      participantCount: 0,
-      rating: 0,
-      ratingCount: 0,
     },
   });
 

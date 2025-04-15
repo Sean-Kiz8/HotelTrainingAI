@@ -5,25 +5,30 @@ import { CourseCard } from "@/components/dashboard/course-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { CreateCourseDialog } from "@/components/courses/create-course-dialog";
+import { getQueryFn } from "@/lib/queryClient";
+import { Course } from "@shared/schema";
 
 export default function Courses() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   
   // Fetch all courses
-  const { data: courses, isLoading } = useQuery({
+  const { data: courses = [], isLoading } = useQuery<Course[]>({
     queryKey: ["/api/courses"],
+    queryFn: getQueryFn({ on401: "returnNull" }),
   });
   
   // Filter courses by search query
-  const filteredCourses = courses?.filter((course: any) => 
+  const filteredCourses = courses.filter((course: Course) => 
     course.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     course.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
     course.department.toLowerCase().includes(searchQuery.toLowerCase())
   );
   
   // Group courses by department
-  const departmentGroups = filteredCourses?.reduce((acc: Record<string, any[]>, course: any) => {
+  const departmentGroups = filteredCourses.reduce<Record<string, Course[]>>((acc, course) => {
     if (!acc[course.department]) {
       acc[course.department] = [];
     }
@@ -41,12 +46,14 @@ export default function Courses() {
         />
         <CreateButton 
           label="Создать курс"
-          onClick={() => toast({
-            title: "Создание курса",
-            description: "Функциональность находится в разработке",
-          })}
+          onClick={() => setIsCreateDialogOpen(true)}
         />
       </PageHeader>
+      
+      <CreateCourseDialog 
+        open={isCreateDialogOpen} 
+        onOpenChange={setIsCreateDialogOpen} 
+      />
       
       <Tabs defaultValue="all" className="mb-6">
         <TabsList>
@@ -66,11 +73,11 @@ export default function Courses() {
           ) : (
             <>
               {departmentGroups && Object.keys(departmentGroups).length > 0 ? (
-                Object.entries(departmentGroups).map(([department, departmentCourses]) => (
+                Object.entries(departmentGroups).map(([department, departmentCourses]: [string, Course[]]) => (
                   <div key={department} className="mb-8">
                     <h3 className="font-sans font-semibold text-lg mb-4">{department}</h3>
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                      {departmentCourses.map((course: any) => (
+                      {departmentCourses.map((course: Course) => (
                         <CourseCard
                           key={course.id}
                           title={course.title}
