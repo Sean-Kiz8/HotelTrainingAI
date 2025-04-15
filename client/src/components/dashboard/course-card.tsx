@@ -59,12 +59,17 @@ export function CourseCard({
   const { bg, text } = getDepartmentStyles(department);
   const [, setLocation] = useLocation();
   
-  const handleClick = () => {
+  const handleDetailsClick = (e: React.MouseEvent) => {
+    // Останавливаем дальнейшее всплытие события
+    e.preventDefault();
+    e.stopPropagation();
+    
+    // Переход на страницу деталей курса
+    setLocation(`/course-details/${id}`);
+    
+    // Если есть onClick, вызываем его после перехода
     if (onClick) {
       onClick();
-    } else {
-      // Переход на страницу деталей курса
-      setLocation(`/course-details/${id}`);
     }
   };
   
@@ -102,7 +107,7 @@ export function CourseCard({
         <p className="text-neutral-600 text-sm mt-1">{description}</p>
         <div className="mt-3 flex justify-between items-center">
           <Stars rating={rating} count={ratingCount} />
-          <Button variant="link" className="text-primary text-sm hover:text-primary-dark" onClick={handleClick}>
+          <Button variant="link" className="text-primary text-sm hover:text-primary-dark" onClick={handleDetailsClick}>
             Подробнее
           </Button>
         </div>

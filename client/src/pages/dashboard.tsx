@@ -1,5 +1,6 @@
 import { useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import { PageHeader, SearchInput, CreateButton } from "@/components/layout/page-header";
 import { StatCard } from "@/components/dashboard/stat-card";
 import { RecentActivity } from "@/components/dashboard/recent-activity";
@@ -11,6 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 
 export default function Dashboard() {
   const { toast } = useToast();
+  const [, setLocation] = useLocation();
   
   // Fetch statistics
   const { data: stats, isLoading: statsLoading } = useQuery({
@@ -85,7 +87,11 @@ export default function Dashboard() {
       <div>
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-sans font-semibold text-lg">Недавние курсы</h3>
-          <Button variant="link" className="text-primary text-sm hover:text-primary-dark flex items-center">
+          <Button 
+            variant="link" 
+            className="text-primary text-sm hover:text-primary-dark flex items-center"
+            onClick={() => setLocation('/courses')}
+          >
             Все курсы
             <span className="material-icons text-sm ml-1">arrow_forward</span>
           </Button>
