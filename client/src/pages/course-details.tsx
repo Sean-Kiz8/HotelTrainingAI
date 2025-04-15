@@ -76,6 +76,7 @@ export default function CourseDetailsPage() {
   const courseId = params.id ? parseInt(params.id) : undefined;
   const [showAddModuleDialog, setShowAddModuleDialog] = useState(false);
   const [showAddLessonDialog, setShowAddLessonDialog] = useState(false);
+  const [showAddParticipantDialog, setShowAddParticipantDialog] = useState(false);
   const [activeModuleId, setActiveModuleId] = useState<number | null>(null);
   
   // Fetch course by ID
@@ -90,6 +91,12 @@ export default function CourseDetailsPage() {
     queryKey: [`/api/modules?courseId=${courseId}`],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: !!courseId
+  });
+  
+  // Fetch users for enrollment
+  const { data: users = [], isLoading: isLoadingUsers } = useQuery<any[]>({
+    queryKey: ['/api/users'],
+    queryFn: getQueryFn({ on401: "returnNull" }),
   });
   
   // Create module mutation
@@ -158,10 +165,42 @@ export default function CourseDetailsPage() {
     }
   });
   
+  // Создание записи на курс (enrollment)
+  const enrollUserMutation = useMutation({
+    mutationFn: async (userId: number) => {
+      const res = await apiRequest("POST", "/api/enrollments", {
+        userId,
+        courseId,
+        status: "active"
+      });
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/courses/${courseId}`] });
+      toast({
+        title: "Успех",
+        description: "Пользователь успешно добавлен на курс",
+      });
+      setShowAddParticipantDialog(false);
+    },
+    onError: (error) => {
+      toast({
+        title: "Ошибка при добавлении пользователя",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
   // Добавить урок в модуль
   const handleAddLesson = (moduleId: number) => {
     setActiveModuleId(moduleId);
     setShowAddLessonDialog(true);
+  };
+  
+  // Записать пользователя на курс
+  const handleEnrollUser = (userId: number) => {
+    enrollUserMutation.mutate(userId);
   };
   
   // Handle loading state
@@ -418,13 +457,7 @@ export default function CourseDetailsPage() {
                 <Button 
                   className="mt-3" 
                   variant="outline"
-                  onClick={() => {
-                    toast({
-                      title: "Добавление участников",
-                      description: "Функция добавления участников в режиме разработки. Будет доступна в ближайшем обновлении.",
-                    });
-                    // В будущем здесь будет диалог добавления участников
-                  }}
+                  onClick={() => setShowAddParticipantDialog(true)}
                 >
                   Добавить участников
                 </Button>
@@ -546,6 +579,60 @@ export default function CourseDetailsPage() {
             }}
             isPending={createLessonMutation.isPending}
           />
+        </DialogContent>
+      </Dialog>
+
+      {/* Диалог для добавления участников */}
+      <Dialog open={showAddParticipantDialog} onOpenChange={setShowAddParticipantDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Добавить участников курса</DialogTitle>
+            <DialogDescription>
+              Выберите пользователей, которых вы хотите добавить на курс.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <h4 className="text-sm font-medium mb-2">Доступные пользователи:</h4>
+            {isLoadingUsers ? (
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            ) : (
+              <div className="space-y-2 max-h-[250px] overflow-y-auto border rounded-md p-2">
+                {users.map((user) => (
+                  <div 
+                    key={user.id} 
+                    className="flex items-center justify-between border-b last:border-0 pb-2 last:pb-0"
+                  >
+                    <div className="flex items-center">
+                      <span className="font-medium">{user.username}</span>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      onClick={() => handleEnrollUser(user.id)}
+                      disabled={enrollUserMutation.isPending}
+                    >
+                      Добавить
+                    </Button>
+                  </div>
+                ))}
+                {users.length === 0 && (
+                  <div className="text-center py-4 text-muted-foreground">
+                    <p>Нет доступных пользователей для добавления</p>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowAddParticipantDialog(false)}>
+              Закрыть
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
