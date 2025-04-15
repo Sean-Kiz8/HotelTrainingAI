@@ -1581,11 +1581,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               title: courseRec.title,
               description: courseRec.description || `Рекомендованный AI курс для ${data.userRole}`,
               department: data.userDepartment,
-              durationHours: 2, // значение по умолчанию
-              image: null,
-              status: "draft", // создаем в статусе черновика
-              thumbnail: null,
-              level: data.userLevel as "beginner" | "intermediate" | "advanced"
+              createdById: data.createdById, // Добавляем идентификатор создателя
+              active: true,
+              image: null
             });
             
             // Добавляем в учебный план
