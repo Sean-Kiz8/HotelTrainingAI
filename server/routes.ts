@@ -1518,6 +1518,224 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // AI Personal Learning Path routes
+  // Новый эндпоинт для генерации персонализированного учебного пути с использованием AI
+  app.post("/api/learning-paths/generate", async (req, res) => {
+    try {
+      // Валидируем входные данные
+      const schema = z.object({
+        userId: z.number(), // ID пользователя, для которого создается учебный путь
+        userRole: z.string(), // Должность пользователя
+        userLevel: z.string(), // Уровень пользователя (junior, middle, senior)
+        userDepartment: z.string(), // Отдел пользователя
+        createdById: z.number() // ID пользователя, создающего учебный путь (может совпадать с userId)
+      });
+      
+      const data = schema.parse(req.body);
+      
+      // Получаем список всех доступных курсов
+      const availableCourses = await storage.listCourses();
+      
+      if (availableCourses.length === 0) {
+        return res.status(400).json({ message: "Нет доступных курсов для включения в учебный план" });
+      }
+      
+      try {
+        // Генерируем персонализированный учебный план с помощью OpenAI
+        const learningPathPlan = await generateLearningPath(
+          data.userRole,
+          data.userLevel,
+          data.userDepartment,
+          availableCourses
+        );
+        
+        // Создаем запись учебного плана в базе данных
+        const learningPath = await storage.createLearningPath({
+          userId: data.userId,
+          createdById: data.createdById,
+          name: learningPathPlan.name,
+          description: learningPathPlan.description,
+          position: data.userRole,
+          level: data.userLevel,
+          targetSkills: learningPathPlan.targetSkills,
+          status: "active"
+        });
+        
+        // Добавляем рекомендованные курсы в учебный план
+        const coursePromises = learningPathPlan.recommendedCourses.map(async (courseRec) => {
+          try {
+            const course = await storage.getCourse(courseRec.courseId);
+            if (!course) return null;
+            
+            // Определяем приоритет (низкий, средний, высокий)
+            let priority = "normal";
+            if (courseRec.priority >= 8) priority = "high";
+            else if (courseRec.priority <= 3) priority = "low";
+            
+            // Создаем запись о курсе в учебном плане
+            return storage.createLearningPathCourse({
+              learningPathId: learningPath.id,
+              courseId: courseRec.courseId,
+              order: learningPathPlan.recommendedCourses.indexOf(courseRec),
+              priority,
+              status: "not_started",
+              rationale: courseRec.rationale
+            });
+          } catch (e) {
+            console.error(`Failed to add course ${courseRec.courseId} to learning path:`, e);
+            return null;
+          }
+        });
+        
+        const addedCourses = (await Promise.all(coursePromises)).filter(course => course !== null);
+        
+        // Создаем запись активности
+        await storage.createActivity({
+          userId: data.createdById,
+          type: "generated_learning_path"
+        });
+        
+        // Возвращаем созданный план обучения
+        res.status(201).json({
+          success: true,
+          learningPath,
+          courses: addedCourses,
+          // Добавляем более подробные данные для фронтенда
+          details: {
+            targetSkills: learningPathPlan.targetSkills,
+            recommendedCourses: learningPathPlan.recommendedCourses
+          }
+        });
+        
+      } catch (aiError) {
+        console.error("Error generating AI learning path:", aiError);
+        return res.status(500).json({ 
+          message: "Ошибка при генерации персонализированного учебного плана",
+          error: aiError.message 
+        });
+      }
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Некорректные данные для генерации учебного плана", 
+          errors: error.errors 
+        });
+      }
+      
+      console.error("Error in learning path generation endpoint:", error);
+      res.status(500).json({ message: "Не удалось сгенерировать учебный план" });
+    }
+  });
+
+  // API для получения дополнительной информации о курсе в контексте пользователя
+  app.post("/api/courses/insight", async (req, res) => {
+    try {
+      // Валидируем входные данные
+      const schema = z.object({
+        courseId: z.number(),
+        userRole: z.string(),
+        userLevel: z.string()
+      });
+      
+      const data = schema.parse(req.body);
+      
+      // Получаем информацию о курсе
+      const course = await storage.getCourse(data.courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Курс не найден" });
+      }
+      
+      // Генерируем подробное объяснение пользы курса для данного пользователя
+      const courseInsight = await generateCourseInsight(
+        data.courseId,
+        course.title,
+        course.description,
+        data.userRole,
+        data.userLevel
+      );
+      
+      res.json({
+        courseId: data.courseId,
+        courseTitle: course.title,
+        insight: courseInsight
+      });
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Некорректные данные для анализа курса", 
+          errors: error.errors 
+        });
+      }
+      
+      console.error("Error generating course insight:", error);
+      res.status(500).json({ message: "Не удалось сгенерировать анализ курса" });
+    }
+  });
+
+  // API для анализа профиля пользователя и рекомендации курсов
+  app.post("/api/learning-paths/recommend", async (req, res) => {
+    try {
+      // Валидируем входные данные
+      const schema = z.object({
+        userId: z.number()
+      });
+      
+      const data = schema.parse(req.body);
+      
+      // Получаем профиль пользователя
+      const userProfile = await storage.getUser(data.userId);
+      if (!userProfile) {
+        return res.status(404).json({ message: "Пользователь не найден" });
+      }
+      
+      // Получаем завершенные курсы пользователя
+      const enrollments = await storage.listEnrollmentsByUser(data.userId);
+      const completedEnrollments = enrollments.filter(e => e.completed);
+      
+      // Получаем ID завершенных курсов
+      const completedCourseIds = completedEnrollments.map(e => e.courseId);
+      
+      // Получаем детали завершенных курсов
+      const completedCourses = await Promise.all(
+        completedCourseIds.map(async (courseId) => storage.getCourse(courseId))
+      );
+      
+      // Фильтруем null значения (на случай, если какие-то курсы не существуют)
+      const validCompletedCourses = completedCourses.filter(course => course !== null);
+      
+      // Получаем список всех доступных курсов
+      const availableCourses = await storage.listCourses();
+      
+      // Генерируем рекомендации на основе профиля и истории обучения
+      const recommendations = await analyzeUserProfileAndRecommend(
+        userProfile,
+        validCompletedCourses,
+        availableCourses
+      );
+      
+      res.json({
+        userId: data.userId,
+        userName: userProfile.name || userProfile.username,
+        userRole: userProfile.role,
+        userDepartment: userProfile.department,
+        completedCourses: validCompletedCourses.map(c => ({ id: c.id, title: c.title })),
+        recommendations
+      });
+      
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ 
+          message: "Некорректные данные для анализа профиля", 
+          errors: error.errors 
+        });
+      }
+      
+      console.error("Error analyzing user profile:", error);
+      res.status(500).json({ message: "Не удалось проанализировать профиль и сформировать рекомендации" });
+    }
+  });
+
   app.get("/api/learning-paths", async (req, res) => {
     try {
       const userId = req.query.userId ? parseInt(req.query.userId as string) : undefined;
@@ -1713,148 +1931,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // AI-генерация персонального учебного плана
-  app.post("/api/learning-paths/generate", async (req, res) => {
-    try {
-      // Проверка данных для генерации учебного плана
-      const generateSchema = z.object({
-        userId: z.number(),
-        createdById: z.number(),
-        position: z.string(),
-        level: z.enum(["junior", "middle", "senior"]),
-        targetSkills: z.string(),
-      });
-      
-      const data = generateSchema.parse(req.body);
-      
-      // Проверяем, существует ли пользователь
-      const user = await storage.getUser(data.userId);
-      if (!user) {
-        return res.status(404).json({ message: "User not found" });
-      }
-      
-      // Проверяем, существует ли создатель плана
-      const creator = await storage.getUser(data.createdById);
-      if (!creator) {
-        return res.status(404).json({ message: "Creator not found" });
-      }
-      
-      // Получаем список всех курсов для подбора
-      const allCourses = await storage.listCourses();
-      
-      if (allCourses.length === 0) {
-        return res.status(400).json({ message: "No courses available for learning path generation" });
-      }
-      
-      // Используем OpenAI для генерации подходящего плана обучения
-      const prompt = `
-      You are an expert in hotel staff training and development. Create a personalized learning path for a hotel employee with the following parameters:
-      
-      Position: ${data.position}
-      Current skill level: ${data.level}
-      Target skills to develop: ${data.targetSkills}
-      
-      Based on these parameters, select 3-5 most relevant courses from the following list and explain why they are important for this employee:
-      ${allCourses.map(course => `- ${course.title}: ${course.description} (ID: ${course.id})`).join('\n')}
-      
-      Format your response as JSON with the following structure:
-      {
-        "courseIds": [1, 2, 3], // IDs of recommended courses
-        "coursePriorities": {
-          "1": "high",
-          "2": "normal",
-          "3": "low"
-        },
-        "courseOrder": {
-          "1": 0,
-          "2": 1,
-          "3": 2
-        },
-        "explanation": "Explanation of why these courses were chosen and how they will help develop the target skills"
-      }
-      
-      Include only the JSON in your response, no other text.
-      `;
-      
-      const completion = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          { 
-            role: "system", 
-            content: "You are a hotel training AI assistant that creates personalized learning paths for hotel staff. You respond only with valid JSON." 
-          },
-          { role: "user", content: prompt }
-        ],
-        temperature: 0.7,
-      });
-      
-      const responseText = completion.choices[0]?.message?.content;
-      
-      if (!responseText) {
-        throw new Error("Failed to generate learning path from AI");
-      }
-      
-      // Парсим JSON из ответа
-      let aiResponse;
-      try {
-        // Удаляем всё, кроме JSON
-        const jsonMatch = responseText.match(/\{[\s\S]*\}/);
-        if (!jsonMatch) {
-          throw new Error("No valid JSON found in AI response");
-        }
-        
-        aiResponse = JSON.parse(jsonMatch[0]);
-      } catch (e) {
-        console.error("Failed to parse AI response:", e);
-        return res.status(500).json({ message: "Failed to parse AI generated learning path" });
-      }
-      
-      // Создаем учебный план
-      const learningPath = await storage.createLearningPath({
-        userId: data.userId,
-        createdById: data.createdById,
-        position: data.position,
-        level: data.level,
-        targetSkills: data.targetSkills,
-        status: "active"
-      });
-      
-      // Добавляем рекомендованные курсы в план обучения
-      const coursePromises = aiResponse.courseIds.map(async (courseId: number) => {
-        try {
-          const course = await storage.getCourse(courseId);
-          if (!course) return null;
-          
-          return storage.createLearningPathCourse({
-            learningPathId: learningPath.id,
-            courseId: courseId,
-            order: aiResponse.courseOrder[courseId] || 0,
-            priority: aiResponse.coursePriorities[courseId] || "normal"
-          });
-        } catch (e) {
-          console.error(`Failed to add course ${courseId} to learning path:`, e);
-          return null;
-        }
-      });
-      
-      const addedCourses = (await Promise.all(coursePromises)).filter(course => course !== null);
-      
-      // Возвращаем созданный план обучения
-      res.status(201).json({
-        learningPath,
-        courses: addedCourses,
-        explanation: aiResponse.explanation
-      });
-      
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return res.status(400).json({ message: "Invalid data for learning path generation", errors: error.errors });
-      }
-      
-      console.error("Error generating AI learning path:", error);
-      res.status(500).json({ message: "Failed to generate AI learning path" });
-    }
-  });
+  // Примечание: Основной маршрут для генерации персонализированных планов обучения 
+  // определен выше, в начале секции AI Personal Learning Path routes
 
   const httpServer = createServer(app);
   return httpServer;

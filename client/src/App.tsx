@@ -23,6 +23,7 @@ import AuthPage from "./pages/auth-page";
 import LearningPaths from "./pages/learning-paths";
 import LearningPathDetails from "./pages/learning-path-details";
 import LearningPathGenerator from "./pages/learning-path-generator";
+import AILearningPath from "./pages/ai-learning-path";
 import { useEffect } from "react";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
