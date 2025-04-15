@@ -71,9 +71,11 @@ export default function LearningPathGenerator() {
 
       const requestData = {
         userId: parseInt(data.userId),
-        createdById: user?.id || 1, // Используем ID мок-пользователя, если пользователь не определен
+        createdById: user?.id || 1,
         position: data.position,
         level: data.level,
+        userLevel: data.userLevel,
+        userDepartment: data.userDepartment,
         targetSkills: data.targetSkills,
       };
       
