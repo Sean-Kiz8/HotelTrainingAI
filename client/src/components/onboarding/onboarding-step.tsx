@@ -46,57 +46,64 @@ export function OnboardingStep({
   // Вычисляем координаты для позиционирования
   useEffect(() => {
     const calculatePosition = () => {
+      let element = null;
+      
       if (elementSelector) {
-        const element = document.querySelector(elementSelector);
-        if (element) {
-          const rect = element.getBoundingClientRect();
-          const tooltipHeight = tooltipRef.current?.offsetHeight || 0;
-          const tooltipWidth = tooltipRef.current?.offsetWidth || 0;
-          
-          // Запоминаем размеры и положение выделяемого элемента
-          setHighlightRect({
-            top: rect.top + window.scrollY,
-            left: rect.left + window.scrollX,
-            width: rect.width,
-            height: rect.height,
-          });
-
-          // Позиционируем тултип в зависимости от указанной позиции
-          let top = 0;
-          let left = 0;
-
-          switch (position) {
-            case "top":
-              top = rect.top + window.scrollY - tooltipHeight - 10;
-              left = rect.left + window.scrollX + rect.width / 2 - tooltipWidth / 2;
-              break;
-            case "right":
-              top = rect.top + window.scrollY + rect.height / 2 - tooltipHeight / 2;
-              left = rect.right + window.scrollX + 10;
-              break;
-            case "bottom":
-              top = rect.bottom + window.scrollY + 10;
-              left = rect.left + window.scrollX + rect.width / 2 - tooltipWidth / 2;
-              break;
-            case "left":
-              top = rect.top + window.scrollY + rect.height / 2 - tooltipHeight / 2;
-              left = rect.left + window.scrollX - tooltipWidth - 10;
-              break;
-          }
-
-          // Проверка на выход за границы экрана
-          const windowWidth = window.innerWidth;
-          const windowHeight = window.innerHeight;
-
-          if (left < 10) left = 10;
-          if (left + tooltipWidth > windowWidth - 10) left = windowWidth - tooltipWidth - 10;
-          if (top < 10) top = 10;
-          if (top + tooltipHeight > windowHeight - 10) top = windowHeight - tooltipHeight - 10;
-
-          setCoords({ top, left });
+        try {
+          element = document.querySelector(elementSelector);
+        } catch (error) {
+          console.error("Ошибка при выборе элемента:", error);
         }
+      }
+      
+      if (element) {
+        const rect = element.getBoundingClientRect();
+        const tooltipHeight = tooltipRef.current?.offsetHeight || 0;
+        const tooltipWidth = tooltipRef.current?.offsetWidth || 0;
+        
+        // Запоминаем размеры и положение выделяемого элемента
+        setHighlightRect({
+          top: rect.top + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+          height: rect.height,
+        });
+
+        // Позиционируем тултип в зависимости от указанной позиции
+        let top = 0;
+        let left = 0;
+
+        switch (position) {
+          case "top":
+            top = rect.top + window.scrollY - tooltipHeight - 10;
+            left = rect.left + window.scrollX + rect.width / 2 - tooltipWidth / 2;
+            break;
+          case "right":
+            top = rect.top + window.scrollY + rect.height / 2 - tooltipHeight / 2;
+            left = rect.right + window.scrollX + 10;
+            break;
+          case "bottom":
+            top = rect.bottom + window.scrollY + 10;
+            left = rect.left + window.scrollX + rect.width / 2 - tooltipWidth / 2;
+            break;
+          case "left":
+            top = rect.top + window.scrollY + rect.height / 2 - tooltipHeight / 2;
+            left = rect.left + window.scrollX - tooltipWidth - 10;
+            break;
+        }
+
+        // Проверка на выход за границы экрана
+        const windowWidth = window.innerWidth;
+        const windowHeight = window.innerHeight;
+
+        if (left < 10) left = 10;
+        if (left + tooltipWidth > windowWidth - 10) left = windowWidth - tooltipWidth - 10;
+        if (top < 10) top = 10;
+        if (top + tooltipHeight > windowHeight - 10) top = windowHeight - tooltipHeight - 10;
+
+        setCoords({ top, left });
       } else {
-        // Если элемент не указан, центрируем подсказку на экране
+        // Если элемент не указан или не найден, центрируем подсказку на экране
         const windowWidth = window.innerWidth;
         const windowHeight = window.innerHeight;
         const tooltipHeight = tooltipRef.current?.offsetHeight || 200;
@@ -133,12 +140,16 @@ export function OnboardingStep({
   // Прокручиваем к элементу, если он существует
   useEffect(() => {
     if (elementSelector) {
-      const element = document.querySelector(elementSelector);
-      if (element) {
-        element.scrollIntoView({
-          behavior: "smooth",
-          block: "center",
-        });
+      try {
+        const element = document.querySelector(elementSelector);
+        if (element) {
+          element.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+        }
+      } catch (error) {
+        console.error("Ошибка при прокрутке к элементу:", error);
       }
     }
   }, [elementSelector]);
