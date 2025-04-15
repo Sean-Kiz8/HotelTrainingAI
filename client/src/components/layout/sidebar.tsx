@@ -1,4 +1,4 @@
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { LogOut } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { useChatbot } from "@/context/chatbot-context";
@@ -22,11 +22,15 @@ const staffNavItems = [
 ];
 
 export function Sidebar() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user, logout } = useAuth();
   const { openChatbot } = useChatbot();
   
   if (!user) return null;
+  
+  const goToPage = (href: string) => {
+    navigate(href);
+  };
   
   return (
     <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r border-neutral-200 bg-white">
@@ -58,22 +62,27 @@ export function Sidebar() {
           </p>
           <nav className="flex-1 px-2 space-y-1">
             {adminNavItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a className={cn(
-                  "flex items-center px-2 py-2 rounded-md group transition-colors",
+              <div 
+                key={item.href}
+                role="button"
+                tabIndex={0}
+                onClick={() => goToPage(item.href)}
+                onKeyDown={(e) => e.key === 'Enter' && goToPage(item.href)}
+                className={cn(
+                  "flex items-center px-2 py-2 rounded-md group transition-colors cursor-pointer",
                   location === item.href 
                     ? "bg-primary text-white" 
                     : "text-neutral-700 hover:bg-neutral-100"
+                )}
+              >
+                <span className={cn(
+                  "material-icons mr-3 text-lg",
+                  location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
                 )}>
-                  <span className={cn(
-                    "material-icons mr-3 text-lg",
-                    location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
-                  )}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </a>
-              </Link>
+                  {item.icon}
+                </span>
+                {item.label}
+              </div>
             ))}
           </nav>
           
@@ -82,22 +91,27 @@ export function Sidebar() {
           </p>
           <nav className="flex-1 px-2 space-y-1">
             {staffNavItems.map((item) => (
-              <Link key={item.href} href={item.href}>
-                <a className={cn(
-                  "flex items-center px-2 py-2 rounded-md group transition-colors",
+              <div 
+                key={item.href}
+                role="button"
+                tabIndex={0}
+                onClick={() => goToPage(item.href)}
+                onKeyDown={(e) => e.key === 'Enter' && goToPage(item.href)}
+                className={cn(
+                  "flex items-center px-2 py-2 rounded-md group transition-colors cursor-pointer",
                   location === item.href 
                     ? "bg-primary text-white" 
                     : "text-neutral-700 hover:bg-neutral-100"
+                )}
+              >
+                <span className={cn(
+                  "material-icons mr-3 text-lg",
+                  location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
                 )}>
-                  <span className={cn(
-                    "material-icons mr-3 text-lg",
-                    location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
-                  )}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </a>
-              </Link>
+                  {item.icon}
+                </span>
+                {item.label}
+              </div>
             ))}
           </nav>
         </div>

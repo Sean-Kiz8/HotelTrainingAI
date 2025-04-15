@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { Link, useLocation } from "wouter";
+import { useLocation } from "wouter";
 import { useAuth } from "@/context/auth-context";
 import { useChatbot } from "@/context/chatbot-context";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Menu, User, MessageCircle, X, LogOut } from "lucide-react";
+import { Menu, MessageCircle, LogOut } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { cn } from "@/lib/utils";
 
@@ -24,15 +24,16 @@ const staffNavItems = [
 ];
 
 export function MobileHeader() {
-  const [location] = useLocation();
+  const [location, navigate] = useLocation();
   const { user, logout } = useAuth();
   const { openChatbot } = useChatbot();
   const [isOpen, setIsOpen] = useState(false);
   
   if (!user) return null;
   
-  const handleMenuItemClick = () => {
+  const handleMenuItemClick = (href: string) => {
     setIsOpen(false);
+    navigate(href);
   };
   
   const handleChatOpen = () => {
@@ -42,6 +43,12 @@ export function MobileHeader() {
   const handleLogout = () => {
     logout();
     setIsOpen(false);
+  };
+  
+  const handleKeyDown = (e: React.KeyboardEvent, href: string) => {
+    if (e.key === 'Enter') {
+      handleMenuItemClick(href);
+    }
   };
   
   return (
@@ -86,25 +93,26 @@ export function MobileHeader() {
                   <ul>
                     {adminNavItems.map((item) => (
                       <li key={item.href}>
-                        <Link href={item.href}>
-                          <a 
-                            className={cn(
-                              "flex items-center px-4 py-2",
-                              location === item.href 
-                                ? "text-primary font-medium bg-primary bg-opacity-10" 
-                                : "text-neutral-700 hover:bg-neutral-100"
-                            )}
-                            onClick={handleMenuItemClick}
-                          >
-                            <span className={cn(
-                              "material-icons mr-3 text-sm",
-                              location === item.href ? "text-primary" : "text-neutral-500"
-                            )}>
-                              {item.icon}
-                            </span>
-                            {item.label}
-                          </a>
-                        </Link>
+                        <div 
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleMenuItemClick(item.href)}
+                          onKeyDown={(e) => handleKeyDown(e, item.href)}
+                          className={cn(
+                            "flex items-center px-4 py-2 cursor-pointer",
+                            location === item.href 
+                              ? "text-primary font-medium bg-primary bg-opacity-10" 
+                              : "text-neutral-700 hover:bg-neutral-100"
+                          )}
+                        >
+                          <span className={cn(
+                            "material-icons mr-3 text-sm",
+                            location === item.href ? "text-primary" : "text-neutral-500"
+                          )}>
+                            {item.icon}
+                          </span>
+                          {item.label}
+                        </div>
                       </li>
                     ))}
                   </ul>
@@ -117,25 +125,26 @@ export function MobileHeader() {
                   <ul>
                     {staffNavItems.map((item) => (
                       <li key={item.href}>
-                        <Link href={item.href}>
-                          <a 
-                            className={cn(
-                              "flex items-center px-4 py-2",
-                              location === item.href 
-                                ? "text-primary font-medium bg-primary bg-opacity-10" 
-                                : "text-neutral-700 hover:bg-neutral-100"
-                            )}
-                            onClick={handleMenuItemClick}
-                          >
-                            <span className={cn(
-                              "material-icons mr-3 text-sm",
-                              location === item.href ? "text-primary" : "text-neutral-500"
-                            )}>
-                              {item.icon}
-                            </span>
-                            {item.label}
-                          </a>
-                        </Link>
+                        <div
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => handleMenuItemClick(item.href)}
+                          onKeyDown={(e) => handleKeyDown(e, item.href)}
+                          className={cn(
+                            "flex items-center px-4 py-2 cursor-pointer",
+                            location === item.href 
+                              ? "text-primary font-medium bg-primary bg-opacity-10" 
+                              : "text-neutral-700 hover:bg-neutral-100"
+                          )}
+                        >
+                          <span className={cn(
+                            "material-icons mr-3 text-sm",
+                            location === item.href ? "text-primary" : "text-neutral-500"
+                          )}>
+                            {item.icon}
+                          </span>
+                          {item.label}
+                        </div>
                       </li>
                     ))}
                   </ul>
