@@ -6,7 +6,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
-import { insertCourseSchema } from "@shared/schema";
+import { insertCourseSchema, MediaFile } from "@shared/schema";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -22,6 +22,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { MediaSelector } from "@/components/media/media-selector";
 import { Loader2 } from "lucide-react";
 
 // Расширяем схему для валидации формы
@@ -132,10 +133,13 @@ export function CourseForm({
 
   // Обработчик открытия селектора медиа
   const handleOpenMediaSelector = () => {
-    toast({
-      title: "Выбор изображения",
-      description: "Функция выбора изображения будет добавлена позже",
-    });
+    setShowMediaSelector(true);
+  };
+  
+  // Обработчик выбора изображения
+  const handleSelectMedia = (mediaFile: MediaFile) => {
+    setSelectedImageUrl(mediaFile.url);
+    form.setValue("image", mediaFile.url);
   };
 
   return (
@@ -279,6 +283,15 @@ export function CourseForm({
           </Button>
         </div>
       </form>
+      
+      {/* Селектор медиа */}
+      <MediaSelector
+        isOpen={showMediaSelector}
+        onClose={() => setShowMediaSelector(false)}
+        onSelect={handleSelectMedia}
+        mediaTypeFilter="image"
+        title="Выберите изображение для курса"
+      />
     </Form>
   );
 }
