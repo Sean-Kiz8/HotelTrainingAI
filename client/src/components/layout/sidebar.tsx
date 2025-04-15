@@ -15,6 +15,7 @@ const adminNavItems: NavItem[] = [
   { label: "Дашборд", icon: "dashboard", href: "/" },
   { label: "Курсы", icon: "school", href: "/courses" },
   { label: "Сотрудники", icon: "groups", href: "/employees" },
+  { label: "Медиатека", icon: "collections", href: "/media" },
   { label: "Аналитика", icon: "insert_chart", href: "/analytics" },
   { label: "Настройки", icon: "settings", href: "/settings" },
 ];

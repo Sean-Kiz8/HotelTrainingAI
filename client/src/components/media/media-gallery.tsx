@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { MediaFile } from "@shared/schema";
 import { getQueryFn, apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -7,7 +7,10 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { AlertCircle, Search, Filter, Trash2, Download, Eye, Plus } from "lucide-react";
+import { 
+  AlertCircle, Search, Filter, Trash2, Download, Eye, Plus, 
+  Play, Music, File, MoreVertical, Check, X
+} from "lucide-react";
 import { MediaUpload } from "./media-upload";
 import {
   Dialog,
@@ -30,9 +33,10 @@ interface MediaGalleryProps {
   userId: number;
   selectable?: boolean;
   onSelect?: (mediaFile: MediaFile) => void;
+  mediaTypeFilter?: string;
 }
 
-export function MediaGallery({ userId, selectable = false, onSelect }: MediaGalleryProps) {
+export function MediaGallery({ userId, selectable = false, onSelect, mediaTypeFilter: initialMediaTypeFilter }: MediaGalleryProps) {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [mediaTypeFilter, setMediaTypeFilter] = useState<string | null>(null);

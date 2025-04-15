@@ -9,6 +9,7 @@ import Settings from "./pages/settings";
 import MyLearning from "./pages/my-learning";
 import Achievements from "./pages/achievements";
 import Discussions from "./pages/discussions";
+import MediaLibrary from "./pages/media-library";
 import { useAuth } from "./context/auth-context";
 import { useEffect, useState } from "react";
 import { Button } from "./components/ui/button";
@@ -30,6 +31,7 @@ function Router() {
       <Route path="/courses" component={Courses} />
       <Route path="/employees" component={Employees} />
       <Route path="/analytics" component={Analytics} />
+      <Route path="/media" component={MediaLibrary} />
       <Route path="/settings" component={Settings} />
       
       {/* Staff routes */}
