@@ -455,99 +455,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Media routes
-  app.get("/api/media", async (req, res) => {
-    try {
-      const mediaType = req.query.mediaType as string | undefined;
-      const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-      const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
-      
-      if (mediaType) {
-        const mediaFiles = await storage.listMediaFilesByType(mediaType, limit, offset);
-        return res.json(mediaFiles);
-      }
-      
-      const mediaFiles = await storage.listMediaFiles(limit, offset);
-      res.json(mediaFiles);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch media files" });
-    }
-  });
-  
-  app.get("/api/media/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const mediaFile = await storage.getMediaFile(id);
-      
-      if (!mediaFile) {
-        return res.status(404).json({ message: "Media file not found" });
-      }
-      
-      res.json(mediaFile);
-    } catch (error) {
-      res.status(500).json({ message: "Failed to fetch media file" });
-    }
-  });
-  
-  app.delete("/api/media/:id", async (req, res) => {
-    try {
-      const id = parseInt(req.params.id);
-      const result = await storage.deleteMediaFile(id);
-      
-      if (!result) {
-        return res.status(404).json({ message: "Media file not found" });
-      }
-      
-      res.status(200).json({ success: true });
-    } catch (error) {
-      res.status(500).json({ message: "Failed to delete media file" });
-    }
-  });
-  
-  app.post("/api/media", upload.single("file"), async (req, res) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
-      }
-      
-      const file = req.file;
-      const mediaType: "image" | "video" | "audio" | "document" | "presentation" = getMediaTypeFromMimeType(file.mimetype);
-      const fileName = req.body.name || file.originalname;
-      const description = req.body.description || "";
-      const tags = req.body.tags ? req.body.tags.split(",").map((tag: string) => tag.trim()) : [];
-      
-      // Generate a thumbnail for image files
-      let thumbnailUrl = null;
-      if (mediaType === "image") {
-        const thumbnailFileName = `thumb_${path.basename(file.filename)}`;
-        const thumbnailPath = path.join(thumbnailsDir, thumbnailFileName);
-        thumbnailUrl = await generateThumbnail(file.path, mediaType, thumbnailPath);
-        
-        if (thumbnailUrl) {
-          // Convert to web path
-          thumbnailUrl = `/uploads/thumbnails/${thumbnailFileName}`;
-        }
-      }
-      
-      const mediaFile = await storage.createMediaFile({
-        filename: file.filename,
-        originalFilename: fileName,
-        mediaType,
-        url: `/uploads/media/${file.filename}`,
-        thumbnail: thumbnailUrl,
-        fileSize: file.size,
-        mimeType: file.mimetype,
-        path: file.path,
-        uploadedById: parseInt(req.body.userId) || 1,
-        metadata: tags.length > 0 ? { tags } : undefined,
-      });
-      
-      res.status(201).json(mediaFile);
-    } catch (error) {
-      console.error("Media upload error:", error);
-      res.status(500).json({ message: "Failed to upload media file" });
-    }
-  });
+  // Здесь были обработчики медиа-маршрутов, теперь они перемещены далее в файл
   
   // Onboarding progress for dashboard
   app.get("/api/onboarding", async (req, res) => {
@@ -618,7 +526,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Media file not found" });
       }
       
-      res.json(mediaFile);
+      // Добавляем виртуальное поле name для совместимости с клиентским кодом
+      const mediaFileWithName = {
+        ...mediaFile,
+        name: mediaFile.originalFilename
+      };
+      
+      res.json(mediaFileWithName);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch media file" });
     }
