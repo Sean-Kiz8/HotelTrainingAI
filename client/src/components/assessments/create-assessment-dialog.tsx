@@ -23,6 +23,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
@@ -33,13 +34,16 @@ import { apiRequest } from "@/lib/queryClient";
 const formSchema = z.object({
   title: z.string().min(3, "Название должно содержать минимум 3 символа"),
   description: z.string().optional(),
-  roleId: z.string().min(1, "Выберите роль"),
   userId: z.string().min(1, "Выберите сотрудника"),
+  roleId: z.string().min(1, "Выберите роль"),
   timeLimit: z.string().optional(),
   passingScore: z.string().min(1, "Укажите проходной балл"),
   competencies: z.array(z.string()).optional(),
   generateQuestions: z.boolean().default(true),
   questionCount: z.string().min(1, "Укажите количество вопросов"),
+  targetLevel: z.string().min(1, "Выберите уровень сотрудника"),
+  dueDate: z.string().optional(),
+  customCompetencies: z.string().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -62,13 +66,16 @@ export function CreateAssessmentDialog({ open, onOpenChange }: CreateAssessmentD
     defaultValues: {
       title: "",
       description: "",
-      roleId: "",
       userId: "",
+      roleId: "",
       timeLimit: "30",
       passingScore: "70",
       competencies: [],
       generateQuestions: true,
       questionCount: "10",
+      targetLevel: "middle",
+      dueDate: "",
+      customCompetencies: "",
     },
   });
 
@@ -90,17 +97,27 @@ export function CreateAssessmentDialog({ open, onOpenChange }: CreateAssessmentD
     enabled: open,
   });
 
-  // Получаем данные выбранной роли
-  const selectedRoleId = form.watch("roleId");
-  const { data: selectedRole } = useQuery({
-    queryKey: [`/api/employee-roles/${selectedRoleId}`],
-    enabled: !!selectedRoleId && selectedRoleId !== "",
+  // Получаем данные выбранного сотрудника
+  const selectedUserId = form.watch("userId");
+  const { data: selectedUser } = useQuery({
+    queryKey: [`/api/users/${selectedUserId}`],
+    enabled: !!selectedUserId && selectedUserId !== "",
   });
 
-  // Фильтруем сотрудников по выбранной роли
-  const filteredEmployees = employees.filter((employee: any) =>
-    !selectedRoleId || employee.roleId === parseInt(selectedRoleId)
-  );
+  // Фильтруем роли по выбранному сотруднику
+  const filteredRoles = roles;
+
+  // Добавляем состояние для пользовательских компетенций
+  const [customCompetenciesList, setCustomCompetenciesList] = useState<string[]>([]);
+
+  // Обработчик добавления пользовательской компетенции
+  const handleAddCustomCompetency = () => {
+    const customCompetency = form.getValues().customCompetencies;
+    if (customCompetency && customCompetency.trim() !== "") {
+      setCustomCompetenciesList([...customCompetenciesList, customCompetency.trim()]);
+      form.setValue("customCompetencies", "");
+    }
+  };
 
   // Мутация для создания ассесмента
   const createAssessmentMutation = useMutation({
@@ -155,6 +172,8 @@ export function CreateAssessmentDialog({ open, onOpenChange }: CreateAssessmentD
     },
   });
 
+
+
   // Мутация для генерации вопросов
   const generateQuestionsMutation = useMutation({
     mutationFn: async (data: { assessmentId: number; count: number }) => {
@@ -188,8 +207,19 @@ export function CreateAssessmentDialog({ open, onOpenChange }: CreateAssessmentD
   const onSubmit = async (data: FormValues) => {
     setIsSubmitting(true);
 
-    // Проверяем наличие выбранной роли
-    if (!selectedRoleId) {
+    // Проверяем наличие выбранного сотрудника
+    if (!data.userId) {
+      toast({
+        title: "Ошибка",
+        description: "Выберите сотрудника",
+        variant: "destructive",
+      });
+      setIsSubmitting(false);
+      return;
+    }
+
+    // Проверяем, что выбрана роль
+    if (!data.roleId) {
       toast({
         title: "Ошибка",
         description: "Выберите роль сотрудника",
@@ -199,16 +229,23 @@ export function CreateAssessmentDialog({ open, onOpenChange }: CreateAssessmentD
       return;
     }
 
+    // Собираем все компетенции (выбранные и пользовательские)
+    const allCompetencies = [...selectedCompetencies];
+
     // Преобразуем данные формы в формат для API
     const assessmentData = {
       title: data.title,
       description: data.description || "",
       roleId: parseInt(data.roleId),
+      userId: parseInt(data.userId),
       timeLimit: data.timeLimit ? parseInt(data.timeLimit) : null,
       passingScore: parseInt(data.passingScore),
-      targetCompetencies: selectedCompetencies.map(id => ({ id: parseInt(id) })),
+      targetCompetencies: selectedCompetencies.map(id => parseInt(id)),
       status: "created",
       createdById: user?.id || 1,
+      targetLevel: data.targetLevel,
+      dueDate: data.dueDate ? new Date(data.dueDate) : null,
+      customCompetencies: customCompetenciesList,
     };
 
     try {
@@ -279,6 +316,37 @@ export function CreateAssessmentDialog({ open, onOpenChange }: CreateAssessmentD
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <FormField
                 control={form.control}
+                name="userId"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Сотрудник</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      defaultValue={field.value}
+                      disabled={isLoadingEmployees}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Выберите сотрудника" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {employees
+                          .filter((employee: any) => employee.role !== "admin")
+                          .map((employee: any) => (
+                            <SelectItem key={employee.id} value={employee.id.toString()}>
+                              {employee.name} ({employee.position || "Без должности"})
+                            </SelectItem>
+                          ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
                 name="roleId"
                 render={({ field }) => (
                   <FormItem>
@@ -308,28 +376,23 @@ export function CreateAssessmentDialog({ open, onOpenChange }: CreateAssessmentD
 
               <FormField
                 control={form.control}
-                name="userId"
+                name="targetLevel"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Сотрудник</FormLabel>
+                    <FormLabel>Уровень сотрудника</FormLabel>
                     <Select
                       onValueChange={field.onChange}
                       defaultValue={field.value}
-                      disabled={isLoadingEmployees || !selectedRoleId}
                     >
                       <FormControl>
                         <SelectTrigger>
-                          <SelectValue placeholder="Выберите сотрудника" />
+                          <SelectValue placeholder="Выберите уровень" />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {filteredEmployees
-                          .filter((employee: any) => employee.role !== "admin")
-                          .map((employee: any) => (
-                            <SelectItem key={employee.id} value={employee.id.toString()}>
-                              {employee.name} ({employee.position || "Без должности"})
-                            </SelectItem>
-                          ))}
+                        <SelectItem value="junior">Начинающий (Junior)</SelectItem>
+                        <SelectItem value="middle">Средний (Middle)</SelectItem>
+                        <SelectItem value="senior">Опытный (Senior)</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormMessage />
@@ -364,6 +427,24 @@ export function CreateAssessmentDialog({ open, onOpenChange }: CreateAssessmentD
                         type="number"
                         min="1"
                         placeholder="Оставьте пустым, если нет ограничения"
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              <FormField
+                control={form.control}
+                name="dueDate"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Срок выполнения</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="date"
+                        placeholder="Выберите дату"
                         {...field}
                       />
                     </FormControl>
@@ -443,6 +524,46 @@ export function CreateAssessmentDialog({ open, onOpenChange }: CreateAssessmentD
                 <p className="text-sm font-medium text-destructive mt-1">
                   {form.formState.errors.competencies.message}
                 </p>
+              )}
+            </div>
+
+            <div>
+              <FormLabel>Добавить свою компетенцию</FormLabel>
+              <div className="flex items-center space-x-2 mt-2">
+                <FormField
+                  control={form.control}
+                  name="customCompetencies"
+                  render={({ field }) => (
+                    <FormItem className="flex-grow">
+                      <FormControl>
+                        <Input
+                          placeholder="Введите название компетенции"
+                          {...field}
+                        />
+                      </FormControl>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleAddCustomCompetency}
+                >
+                  Добавить
+                </Button>
+              </div>
+              {customCompetenciesList.length > 0 && (
+                <div className="mt-2">
+                  <div className="text-sm font-medium mb-1">Добавленные компетенции:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {customCompetenciesList.map((competency, index) => (
+                      <Badge key={index} variant="outline">
+                        {competency}
+                      </Badge>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 

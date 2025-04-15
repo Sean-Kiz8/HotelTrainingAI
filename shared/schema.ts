@@ -466,6 +466,8 @@ export const assessments = pgTable("assessments", {
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
   timeLimit: integer("time_limit"), // Ограничение по времени в минутах (null - без ограничения)
   passingScore: integer("passing_score").notNull().default(70), // Проходной балл в процентах
+  dueDate: timestamp("due_date"), // Дата, до которой ассесмент должен быть завершен
+  targetLevel: employeeLevelEnum("target_level"), // Целевой уровень сотрудника для ассесмента
 });
 
 export const insertAssessmentSchema = createInsertSchema(assessments).omit({
@@ -504,7 +506,7 @@ export const assessmentSessions = pgTable("assessment_sessions", {
   assessmentId: integer("assessment_id").notNull(),
   startedAt: timestamp("started_at").notNull().defaultNow(),
   completedAt: timestamp("completed_at"),
-  status: assessmentStatusEnum("status").notNull().default("in_progress"),
+  status: assessmentStatusEnum("status").notNull().default("created"),
   score: integer("score"), // Итоговый балл
   scorePercentage: integer("score_percentage"), // Процент правильных ответов
   timeSpent: integer("time_spent"), // Время в секундах, затраченное на прохождение

@@ -29,6 +29,7 @@ import AILearningPath from "./pages/ai-learning-path";
 import Assessments from "./pages/assessments";
 import AssessmentSession from "./pages/assessment-session";
 import AssessmentResults from "./pages/assessment-results";
+import AssessmentDetails from "./pages/assessment-details";
 import { useEffect } from "react";
 import { ProtectedRoute } from "./lib/protected-route";
 import { AuthProvider } from "./hooks/use-auth";
@@ -104,6 +105,7 @@ function App() {
 
                   {/* Assessment routes */}
                   <ProtectedRoute path="/assessments" component={Assessments} />
+                  <ProtectedRoute path="/assessment-details/:id" component={AssessmentDetails} />
                   <ProtectedRoute path="/assessment-session/:id" component={AssessmentSession} />
                   <ProtectedRoute path="/assessment-results/:id" component={AssessmentResults} />
 

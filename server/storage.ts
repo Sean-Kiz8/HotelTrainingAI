@@ -1257,6 +1257,17 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createAssessmentSession(session: InsertAssessmentSession): Promise<AssessmentSession> {
+    console.log("Creating assessment session with data:", session);
+
+    // Проверяем наличие обязательных полей
+    if (!session.userId || isNaN(session.userId)) {
+      throw new Error(`Неверный ID пользователя: ${session.userId}`);
+    }
+
+    if (!session.assessmentId || isNaN(session.assessmentId)) {
+      throw new Error(`Неверный ID ассесмента: ${session.assessmentId}`);
+    }
+
     // Получаем данные о сотруднике и ассесменте
     const user = await this.getUser(session.userId);
     const assessment = await this.getAssessment(session.assessmentId);
@@ -1285,12 +1296,22 @@ export class DatabaseStorage implements IStorage {
       );
 
     if (existingSessions.length > 0) {
+      console.log("Found existing session:", existingSessions[0]);
       // Если уже есть активная сессия, возвращаем ее
       return existingSessions[0];
     }
 
     // Создаем сессию
-    const [newSession] = await db.insert(assessmentSessions).values(session).returning();
+    const sessionData = {
+      userId: session.userId,
+      assessmentId: session.assessmentId,
+      status: session.status || "created"
+    };
+
+    console.log("Inserting session with data:", sessionData);
+
+    const [newSession] = await db.insert(assessmentSessions).values(sessionData).returning();
+    console.log("Created new session:", newSession);
 
     // Создаем активность для назначения ассесмента
     await this.createActivity({
@@ -1303,11 +1324,20 @@ export class DatabaseStorage implements IStorage {
   }
 
   async updateAssessmentSession(id: number, sessionData: Partial<InsertAssessmentSession>): Promise<AssessmentSession | undefined> {
+    console.log("Updating assessment session:", id, "with data:", sessionData);
+
+    // Если статус меняется на in_progress, устанавливаем startedAt
+    if (sessionData.status === 'in_progress') {
+      sessionData.startedAt = new Date();
+    }
+
     const [updatedSession] = await db
       .update(assessmentSessions)
       .set(sessionData)
       .where(eq(assessmentSessions.id, id))
       .returning();
+
+    console.log("Updated session:", updatedSession);
     return updatedSession;
   }
 
@@ -1869,7 +1899,7 @@ export class DatabaseStorage implements IStorage {
     const [progress] = await db.select().from(microLearningProgress).where(eq(microLearningProgress.id, id));
     return progress;
   }
-  
+
   async listMicroLearningProgress(): Promise<MicroLearningProgress[]> {
     return await db.select().from(microLearningProgress);
   }
@@ -2016,7 +2046,7 @@ ${competency.description}
 
       // Если есть сессия, рекомендуем контент по компетенциям с низким результатом
       const weakCompetencies = [];
-      
+
       // Безопасно обрабатываем результаты компетенций
       if (lastSession.competenciesResult && typeof lastSession.competenciesResult === 'object') {
         for (const [id, result] of Object.entries(lastSession.competenciesResult)) {
@@ -2091,7 +2121,7 @@ ${competency.description}
           .select({ count: sql`count(*)` })
           .from(microLearningAssignments)
           .where(eq(microLearningAssignments.is_completed, true));
-          
+
         if (completedAssignments) {
           completedAssignmentsCount = parseInt(completedAssignments.count.toString());
         }
@@ -2139,10 +2169,10 @@ ${competency.description}
       // Преобразуем строковые значения count в числа
       const totalContentCount = totalContent ? parseInt(totalContent.count.toString()) : 0;
       const totalAssignmentsCount = totalAssignments ? parseInt(totalAssignments.count.toString()) : 0;
-      
+
       // Вычисляем процент завершения
-      const completionRate = totalAssignmentsCount > 0 
-        ? (completedAssignmentsCount / totalAssignmentsCount) * 100 
+      const completionRate = totalAssignmentsCount > 0
+        ? (completedAssignmentsCount / totalAssignmentsCount) * 100
         : 0;
 
       return {

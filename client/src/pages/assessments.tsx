@@ -81,8 +81,13 @@ export default function Assessments() {
   // Мутация для создания сессии ассесмента
   const createSessionMutation = useMutation({
     mutationFn: async (assessmentId: number) => {
+      if (!user || !user.id) {
+        throw new Error("Пользователь не авторизован");
+      }
+
+      console.log("Creating session for assessment ID:", assessmentId);
+
       const response = await apiRequest("POST", "/api/assessment-sessions", {
-        userId: user?.id,
         assessmentId: assessmentId,
         status: "created"
       });

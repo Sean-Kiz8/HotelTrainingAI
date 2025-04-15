@@ -418,7 +418,7 @@ export async function generateAssessmentQuestions(
     `;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-4o",
+      model: "gpt-4.1",
       messages: [
         { role: "system", content: "Ты - AI-ассистент для системы оценки компетенций персонала отеля HotelLearn." },
         { role: "user", content: prompt }

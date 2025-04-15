@@ -9,12 +9,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import {
   Dialog,
@@ -27,15 +27,15 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  ArrowRight, Brain, ChevronLeft, ChevronRight, 
-  GraduationCap, LineChart, ListChecks, Star, Users 
+import {
+  ArrowRight, Brain, ChevronLeft, ChevronRight,
+  GraduationCap, LineChart, ListChecks, Star, Users
 } from "lucide-react";
 
 export default function AILearningPathPage() {
   const { toast } = useToast();
   const [, setLocation] = useLocation();
-  
+
   // Состояние формы
   const [userRole, setUserRole] = useState<string>("");
   const [userLevel, setUserLevel] = useState<string>("middle");
@@ -45,13 +45,13 @@ export default function AILearningPathPage() {
   const [processingState, setProcessingState] = useState<
     "idle" | "processing" | "success" | "error"
   >("idle");
-  
+
   // Получаем список пользователей
   const { data: users = [], isLoading: isLoadingUsers } = useQuery<any[]>({
     queryKey: ['/api/users'],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
-  
+
   // Выбранный пользователь
   const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
 
@@ -60,16 +60,16 @@ export default function AILearningPathPage() {
     queryKey: ['/api/courses'],
     queryFn: getQueryFn({ on401: "returnNull" }),
   });
-  
+
   // Результат генерации
   const [generationResult, setGenerationResult] = useState<any | null>(null);
-  
+
   // Мутация для генерации учебного пути
   const generateMutation = useMutation({
     mutationFn: async (data: any) => {
       const res = await apiRequest(
-        "POST", 
-        "/api/learning-paths/generate", 
+        "POST",
+        "/api/learning-paths/generate",
         data
       );
       return await res.json();
@@ -90,7 +90,7 @@ export default function AILearningPathPage() {
       });
     }
   });
-  
+
   // Обработчик генерации учебного пути
   const handleGenerate = () => {
     if (!selectedUserId) {
@@ -101,7 +101,7 @@ export default function AILearningPathPage() {
       });
       return;
     }
-    
+
     if (!userRole || !userDepartment || !skills) {
       toast({
         title: "Заполните все поля",
@@ -110,20 +110,30 @@ export default function AILearningPathPage() {
       });
       return;
     }
-    
+
     setProcessingState("processing");
-    
+
     // Отправка данных на сервер
+    const skillsArray = skills.split(",").filter(s => s.trim() !== "").map(s => s.trim());
+    console.log("Sending data to server:", {
+      userId: selectedUserId,
+      createdById: selectedUserId,
+      userRole,
+      userLevel,
+      userDepartment,
+      targetSkills: skillsArray
+    });
+
     generateMutation.mutate({
       userId: selectedUserId,
       createdById: selectedUserId, // В реальности здесь должен быть ID текущего пользователя
       userRole,
       userLevel,
       userDepartment,
-      targetSkills: skills.split(",").map(s => s.trim())
+      targetSkills: skillsArray
     });
   };
-  
+
   // Перейти к сгенерированному учебному пути
   const handleViewLearningPath = () => {
     if (generationResult && generationResult.learningPath) {
@@ -131,7 +141,7 @@ export default function AILearningPathPage() {
       setLocation(`/learning-path/${generationResult.learningPath.id}`);
     }
   };
-  
+
   // Функция для отображения приоритета
   const renderPriority = (priority: string) => {
     switch (priority) {
@@ -143,12 +153,12 @@ export default function AILearningPathPage() {
         return <span className="text-xs font-semibold bg-green-100 text-green-700 px-2 py-1 rounded-full">Средний</span>;
     }
   };
-  
+
   return (
     <div className="p-4 md:p-6">
       <div className="flex items-center gap-2 mb-4">
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           onClick={() => setLocation('/learning-paths')}
         >
@@ -156,7 +166,7 @@ export default function AILearningPathPage() {
           Назад к учебным планам
         </Button>
       </div>
-      
+
       <PageHeader className="mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Brain className="h-6 w-6 text-primary" />
@@ -164,11 +174,11 @@ export default function AILearningPathPage() {
         </div>
         <PageHeaderHeading>Персонализированный учебный план</PageHeaderHeading>
         <PageHeaderDescription>
-          Создайте индивидуальный учебный план с помощью искусственного интеллекта, 
+          Создайте индивидуальный учебный план с помощью искусственного интеллекта,
           учитывающий должность, уровень и целевые навыки сотрудника.
         </PageHeaderDescription>
       </PageHeader>
-      
+
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <div className="md:col-span-2">
           <Card>
@@ -182,7 +192,7 @@ export default function AILearningPathPage() {
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="user">Сотрудник</Label>
-                  <Select 
+                  <Select
                     value={selectedUserId?.toString() || ""}
                     onValueChange={(value) => setSelectedUserId(parseInt(value))}
                   >
@@ -204,20 +214,20 @@ export default function AILearningPathPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="role">Должность</Label>
-                  <Input 
-                    id="role" 
+                  <Input
+                    id="role"
                     placeholder="Например: Администратор ресепшн"
                     value={userRole}
                     onChange={(e) => setUserRole(e.target.value)}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="level">Уровень</Label>
-                  <Select 
+                  <Select
                     value={userLevel}
                     onValueChange={(value) => setUserLevel(value)}
                   >
@@ -231,21 +241,21 @@ export default function AILearningPathPage() {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <Label htmlFor="department">Отдел</Label>
-                  <Input 
-                    id="department" 
+                  <Input
+                    id="department"
                     placeholder="Например: Обслуживание номеров"
                     value={userDepartment}
                     onChange={(e) => setUserDepartment(e.target.value)}
                   />
                 </div>
-                
+
                 <div>
                   <Label htmlFor="skills">Целевые навыки (через запятую)</Label>
-                  <Textarea 
-                    id="skills" 
+                  <Textarea
+                    id="skills"
                     placeholder="Например: управление конфликтами, делегирование, коммуникация с гостями"
                     value={skills}
                     onChange={(e) => setSkills(e.target.value)}
@@ -272,7 +282,7 @@ export default function AILearningPathPage() {
             </CardFooter>
           </Card>
         </div>
-        
+
         <div>
           <Card>
             <CardHeader>
@@ -312,7 +322,7 @@ export default function AILearningPathPage() {
               )}
             </CardContent>
           </Card>
-          
+
           <Card className="mt-4">
             <CardHeader>
               <CardTitle>Как это работает?</CardTitle>
@@ -330,7 +340,7 @@ export default function AILearningPathPage() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <div className="bg-primary/10 p-2 rounded-full">
                     <ListChecks className="h-5 w-5 text-primary" />
@@ -342,7 +352,7 @@ export default function AILearningPathPage() {
                     </p>
                   </div>
                 </div>
-                
+
                 <div className="flex items-start gap-3">
                   <div className="bg-primary/10 p-2 rounded-full">
                     <LineChart className="h-5 w-5 text-primary" />
@@ -359,7 +369,7 @@ export default function AILearningPathPage() {
           </Card>
         </div>
       </div>
-      
+
       {/* Диалог с результатами генерации */}
       <Dialog open={showResultDialog} onOpenChange={setShowResultDialog}>
         <DialogContent className="max-w-3xl">
@@ -369,13 +379,13 @@ export default function AILearningPathPage() {
               AI подобрал оптимальный набор курсов для развития необходимых навыков.
             </DialogDescription>
           </DialogHeader>
-          
+
           {generationResult && (
             <div className="py-4">
               <div className="mb-6">
                 <h3 className="text-lg font-semibold mb-2">{generationResult.learningPath.name}</h3>
                 <p className="text-muted-foreground">{generationResult.learningPath.description}</p>
-                
+
                 <div className="mt-4">
                   <h4 className="text-sm font-medium mb-2">Целевые навыки:</h4>
                   <div className="flex flex-wrap gap-2">
@@ -387,9 +397,9 @@ export default function AILearningPathPage() {
                   </div>
                 </div>
               </div>
-              
+
               <Separator className="my-4" />
-              
+
               <h4 className="text-sm font-medium mb-3">Рекомендуемые курсы:</h4>
               <div className="space-y-3 max-h-[300px] overflow-y-auto pr-2">
                 {generationResult.courses.map((courseEntry: any) => {
@@ -397,10 +407,10 @@ export default function AILearningPathPage() {
                   const courseDetail = generationResult.details?.recommendedCourses?.find(
                     (c: any) => c.courseId === courseEntry.courseId
                   );
-                  
+
                   // Находим сам курс из общего списка
                   const course = courses.find(c => c.id === courseEntry.courseId);
-                  
+
                   return (
                     <Card key={courseEntry.id} className="overflow-hidden">
                       <div className="flex">
@@ -417,7 +427,7 @@ export default function AILearningPathPage() {
                             </div>
                             <div>{renderPriority(courseEntry.priority)}</div>
                           </div>
-                          
+
                           {courseDetail?.rationale && (
                             <div className="mt-2 pt-2 border-t text-sm">
                               <p className="text-muted-foreground">{courseDetail.rationale}</p>
@@ -431,7 +441,7 @@ export default function AILearningPathPage() {
               </div>
             </div>
           )}
-          
+
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowResultDialog(false)}>
               Закрыть
