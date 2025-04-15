@@ -1,4 +1,4 @@
-import type { Express, Request, Response } from "express";
+import express, { type Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -68,7 +68,7 @@ const fileFilter = (req: Request, file: Express.Multer.File, cb: multer.FileFilt
 };
 
 const upload = multer({ 
-  storage, 
+  storage: uploadStorage, 
   fileFilter,
   limits: { fileSize: 50 * 1024 * 1024 } // 50MB max size
 });
@@ -487,6 +487,135 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ message: "Failed to fetch onboarding data" });
     }
   });
+
+  // Media routes
+  app.get("/api/media", async (req, res) => {
+    try {
+      const mediaType = req.query.type as string | undefined;
+      const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+      const offset = req.query.offset ? parseInt(req.query.offset as string) : 0;
+      
+      let mediaFiles;
+      if (mediaType) {
+        mediaFiles = await storage.listMediaFilesByType(mediaType, limit, offset);
+      } else {
+        mediaFiles = await storage.listMediaFiles(limit, offset);
+      }
+      
+      res.json(mediaFiles);
+    } catch (error) {
+      console.error("Error fetching media:", error);
+      res.status(500).json({ message: "Failed to fetch media files" });
+    }
+  });
+  
+  app.get("/api/media/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const mediaFile = await storage.getMediaFile(id);
+      
+      if (!mediaFile) {
+        return res.status(404).json({ message: "Media file not found" });
+      }
+      
+      res.json(mediaFile);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch media file" });
+    }
+  });
+
+  // Upload a new media file
+  app.post("/api/media/upload", upload.single("file"), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ message: "No file uploaded" });
+      }
+      
+      const { uploadedById } = req.body;
+      const userId = parseInt(uploadedById);
+      
+      // Generate file paths
+      const filePath = req.file.path;
+      const relativePath = `./uploads/media/${req.file.filename}`;
+      const fileUrl = `/uploads/media/${req.file.filename}`;
+      
+      // Determine media type from mime type
+      const mediaType = getMediaTypeFromMimeType(req.file.mimetype);
+      
+      // Generate thumbnail for supported media types
+      let thumbnail = null;
+      const thumbnailName = `thumb_${req.file.filename}`;
+      const thumbnailPath = path.join(thumbnailsDir, thumbnailName);
+      
+      const thumbnailResult = await generateThumbnail(filePath, mediaType, thumbnailPath);
+      if (thumbnailResult) {
+        thumbnail = `/uploads/thumbnails/${thumbnailName}`;
+      }
+      
+      // Create the media file record in the database
+      const mediaFileData = {
+        filename: req.file.filename,
+        originalFilename: req.file.originalname,
+        path: relativePath,
+        url: fileUrl,
+        mediaType,
+        thumbnail,
+        fileSize: req.file.size,
+        mimeType: req.file.mimetype,
+        uploadedById: userId,
+        metadata: req.body.metadata ? JSON.parse(req.body.metadata) : null
+      };
+      
+      const mediaFile = await storage.createMediaFile(mediaFileData);
+      
+      res.status(201).json(mediaFile);
+    } catch (error) {
+      console.error("Error uploading file:", error);
+      res.status(500).json({ message: "Failed to upload file" });
+    }
+  });
+  
+  app.delete("/api/media/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const mediaFile = await storage.getMediaFile(id);
+      
+      if (!mediaFile) {
+        return res.status(404).json({ message: "Media file not found" });
+      }
+      
+      // Delete the file from the filesystem
+      if (mediaFile.url) {
+        const filePath = path.join(".", mediaFile.url);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      }
+      
+      // Delete the thumbnail if it exists
+      if (mediaFile.thumbnail) {
+        const thumbnailPath = path.join(".", mediaFile.thumbnail);
+        if (fs.existsSync(thumbnailPath)) {
+          fs.unlinkSync(thumbnailPath);
+        }
+      }
+      
+      // Delete from database
+      const success = await storage.deleteMediaFile(id);
+      
+      if (success) {
+        res.json({ success: true, message: "Media file deleted successfully" });
+      } else {
+        res.status(500).json({ message: "Failed to delete media file" });
+      }
+    } catch (error) {
+      console.error("Error deleting media file:", error);
+      res.status(500).json({ message: "Failed to delete media file" });
+    }
+  });
+  
+  // Serve static files from uploads directory
+  app.use("/uploads", express.static(uploadDir));
 
   const httpServer = createServer(app);
   return httpServer;
