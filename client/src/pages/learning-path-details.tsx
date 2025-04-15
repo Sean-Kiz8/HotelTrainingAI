@@ -97,7 +97,7 @@ export default function LearningPathDetails() {
   // Получаем данные о плане обучения
   const { data: learningPath, isLoading } = useQuery({
     queryKey: ["/api/learning-paths", numericId],
-    enabled: !isNaN(numericId),
+    enabled: !isNaN(numericId) && !!user?.id,
   });
 
   // Получаем данные о пользователе, для которого создан план

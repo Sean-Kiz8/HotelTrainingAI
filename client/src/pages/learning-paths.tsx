@@ -190,13 +190,15 @@ export default function LearningPaths() {
   
   const { data: learningPaths, isLoading } = useQuery({
     queryKey: pathsQueryKey,
-    enabled: !!user,
+    // Запрос будет выполнен только если пользователь авторизован
+    enabled: !!user?.id,
   });
 
   // Получаем список всех учебных планов (только для админов)
   const { data: allLearningPaths, isLoading: isLoadingAll } = useQuery({
-    queryKey: ["/api/learning-paths", { createdById: user?.id }],
-    enabled: !!user && isAdmin && activeTab === "all",
+    queryKey: ["/api/learning-paths"],
+    // Запрос будет выполнен только для админов и при выборе вкладки "Все"
+    enabled: !!user?.id && isAdmin && activeTab === "all",
   });
 
   // Фильтрация по поисковому запросу
