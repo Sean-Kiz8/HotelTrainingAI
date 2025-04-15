@@ -8,7 +8,7 @@ interface TempMainLayoutProps {
 }
 
 export function TempMainLayout({ children }: TempMainLayoutProps) {
-  const { isOpen } = useChatbot();
+  const { isChatbotOpen } = useChatbot();
   
   return (
     <div className="flex h-screen overflow-hidden bg-neutral-100">
@@ -24,7 +24,7 @@ export function TempMainLayout({ children }: TempMainLayoutProps) {
       </div>
       
       {/* AI Chat Overlay */}
-      {isOpen && <AIChat />}
+      {isChatbotOpen && <AIChat />}
     </div>
   );
 }

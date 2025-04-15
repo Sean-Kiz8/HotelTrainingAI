@@ -4,30 +4,30 @@ import type { ChatMessage } from "@shared/schema";
 import { AuthUser } from "./auth-context";
 
 interface ChatbotContextType {
-  isOpen: boolean;
-  toggleChatbot: () => void;
-  closeChatbot: () => void;
-  openChatbot: () => void;
+  isChatbotOpen: boolean;
   messages: ChatMessage[];
   sendMessage: (message: string, userId?: number) => Promise<void>;
   isLoading: boolean;
   loadUserChatHistory: (userId: number) => Promise<void>;
   addMessage: (message: ChatMessage) => void;
   historyLoaded: boolean;
+  toggleChatbot: () => void;
+  openChatbot: () => void;
+  closeChatbot: () => void;
 }
 
 // Create default context values
 const defaultContextValue: ChatbotContextType = {
-  isOpen: false,
-  toggleChatbot: () => {},
-  closeChatbot: () => {},
-  openChatbot: () => {},
+  isChatbotOpen: false,
   messages: [],
   sendMessage: async () => {},
   isLoading: false,
   loadUserChatHistory: async () => {},
   addMessage: () => {},
-  historyLoaded: false
+  historyLoaded: false,
+  toggleChatbot: () => {},
+  openChatbot: () => {},
+  closeChatbot: () => {}
 };
 
 const ChatbotContext = createContext<ChatbotContextType>(defaultContextValue);
@@ -42,14 +42,14 @@ const createWelcomeMessage = (userId = 1): ChatMessage => ({
 });
 
 export function ChatbotProvider({ children }: { children: React.ReactNode }) {
-  const [isOpen, setIsOpen] = useState(false);
+  const [isChatbotOpen, setIsChatbotOpen] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([createWelcomeMessage()]);
   const [isLoading, setIsLoading] = useState(false);
   const hasLoadedHistory = useRef(false);
   
-  const toggleChatbot = () => setIsOpen((prev) => !prev);
-  const closeChatbot = () => setIsOpen(false);
-  const openChatbot = () => setIsOpen(true);
+  const toggleChatbot = () => setIsChatbotOpen((prev) => !prev);
+  const closeChatbot = () => setIsChatbotOpen(false);
+  const openChatbot = () => setIsChatbotOpen(true);
   
   // Load chat history for a specific user
   const loadUserChatHistory = async (userId: number) => {
@@ -120,10 +120,10 @@ export function ChatbotProvider({ children }: { children: React.ReactNode }) {
   return (
     <ChatbotContext.Provider 
       value={{ 
-        isOpen, 
-        toggleChatbot, 
-        closeChatbot, 
+        isChatbotOpen,
+        toggleChatbot,
         openChatbot,
+        closeChatbot,
         messages,
         sendMessage,
         isLoading,

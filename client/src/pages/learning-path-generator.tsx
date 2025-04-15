@@ -72,9 +72,10 @@ export default function LearningPathGenerator() {
         createdById: user?.id || 1,
         position: data.position,
         level: data.level,
+        userRole: data.position, // Добавляем userRole на основе должности
         userLevel: data.userLevel,
         userDepartment: data.userDepartment,
-        targetSkills: data.targetSkills,
+        targetSkills: data.targetSkills.split(",").map(skill => skill.trim()), // Преобразуем строку в массив
       };
 
       return apiRequest(
@@ -151,11 +152,13 @@ export default function LearningPathGenerator() {
                             </SelectTrigger>
                           </FormControl>
                           <SelectContent>
-                            {users?.map((user: any) => (
+                            {users && Array.isArray(users) ? users.map((user: any) => (
                               <SelectItem key={user.id} value={user.id.toString()}>
                                 {user.name} ({user.position || "Должность не указана"})
                               </SelectItem>
-                            ))}
+                            )) : (
+                              <SelectItem value="no-users" disabled>Нет доступных пользователей</SelectItem>
+                            )}
                           </SelectContent>
                         </Select>
                         <FormDescription>

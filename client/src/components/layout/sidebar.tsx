@@ -33,7 +33,8 @@ const staffNavItems = [
 export function Sidebar() {
   const [location, navigate] = useLocation();
   const { user, logoutMutation } = useAuth();
-  const { openChatbot } = useChatbot();
+  const { isChatbotOpen, openChatbot, closeChatbot } = useChatbot();
+  const toggleChatbot = () => isChatbotOpen ? closeChatbot() : openChatbot();
 
   // Всегда отображаем боковое меню для разработки
   // if (!user) return null;
@@ -132,7 +133,7 @@ export function Sidebar() {
             <Button
               className="flex-1 flex justify-start mr-2"
               variant="outline"
-              onClick={openChatbot}
+              onClick={toggleChatbot}
             >
               <span className="material-icons mr-3 text-primary">chat</span>
               Помощник ИИ
@@ -147,7 +148,6 @@ export function Sidebar() {
             onClick={() => logoutMutation.mutate()}
             disabled={logoutMutation.isPending}
           >
-            <LogOut className="mr-2 h-4 w-4" />
             {logoutMutation.isPending ? "Выход..." : "Выйти"}
           </Button>
         </div>

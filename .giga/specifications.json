@@ -1,0 +1,14 @@
+[
+  {
+    "fileName": "main-overview.mdc",
+    "description": "Complete system overview with architecture and key components of the file processing system"
+  },
+  {
+    "fileName": "error-processing-flow.mdc",
+    "description": "Documentation of the error processing workflow, data flow, and error handling mechanisms"
+  },
+  {
+    "fileName": "file-processing-algorithm.mdc",
+    "description": "Detailed documentation of the file processing algorithm, batch processing logic, and group handling"
+  }
+]

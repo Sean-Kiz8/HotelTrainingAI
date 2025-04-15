@@ -8,13 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
 import { AddEmployeeDialog } from "@/components/employees/add-employee-dialog";
 import { AssignCourseDialog } from "@/components/employees/assign-course-dialog";
 import { AssignAssessmentDialog } from "@/components/employees/assign-assessment-dialog";
 
 export default function Employees() {
-  const { toast } = useToast();
   const [, navigate] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
   const [showAddEmployeeDialog, setShowAddEmployeeDialog] = useState(false);
@@ -30,15 +28,16 @@ export default function Employees() {
   // Generate stable progress values for each employee
   const employeeProgressMap = useMemo(() => {
     if (!users) return new Map();
-
     const progressMap = new Map();
-    users.forEach((user: any) => {
-      // Generate a stable random value based on user ID
-      // This ensures the same user always gets the same progress value
-      const hash = hashCode(user.id);
-      const progress = Math.abs(hash % 101); // Value between 0-100
-      progressMap.set(user.id, progress);
-    });
+    if (Array.isArray(users)) {
+      users.forEach((user: any) => {
+        // Generate a stable random value based on user ID
+        // This ensures the same user always gets the same progress value
+        const hash = hashCode(user.id);
+        const progress = Math.abs(hash % 101); // Value between 0-100
+        progressMap.set(user.id, progress);
+      });
+    }
 
     return progressMap;
   }, [users]);
@@ -53,14 +52,15 @@ export default function Employees() {
     }
     return hash;
   }
-
-  // Filter out admin users and filter by search query
-  const employees = users?.filter((user: any) =>
-    user.role !== "admin" &&
-    (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     user.department?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-     user.position?.toLowerCase().includes(searchQuery.toLowerCase()))
-  );
+  // Фильтрация пользователей (исключаем администраторов и применяем поисковый запрос)
+  const employees = Array.isArray(users) 
+    ? users.filter((user: any) =>
+        user.role !== "admin" &&
+        (user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+         (user.department && user.department.toLowerCase().includes(searchQuery.toLowerCase())) ||
+         (user.position && user.position.toLowerCase().includes(searchQuery.toLowerCase())))
+      )
+    : [];
 
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">

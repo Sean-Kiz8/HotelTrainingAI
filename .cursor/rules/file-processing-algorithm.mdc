@@ -1,0 +1,31 @@
+---
+description: Documentation for handling batched file processing with error recovery and group management
+globs: *.batch,*/processing/*.log,*/groups/*.config
+alwaysApply: false
+---
+
+
+# file-processing-algorithm
+
+## Core Processing Logic
+A multi-stage batch file processor that organizes files into logical groups for processing. The system encountered a critical error while attempting to process 35 files in group 0.
+
+## Group Management 
+Files are organized into numbered groups (starting with group 0) to enable parallel processing and error isolation. Each group represents a distinct processing unit.
+
+## Error Handling
+The processor implements group-level error detection and reporting. When errors occur, the system:
+1. Identifies the affected group number
+2. Tracks the number of impacted files
+3. Maintains processing state for error recovery
+
+## Group Processing States
+Groups can exist in the following states:
+- Active: Currently being processed
+- Error: Processing halted due to failures
+- Complete: All files successfully processed
+
+Importance Score: 85
+Primary business importance due to batch organization and error management capabilities.
+
+$END$

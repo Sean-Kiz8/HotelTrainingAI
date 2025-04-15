@@ -1,315 +1,228 @@
-import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/context/auth-context";
-import { Link, useLocation } from "wouter";
-
-import { PageHeader, SearchInput } from "@/components/layout/page-header";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Progress } from "@/components/ui/progress";
-import { Skeleton } from "@/components/ui/skeleton";
-import {
-  PlusCircle,
-  GraduationCap,
-  User,
-  Briefcase,
-  CheckCircle,
-  Clock,
-  AlertCircle
-} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { PageHeader } from '@/components/layout/page-header';
+import { useAuth } from '@/context/auth-context';
+import { useToast } from '@/hooks/use-toast';
+import { Loader2 } from "lucide-react";
 
-// Вспомогательная функция для отображения статуса
-function getStatusBadge(status: string) {
-  switch (status) {
-    case "completed":
-      return <Badge variant="success" className="ml-2">Завершен</Badge>;
-    case "active":
-      return <Badge variant="default" className="ml-2">Активен</Badge>;
-    case "canceled":
-      return <Badge variant="destructive" className="ml-2">Отменен</Badge>;
-    default:
-      return null;
-  }
-}
-
-// Вспомогательная функция для получения иконки статуса
-function getStatusIcon(status: string) {
-  switch (status) {
-    case "completed":
-      return <CheckCircle className="h-5 w-5 text-success" />;
-    case "active":
-      return <Clock className="h-5 w-5 text-primary" />;
-    case "canceled":
-      return <AlertCircle className="h-5 w-5 text-destructive" />;
-    default:
-      return null;
-  }
-}
-
-// Компонент карточки учебного плана
-function LearningPathCard({ learningPath, onClick }: { learningPath: any, onClick: () => void }) {
-  const { id, userId, position, level, targetSkills, status, progress } = learningPath;
-
-  // Конвертируем уровень в читаемый вид
-  const levelLabel = {
-    junior: "Начинающий",
-    middle: "Средний",
-    senior: "Опытный"
-  }[level] || level;
-
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-medium">
-            План обучения {getStatusBadge(status)}
-          </CardTitle>
-          <div className="flex items-center">
-            {getStatusIcon(status)}
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent className="pb-2">
-        <div className="space-y-4">
-          <div className="flex items-center text-sm">
-            <User className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>Сотрудник ID: {userId}</span>
-          </div>
-          <div className="flex items-center text-sm">
-            <Briefcase className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>Должность: {position}</span>
-          </div>
-          <div className="flex items-center text-sm">
-            <GraduationCap className="h-4 w-4 mr-2 text-muted-foreground" />
-            <span>Уровень: {levelLabel}</span>
-          </div>
-
-          <Separator />
-
-          <div>
-            <div className="text-sm font-medium mb-1">Целевые навыки:</div>
-            <p className="text-sm text-muted-foreground line-clamp-2">
-              {targetSkills}
-            </p>
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex justify-between text-sm">
-              <span>Прогресс</span>
-              <span>{progress}%</span>
-            </div>
-            <Progress value={progress} className="h-2" />
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Button
-          className="w-full"
-          variant={status === "completed" ? "outline" : "default"}
-          onClick={onClick}
-        >
-          {status === "completed" ? "Просмотреть результаты" : "Продолжить обучение"}
-        </Button>
-      </CardFooter>
-    </Card>
-  );
-}
-
-// Компонент скелетона загрузки
-function LearningPathSkeleton() {
-  return (
-    <Card className="h-full">
-      <CardHeader className="pb-2">
-        <Skeleton className="h-6 w-3/4" />
-      </CardHeader>
-      <CardContent>
-        <div className="space-y-4">
-          <div className="flex items-center">
-            <Skeleton className="h-4 w-4 mr-2" />
-            <Skeleton className="h-4 w-1/2" />
-          </div>
-          <div className="flex items-center">
-            <Skeleton className="h-4 w-4 mr-2" />
-            <Skeleton className="h-4 w-2/3" />
-          </div>
-          <div className="flex items-center">
-            <Skeleton className="h-4 w-4 mr-2" />
-            <Skeleton className="h-4 w-1/3" />
-          </div>
-
-          <Skeleton className="h-[1px] w-full" />
-
-          <div>
-            <Skeleton className="h-4 w-1/4 mb-2" />
-            <Skeleton className="h-4 w-full" />
-            <Skeleton className="h-4 w-5/6 mt-1" />
-          </div>
-
-          <div className="space-y-1">
-            <div className="flex justify-between">
-              <Skeleton className="h-4 w-20" />
-              <Skeleton className="h-4 w-8" />
-            </div>
-            <Skeleton className="h-2 w-full" />
-          </div>
-        </div>
-      </CardContent>
-      <CardFooter>
-        <Skeleton className="h-10 w-full" />
-      </CardFooter>
-    </Card>
-  );
+interface LearningPath {
+  id: number;
+  userId: number;
+  createdById: number;
+  position: string;
+  level: string;
+  targetSkills: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+  courses?: {
+    id: number;
+    courseId: number;
+    order: number;
+    priority: string;
+    course: {
+      id: number;
+      title: string;
+      description: string;
+    }
+  }[];
 }
 
 export default function LearningPaths() {
+  const [isLoading, setIsLoading] = useState(true);
+  const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
+  const { user } = useAuth();
   const { toast } = useToast();
-  const { user, refreshUser } = useAuth();
-  const [, navigate] = useLocation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState("my");
 
-  // В режиме разработки пропускаем проверку авторизации
+  // Загрузка учебных планов
   useEffect(() => {
-    // Обновляем данные пользователя с сервера (в режиме разработки это мок-пользователь)
-    refreshUser();
-  }, [refreshUser]);
+    const fetchLearningPaths = async () => {
+      try {
+        setIsLoading(true);
+        // Загружаем учебные планы, созданные для текущего пользователя
+        const response = await fetch(`/api/learning-paths?userId=${user?.id}`, {
+          credentials: 'include'
+        });
 
-  // Получаем список учебных планов текущего пользователя (если он админ, то это планы, созданные им)
-  const isAdmin = user?.role === "admin";
-  const pathsQueryKey = isAdmin ? ["/api/learning-paths", { createdById: user?.id }] : ["/api/learning-paths", { userId: user?.id }];
+        if (!response.ok) {
+          throw new Error(`Ошибка загрузки: ${response.status}`);
+        }
 
-  const { data: learningPaths, isLoading } = useQuery({
-    queryKey: pathsQueryKey,
-    queryFn: () => apiRequest('GET', isAdmin ? `/api/learning-paths?createdById=${user?.id}` : `/api/learning-paths?userId=${user?.id}`),
-    // Запрос будет выполнен только если пользователь авторизован
-    enabled: !!user?.id,
-  });
+        const data = await response.json();
+        setLearningPaths(data);
+      } catch (error) {
+        console.error('Error fetching learning paths:', error);
+        toast({
+          title: 'Ошибка загрузки',
+          description: 'Не удалось загрузить учебные планы.',
+          variant: 'destructive',
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-  // Получаем список всех учебных планов
-  const { data: allLearningPaths, isLoading: isLoadingAll } = useQuery({
-    queryKey: ["/api/learning-paths"],
-    // Убираем зависимость от авторизации в режиме разработки
-    enabled: activeTab === "all",
-  });
+    if (user?.id) {
+      fetchLearningPaths();
+    } else {
+      // Если пользователь не определен, устанавливаем пустой массив и убираем загрузку
+      setLearningPaths([]);
+      setIsLoading(false);
+    }
+  }, [user, toast]);
 
-  // Фильтрация по поисковому запросу
-  const filteredPaths = (activeTab === "my" ? learningPaths : allLearningPaths)?.filter((path: any) => {
-    if (!searchQuery) return true;
+  // Получаем данные каждого учебного плана
+  useEffect(() => {
+    const fetchLearningPathDetails = async () => {
+      try {
+        const updatedPaths = await Promise.all(
+          learningPaths.map(async (path) => {
+            // Для каждого учебного плана загружаем детали (курсы)
+            const response = await fetch(`/api/learning-paths/${path.id}`, {
+              credentials: 'include'
+            });
 
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      path.position?.toLowerCase().includes(searchLower) ||
-      path.targetSkills?.toLowerCase().includes(searchLower)
-    );
-  });
+            if (!response.ok) {
+              throw new Error(`Ошибка загрузки деталей: ${response.status}`);
+            }
 
-  // Обработчик для перехода к детальной странице
-  const handlePathClick = (id: number) => {
-    navigate(`/learning-paths/${id}`);
+            return await response.json();
+          })
+        );
+        setLearningPaths(updatedPaths);
+      } catch (error) {
+        console.error('Error fetching learning path details:', error);
+        toast({
+          title: 'Ошибка загрузки деталей',
+          description: 'Не удалось загрузить детали учебных планов.',
+          variant: 'destructive',
+        });
+      }
+    };
+
+    if (learningPaths.length > 0 && !learningPaths[0].courses) {
+      fetchLearningPathDetails();
+    }
+  }, [learningPaths, toast]);
+
+  const getLevelColor = (level: string) => {
+    switch (level) {
+      case 'junior':
+        return 'green';
+      case 'middle':
+        return 'blue';
+      case 'senior':
+        return 'purple';
+      default:
+        return 'gray';
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'active':
+        return 'green';
+      case 'completed':
+        return 'blue';
+      case 'pending':
+        return 'yellow';
+      default:
+        return 'gray';
+    }
   };
 
   return (
-    <div className="container mx-auto py-6">
+    <div className="container py-6">
       <PageHeader
-        title="Персональные планы обучения"
-        subtitle="Просмотр и управление индивидуальными планами обучения сотрудников"
+        title="Учебные планы"
+        subtitle="Персонализированные планы обучения, разработанные для повышения ваших профессиональных навыков"
         action={
-          filteredPaths?.length > 0 && (
-            <div className="flex gap-2">
-              <Button asChild variant="outline">
-                <Link href="/ai-learning-path">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-3 w-3 items-center justify-center">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                    </span>
-                    AI-генерация
-                  </div>
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/learning-path-generator">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Создать план
-                </Link>
-              </Button>
-            </div>
-          )
-        }
-        headerRight={
-          <SearchInput
-            placeholder="Поиск по должности или навыкам..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full md:w-[300px]"
-          />
+          <Button
+            onClick={() => window.location.href = '/learning-path-generator'}
+          >
+            Создать новый учебный план
+          </Button>
         }
       />
 
-      {isAdmin && (
-        <Tabs
-          value={activeTab}
-          onValueChange={setActiveTab}
-          className="mt-6"
-        >
-          <TabsList className="w-full sm:w-auto">
-            <TabsTrigger value="my" className="flex-1 sm:flex-none">Мои планы</TabsTrigger>
-            <TabsTrigger value="all" className="flex-1 sm:flex-none">Все планы</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      )}
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-6">
-        {isLoading || (isAdmin && activeTab === "all" && isLoadingAll) ? (
-          // Отображение скелетонов при загрузке
-          Array(6).fill(0).map((_, i) => <LearningPathSkeleton key={i} />)
-        ) : filteredPaths?.length > 0 ? (
-          // Отображение списка учебных планов
-          filteredPaths.map((path: any) => (
-            <LearningPathCard
-              key={path.id}
-              learningPath={path}
-              onClick={() => handlePathClick(path.id)}
-            />
-          ))
-        ) : (
-          // Отображение информации, если планов нет
-          <div className="col-span-full text-center p-6">
-            <h3 className="text-lg font-medium mb-2">Планы обучения не найдены</h3>
-            <p className="text-muted-foreground mb-4">
-              {searchQuery
-                ? "Попробуйте изменить параметры поиска"
-                : isAdmin
-                  ? "Нет созданных планов обучения. Создайте первый план, чтобы он появился здесь"
-                  : "У вас пока нет персональных планов обучения"
-              }
-            </p>
-            <div className="flex flex-col sm:flex-row gap-2 justify-center">
-              <Button asChild variant="outline">
-                <Link href="/ai-learning-path">
-                  <div className="flex items-center gap-2">
-                    <span className="relative flex h-3 w-3 items-center justify-center">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40"></span>
-                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
-                    </span>
-                    AI-генерация
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-10">
+          <Loader2 className="h-10 w-10 animate-spin" />
+          <p className="mt-4 text-muted-foreground">Загрузка учебных планов...</p>
+        </div>
+      ) : learningPaths.length === 0 ? (
+        <div className="text-center p-10 border rounded-lg">
+          <h3 className="text-lg font-semibold mb-4">У вас пока нет учебных планов</h3>
+          <p className="mb-6 text-muted-foreground">
+            Создайте свой первый персонализированный учебный план с помощью ИИ,
+            указав свою должность, уровень и желаемые навыки для развития.
+          </p>
+          <Button
+            onClick={() => window.location.href = '/learning-path-generator'}
+          >
+            Создать учебный план
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-6">
+          {learningPaths.map((path) => (
+            <Card key={path.id}>
+              <CardHeader>
+                <CardTitle>{path.position}</CardTitle>
+                <div className="mt-2 flex gap-2">
+                  <Badge variant={getLevelColor(path.level) === 'green' ? 'success' : 'default'}>
+                    {path.level}
+                  </Badge>
+                  <Badge variant={getStatusColor(path.status) === 'green' ? 'success' : 'default'}>
+                    {path.status}
+                  </Badge>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-4">
+                  <div>
+                    <h4 className="text-sm font-semibold">
+                      Целевые навыки
+                    </h4>
+                    <p className="pt-2 text-sm text-muted-foreground">
+                      {path.targetSkills}
+                    </p>
                   </div>
-                </Link>
-              </Button>
-              <Button asChild>
-                <Link href="/learning-path-generator">
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Создать новый план
-                </Link>
-              </Button>
-            </div>
-          </div>
-        )}
-      </div>
+                  {path.courses && (
+                    <div>
+                      <h4 className="text-sm font-semibold">
+                        Курсы ({path.courses.length})
+                      </h4>
+                      <div className="space-y-2 mt-2">
+                        {path.courses.slice(0, 3).map((course) => (
+                          <p key={course.id} className="text-sm text-muted-foreground">
+                            {course.course.title}
+                          </p>
+                        ))}
+                        {path.courses.length > 3 && (
+                          <p className="text-sm text-muted-foreground">
+                            И ещё {path.courses.length - 3} курсов...
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="pt-2">
+                    <Button
+                      className="w-full"
+                      onClick={() => window.location.href = `/learning-path/${path.id}`}
+                    >
+                      Подробнее
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

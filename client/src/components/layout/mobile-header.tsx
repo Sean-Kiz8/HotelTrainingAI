@@ -29,7 +29,7 @@ const staffNavItems = [
 export function MobileHeader() {
   const [location, navigate] = useLocation();
   const { user, logoutMutation } = useAuth();
-  const { openChatbot } = useChatbot();
+  const { isChatbotOpen, toggleChatbot } = useChatbot();
   const [isOpen, setIsOpen] = useState(false);
   
   // Всегда отображаем мобильный заголовок для разработки
@@ -41,7 +41,7 @@ export function MobileHeader() {
   };
   
   const handleChatOpen = () => {
-    openChatbot();
+    toggleChatbot();
   };
   
   const handleLogout = () => {
@@ -163,7 +163,6 @@ export function MobileHeader() {
                   onClick={handleLogout}
                   disabled={logoutMutation.isPending}
                 >
-                  <LogOut className="mr-2 h-4 w-4" />
                   {logoutMutation.isPending ? "Выход..." : "Выйти"}
                 </Button>
               </div>

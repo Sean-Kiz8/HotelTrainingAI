@@ -235,10 +235,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Создаем запись в активити
       await storage.createActivity({
-        userId: req.session.userId || 1,
+        userId: req.user?.id || req.body.userId,
         courseId: course.id,
-        type: "created_course",
-        timestamp: new Date()
+        type: "created_course"
       });
 
       res.status(201).json(course);
@@ -332,7 +331,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const newCourse = await storage.createCourse({
         title: settings.title,
         description: settings.description,
-        createdById: req.session?.userId || 1, // Используем сессию пользователя или 1 по умолчанию
+        createdById: req.user?.id || req.body.createdById || 1, // Используем ID пользователя из req.user или из тела запроса
         department: "training",
         image: null, // Опциональное изображение
         content: null, // Опциональный JSON-контент
@@ -368,7 +367,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: newLesson.title,
             content: newLesson.content,
             duration: newLesson.duration,
-            hasQuiz: newLesson.hasQuiz
+            type: newLesson.type
           });
         }
 
@@ -382,7 +381,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Создаем запись в активити
       await storage.createActivity({
-        userId: req.session?.userId || 1,
+        userId: req.user?.id || req.body.userId || 1,
         courseId: newCourse.id,
         type: "created_course"
       });
@@ -1792,8 +1791,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         completedCourseIds.map(async (courseId) => storage.getCourse(courseId))
       );
 
-      // Фильтруем null значения (на случай, если какие-то курсы не существуют)
-      const validCompletedCourses = completedCourses.filter(course => course !== null);
+      // Фильтруем пустые значения (на случай, если какие-то курсы не существуют)
+      const validCompletedCourses = completedCourses.filter(Boolean);
 
       // Получаем список всех доступных курсов
       const availableCourses = await storage.listCourses();
@@ -1810,7 +1809,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userName: userProfile.name || userProfile.username,
         userRole: userProfile.role,
         userDepartment: userProfile.department,
-        completedCourses: validCompletedCourses.map(c => ({ id: c.id, title: c.title })),
+        completedCourses: validCompletedCourses.map(c => ({ id: c?.id || 0, title: c?.title || "" })),
         recommendations
       });
 
@@ -2670,29 +2669,57 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const answers = await storage.listAssessmentAnswersBySession(id);
 
       // Получаем роль сотрудника
-      const role = user && user.roleId ? await storage.getEmployeeRole(user.roleId) : null;
+      const role = user && user.role ? await storage.getEmployeeRole(user.role) : null;
 
       if (!user || !assessment || !role) {
         return res.status(404).json({ message: "Required data for report generation not found" });
       }
 
       // Получаем компетенции для отчета
-      let competencies = [];
+      type CompetencyResult = {
+        id: number;
+        name: string;
+        description?: string;
+        category?: string;
+      };
+      
+      let competencies: CompetencyResult[] = [];
       if (assessment.targetCompetencies && Array.isArray(assessment.targetCompetencies)) {
         const competencyIds = assessment.targetCompetencies.map(c => c.id || c);
-        competencies = await Promise.all(
+        const fetchedCompetencies = await Promise.all(
           competencyIds.map(async (id) => await storage.getCompetency(typeof id === 'object' ? id.id : id))
         );
-        competencies = competencies.filter(Boolean);
+        
+        // Фильтруем undefined значения и приводим к нужному типу
+        competencies = fetchedCompetencies
+          .filter((comp): comp is NonNullable<typeof comp> => comp !== undefined)
+          .map(comp => ({
+            id: comp.id,
+            name: comp.name,
+            description: comp.description,
+            category: comp.category
+          }));
       }
 
       // Если компетенции не указаны, берем из роли
       if (competencies.length === 0 && role.requiredCompetencies) {
-        const competencyIds = role.requiredCompetencies.map(c => c.id || c);
-        competencies = await Promise.all(
+        const competencyIds = Array.isArray(role.requiredCompetencies) 
+          ? role.requiredCompetencies.map(c => c.id || c)
+          : [];
+          
+        const fetchedCompetencies = await Promise.all(
           competencyIds.map(async (id) => await storage.getCompetency(typeof id === 'object' ? id.id : id))
         );
-        competencies = competencies.filter(Boolean);
+        
+        // Фильтруем undefined значения и приводим к нужному типу
+        competencies = fetchedCompetencies
+          .filter((comp): comp is NonNullable<typeof comp> => comp !== undefined)
+          .map(comp => ({
+            id: comp.id,
+            name: comp.name,
+            description: comp.description,
+            category: comp.category
+          }));
       }
 
       // Генерируем отчет с помощью OpenAI
@@ -2715,10 +2742,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Сохраняем отчет в сессию
       await storage.updateAssessmentSession(id, {
-        report: report,
-        level: report.level
+        status: "completed" // Используем только поддерживаемые поля
       });
 
+      // Сообщаем клиенту, что отчет сгенерирован
       res.json(report);
     } catch (error) {
       console.error("Error generating assessment report:", error);

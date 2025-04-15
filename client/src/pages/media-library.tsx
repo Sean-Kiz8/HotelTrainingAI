@@ -2,10 +2,10 @@ import { useState } from "react";
 import { MediaGallery } from "@/components/media/media-gallery";
 import { useAuth } from "@/context/auth-context";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  PageHeader, 
-  PageHeaderDescription, 
-  PageHeaderHeading 
+import {
+  PageHeader,
+  PageHeaderDescription,
+  PageHeaderHeading,
 } from "@/components/page-header";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
@@ -17,7 +17,7 @@ import { Plus, Upload, Image, FileText, Film, FileAudio } from "lucide-react";
 export default function MediaLibraryPage() {
   const { user } = useAuth();
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  
+
   if (!user) {
     return (
       <div className="container py-10">
@@ -32,10 +32,10 @@ export default function MediaLibraryPage() {
       </div>
     );
   }
-  
+
   return (
     <div className="container py-10">
-      <PageHeader className="pb-8">
+      <PageHeader>
         <div className="flex items-center justify-between">
           <div>
             <PageHeaderHeading>Медиабиблиотека</PageHeaderHeading>
@@ -43,7 +43,24 @@ export default function MediaLibraryPage() {
               Управляйте изображениями, видео, аудио и документами для использования в учебных материалах
             </PageHeaderDescription>
           </div>
-          
+          <Button>
+            <Upload className="mr-2 h-4 w-4" />
+            Загрузить файл
+          </Button>
+        </div>
+      </PageHeader>
+
+      <Separator className="mb-8" />
+
+      <Tabs defaultValue="all" className="mb-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <PageHeaderHeading>Медиабиблиотека</PageHeaderHeading>
+            <PageHeaderDescription>
+              Управляйте изображениями, видео, аудио и документами для использования в учебных материалах
+            </PageHeaderDescription>
+          </div>
+
           <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -62,13 +79,13 @@ export default function MediaLibraryPage() {
                 userId={user.id}
                 onUploadComplete={() => setUploadDialogOpen(false)}
               />
-            </DialogContent>
+            </DialogContent>  
           </Dialog>
         </div>
-      </PageHeader>
-      
+      </Tabs>
+
       <Separator className="mb-8" />
-      
+
       <Tabs defaultValue="all" className="mb-8">
         <TabsList className="mb-6">
           <TabsTrigger value="all">Все файлы</TabsTrigger>
@@ -89,36 +106,36 @@ export default function MediaLibraryPage() {
             Документы
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="all" className="space-y-4">
           <MediaGallery userId={user.id} />
         </TabsContent>
-        
+
         <TabsContent value="images" className="space-y-4">
-          <MediaGallery 
+          <MediaGallery
             userId={user.id}
-            mediaTypeFilter="image" 
+            mediaTypeFilter="image"
           />
         </TabsContent>
-        
+
         <TabsContent value="videos" className="space-y-4">
-          <MediaGallery 
+          <MediaGallery
             userId={user.id}
-            mediaTypeFilter="video" 
+            mediaTypeFilter="video"
           />
         </TabsContent>
-        
+
         <TabsContent value="audio" className="space-y-4">
-          <MediaGallery 
+          <MediaGallery
             userId={user.id}
-            mediaTypeFilter="audio" 
+            mediaTypeFilter="audio"
           />
         </TabsContent>
-        
+
         <TabsContent value="documents" className="space-y-4">
-          <MediaGallery 
+          <MediaGallery
             userId={user.id}
-            mediaTypeFilter="document" 
+            mediaTypeFilter="document"
           />
         </TabsContent>
       </Tabs>

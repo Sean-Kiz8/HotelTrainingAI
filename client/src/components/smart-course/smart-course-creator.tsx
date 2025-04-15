@@ -36,7 +36,6 @@ export interface CourseSettings {
 }
 
 export interface GeneratedCourse {
-  id: number;
   title: string;
   description: string;
   modules: {
@@ -47,8 +46,8 @@ export interface GeneratedCourse {
       id: number;
       title: string;
       content: string;
-      duration: number;
-      hasQuiz: boolean;
+      duration: string;
+      type: string;
     }[];
   }[];
 }

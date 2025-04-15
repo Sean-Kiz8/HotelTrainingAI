@@ -102,7 +102,7 @@ export default function AILearningPathPage() {
       return;
     }
 
-    if (!userRole || !userDepartment || !skills) {
+    if (!userRole || !skills) {
       toast({
         title: "Заполните все поля",
         description: "Для генерации персонализированного учебного пути необходимо заполнить все поля формы",
@@ -126,7 +126,7 @@ export default function AILearningPathPage() {
 
     generateMutation.mutate({
       userId: selectedUserId,
-      createdById: selectedUserId, // В реальности здесь должен быть ID текущего пользователя
+      createdById: selectedUserId,
       userRole,
       userLevel,
       userDepartment,
@@ -138,7 +138,7 @@ export default function AILearningPathPage() {
   const handleViewLearningPath = () => {
     if (generationResult && generationResult.learningPath) {
       setShowResultDialog(false);
-      setLocation(`/learning-path/${generationResult.learningPath.id}`);
+      setLocation(`/learning-path-details/${generationResult.learningPath.id}`);
     }
   };
 
@@ -267,7 +267,7 @@ export default function AILearningPathPage() {
             <CardFooter className="flex justify-end gap-2">
               <Button
                 onClick={handleGenerate}
-                disabled={generateMutation.isPending || !selectedUserId || !userRole || !userDepartment || !skills}
+                disabled={generateMutation.isPending || !selectedUserId || !userRole || !skills}
                 className="gap-2"
               >
                 {generateMutation.isPending ? (

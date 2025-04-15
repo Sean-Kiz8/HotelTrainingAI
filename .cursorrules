@@ -1,0 +1,38 @@
+
+START SPECIFICATION:
+---
+description: Overview for error processing system handling failures across file groups
+globs: *.error,*.processing,group*.log
+alwaysApply: false
+---
+
+
+# main-overview
+
+## Development Guidelines
+
+- Only modify code directly relevant to the specific request. Avoid changing unrelated functionality.
+- Never replace code with placeholders like `# ... rest of the processing ...`. Always include complete code.
+- Break problems into smaller steps. Think through each step separately before implementing.
+- Always provide a complete PLAN with REASONING based on evidence from code and logs before making changes.
+- Explain your OBSERVATIONS clearly, then provide REASONING to identify the exact issue. Add console logs when needed to gather more information.
+
+
+The system implements error handling for batch file processing operations, specifically focused on error management for 35 files within group 0.
+
+Core Processing Structure:
+- File batch processing at group level
+- Error detection and aggregation
+- Group-based error reporting
+
+Critical Components:
+Group Processing Subsystem
+- Manages file batches in discrete groups
+- Handles errors at both file and group level
+
+Error States:
+- Processing failure identified for specific group (group 0)
+- File count validation (35 files affected)
+
+$END$
+END SPECIFICATION

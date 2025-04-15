@@ -9,7 +9,7 @@ import { Send } from "lucide-react";
 
 export function AIChat() {
   const { 
-    isOpen, 
+    isChatbotOpen, 
     toggleChatbot, 
     messages, 
     sendMessage,
@@ -29,15 +29,15 @@ export function AIChat() {
   
   // Log state for debugging
   useEffect(() => {
-    console.log("AIChat rendered, isOpen:", isOpen);
-  }, [isOpen]);
+    console.log("AIChat rendered, isChatbotOpen:", isChatbotOpen);
+  }, [isChatbotOpen]);
   
   // Scroll to bottom when messages change or when chat opens
   useEffect(() => {
-    if (isOpen || messages.length > 0) {
+    if (isChatbotOpen || messages.length > 0) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isOpen]);
+  }, [messages, isChatbotOpen]);
   
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,7 +57,7 @@ export function AIChat() {
     <div 
       className={cn(
         "chat-window fixed bottom-0 right-0 md:right-6 z-20 w-full sm:w-80 flex flex-col transform transition-all duration-300",
-        isOpen ? "translate-y-0 opacity-100" : "translate-y-[30rem] opacity-0 pointer-events-none"
+        isChatbotOpen ? "translate-y-0 opacity-100" : "translate-y-[30rem] opacity-0 pointer-events-none"
       )}
     >
       <div 
@@ -70,7 +70,7 @@ export function AIChat() {
         </div>
         <button className="text-white focus:outline-none">
           <span className="material-icons chatbot-toggle-icon">
-            {isOpen ? "expand_more" : "expand_less"}
+            {isChatbotOpen ? "expand_more" : "expand_less"}
           </span>
         </button>
       </div>

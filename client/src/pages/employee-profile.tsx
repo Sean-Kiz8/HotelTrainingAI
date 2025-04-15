@@ -1,57 +1,68 @@
-import { useState, useEffect } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
-import { PageHeader } from "@/components/layout/page-header";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { PageHeader, PageHeaderHeading } from "@/components/page-header";
+import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useToast } from "@/hooks/use-toast";
 import { CourseCard } from "@/components/dashboard/course-card";
 import { AssignAssessmentDialog } from "@/components/employees/assign-assessment-dialog";
 
 export default function EmployeeProfile() {
   const { id } = useParams<{ id: string }>();
   const [, navigate] = useLocation();
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+  // Не используем toast, так как нет уведомлений
+  // Не используем queryClient, так как нет мутаций
   const userId = parseInt(id);
   const [showAssignAssessmentDialog, setShowAssignAssessmentDialog] = useState(false);
 
+  // Определяем интерфейс для данных сотрудника
+  interface Employee {
+    id: number;
+    name: string;
+    avatar?: string;
+    position?: string;
+    department?: string;
+    email?: string;
+    username?: string;
+    roleId?: number;
+  }
+
   // Получаем данные сотрудника
-  const { data: employee, isLoading: isLoadingEmployee } = useQuery({
+  const { data: employee, isLoading: isLoadingEmployee } = useQuery<Employee>({
     queryKey: [`/api/users/${userId}`],
     enabled: !!userId && !isNaN(userId),
   });
 
   // Получаем записи на курсы для сотрудника
-  const { data: enrollments = [], isLoading: isLoadingEnrollments } = useQuery({
+  const { data: enrollments = [], isLoading: isLoadingEnrollments } = useQuery<any[]>({
     queryKey: [`/api/enrollments?userId=${userId}`],
     enabled: !!userId && !isNaN(userId),
   });
 
   // Получаем все курсы
-  const { data: allCourses = [], isLoading: isLoadingCourses } = useQuery({
+  const { data: allCourses = [], isLoading: isLoadingCourses } = useQuery<any[]>({
     queryKey: ["/api/courses"],
   });
 
   // Получаем уровень пользователя
-  const { data: userLevel, isLoading: isLoadingUserLevel } = useQuery({
+  const { data: userLevel, isLoading: isLoadingUserLevel } = useQuery<{ level: number, points: number }>({
     queryKey: [`/api/user-level/${userId}`],
     enabled: !!userId && !isNaN(userId),
   });
 
   // Получаем достижения пользователя
-  const { data: userAchievements = [], isLoading: isLoadingAchievements } = useQuery({
+  const { data: userAchievements = [], isLoading: isLoadingAchievements } = useQuery<any[]>({
     queryKey: [`/api/user-achievements/${userId}`],
     enabled: !!userId && !isNaN(userId),
   });
 
   // Получаем сессии ассесментов для сотрудника
-  const { data: assessmentSessions = [], isLoading: isLoadingAssessmentSessions } = useQuery({
+  const { data: assessmentSessions = [], isLoading: isLoadingAssessmentSessions } = useQuery<any[]>({
     queryKey: [`/api/assessment-sessions?userId=${userId}`],
     enabled: !!userId && !isNaN(userId),
   });
@@ -94,7 +105,9 @@ export default function EmployeeProfile() {
   if (isLoadingEmployee) {
     return (
       <div className="p-4 md:p-6 pb-24 md:pb-6">
-        <PageHeader title="Профиль сотрудника" />
+        <PageHeader className="mb-6">
+          <PageHeaderHeading>Профиль сотрудника</PageHeaderHeading>
+        </PageHeader>
         <div className="space-y-4">
           <Skeleton className="h-64 w-full" />
           <Skeleton className="h-96 w-full" />
@@ -106,7 +119,9 @@ export default function EmployeeProfile() {
   if (!employee) {
     return (
       <div className="p-4 md:p-6 pb-24 md:pb-6">
-        <PageHeader title="Профиль сотрудника" />
+        <PageHeader className="mb-6">
+          <PageHeaderHeading>Профиль сотрудника</PageHeaderHeading>
+        </PageHeader>
         <Card>
           <CardContent className="p-8 text-center">
             <h2 className="text-xl font-medium mb-2">Сотрудник не найден</h2>
@@ -120,10 +135,20 @@ export default function EmployeeProfile() {
     );
   }
 
+  // Определяем типизированные данные сотрудника
+  const employeeName = employee?.name || "Сотрудник";
+  const employeeAvatar = employee?.avatar || "";
+  const employeePosition = employee?.position || "Должность не указана";
+  const employeeDepartment = employee?.department || "";
+  const employeeEmail = employee?.email || "";
+  const employeeUsername = employee?.username || "";
+
   return (
     <div className="p-4 md:p-6 pb-24 md:pb-6">
-      <PageHeader title="Профиль сотрудника">
+      <PageHeader>
+        <PageHeaderHeading className="mb-6">Профиль сотрудника</PageHeaderHeading>
         <Button
+          variant="outline"
           onClick={() => setShowAssignAssessmentDialog(true)}
           className="ml-auto"
         >
@@ -131,14 +156,12 @@ export default function EmployeeProfile() {
         </Button>
 
         {/* Диалоговое окно назначения ассесмента */}
-        {employee && (
-          <AssignAssessmentDialog
-            open={showAssignAssessmentDialog}
-            onOpenChange={setShowAssignAssessmentDialog}
-            employeeId={userId}
-            employeeName={employee.name}
-          />
-        )}
+        <AssignAssessmentDialog
+          open={showAssignAssessmentDialog}
+          onOpenChange={setShowAssignAssessmentDialog}
+          employeeId={userId}
+          employeeName={employeeName}
+        />
       </PageHeader>
 
       {/* Карточка профиля */}
@@ -146,18 +169,18 @@ export default function EmployeeProfile() {
         <CardContent className="p-6">
           <div className="flex flex-col md:flex-row items-start md:items-center gap-6">
             <Avatar className="h-24 w-24">
-              <AvatarImage src={employee.avatar || ""} alt={employee.name} />
-              <AvatarFallback className="text-2xl">{employee.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={employeeAvatar} alt={employeeName} />
+              <AvatarFallback className="text-2xl">{employeeName.charAt(0)}</AvatarFallback>
             </Avatar>
 
             <div className="flex-1">
               <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                 <div>
-                  <h2 className="text-2xl font-medium">{employee.name}</h2>
-                  <p className="text-neutral-500">{employee.position || "Должность не указана"}</p>
-                  {employee.department && (
+                  <h2 className="text-2xl font-medium">{employeeName}</h2>
+                  <p className="text-neutral-500">{employeePosition}</p>
+                  {employeeDepartment && (
                     <Badge variant="outline" className="mt-1">
-                      {employee.department}
+                      {employeeDepartment}
                     </Badge>
                   )}
                 </div>
@@ -165,11 +188,11 @@ export default function EmployeeProfile() {
                 <div className="flex flex-col items-start md:items-end">
                   <div className="flex items-center gap-2 mb-2">
                     <span className="text-sm text-neutral-500">Email:</span>
-                    <span>{employee.email}</span>
+                    <span>{employeeEmail}</span>
                   </div>
                   <div className="flex items-center gap-2">
                     <span className="text-sm text-neutral-500">Логин:</span>
-                    <span>{employee.username}</span>
+                    <span>{employeeUsername}</span>
                   </div>
                 </div>
               </div>

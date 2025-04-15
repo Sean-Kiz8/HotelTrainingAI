@@ -1,13 +1,15 @@
-import { ReactNode, useContext } from "react";
+import { ReactNode } from "react";
 import { Sidebar } from "./sidebar";
 import { MobileHeader } from "./mobile-header";
 import { AIChat } from "../chatbot/ai-chat";
+import { useChatbot } from "@/context/chatbot-context";
 
 interface MainLayoutProps {
   children: ReactNode;
 }
-
 export function MainLayout({ children }: MainLayoutProps) {
+  const { isChatbotOpen } = useChatbot();
+  
   return (
     <div className="flex h-screen overflow-hidden bg-neutral-100">
       {/* Sidebar for desktop */}
@@ -24,8 +26,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         </main>
       </div>
       
-      {/* Chatbot */}
-      <AIChat />
+      {!isChatbotOpen && <AIChat />} {/* AI Chat Overlay */}
     </div>
   );
 }
