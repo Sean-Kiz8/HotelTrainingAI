@@ -52,11 +52,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
   
   const logout = () => {
-    setUser(null);
-    localStorage.removeItem("user");
+    // Для тестирования не удаляем пользователя, а просто показываем сообщение
+    console.log("Logout clicked - для тестирования выход отключен");
+    // В реальном приложении:
+    // setUser(null);
+    // localStorage.removeItem("user");
   };
   
   useEffect(() => {
+    // При первом запуске приложения сохраняем тестового пользователя
     const storedUser = localStorage.getItem("user");
     if (storedUser) {
       try {
@@ -64,7 +68,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.error("Failed to parse stored user:", error);
         localStorage.removeItem("user");
+        // После очистки используем тестового пользователя
+        setUser(mockUser);
+        localStorage.setItem("user", JSON.stringify(mockUser));
       }
+    } else {
+      // Если в localStorage нет данных, используем тестового пользователя
+      setUser(mockUser);
+      localStorage.setItem("user", JSON.stringify(mockUser));
     }
     setLoading(false);
   }, []);
