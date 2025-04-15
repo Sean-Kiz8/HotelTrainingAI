@@ -9,7 +9,11 @@ import {
   insertChatMessageSchema, insertMediaFileSchema,
   insertModuleSchema, insertLessonSchema, insertLessonMediaSchema,
   insertLearningPathSchema, insertLearningPathCourseSchema,
-  mediaTypeEnum, employeeLevelEnum,
+  insertEmployeeRoleSchema, insertCompetencySchema,
+  insertAssessmentSchema, insertAssessmentQuestionSchema,
+  insertAssessmentSessionSchema, insertAssessmentAnswerSchema,
+  mediaTypeEnum, employeeLevelEnum, questionTypeEnum, 
+  difficultyLevelEnum, assessmentStatusEnum,
   learningPaths, courses
 } from "@shared/schema";
 import { eq } from "drizzle-orm";

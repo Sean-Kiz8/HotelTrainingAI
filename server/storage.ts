@@ -1029,6 +1029,580 @@ export class DatabaseStorage implements IStorage {
       })
       .where(eq(learningPaths.id, learningPathId));
   }
+
+  // ================ Операции с системой оценки навыков сотрудников ================
+
+  // Операции с ролями сотрудников
+  async getEmployeeRole(id: number): Promise<EmployeeRole | undefined> {
+    const [role] = await db.select().from(employeeRoles).where(eq(employeeRoles.id, id));
+    return role;
+  }
+
+  async createEmployeeRole(role: InsertEmployeeRole): Promise<EmployeeRole> {
+    const [newRole] = await db.insert(employeeRoles).values(role).returning();
+    return newRole;
+  }
+
+  async updateEmployeeRole(id: number, roleData: Partial<InsertEmployeeRole>): Promise<EmployeeRole | undefined> {
+    const [updatedRole] = await db
+      .update(employeeRoles)
+      .set({ ...roleData, updatedAt: new Date() })
+      .where(eq(employeeRoles.id, id))
+      .returning();
+    return updatedRole;
+  }
+
+  async deleteEmployeeRole(id: number): Promise<boolean> {
+    const result = await db.delete(employeeRoles).where(eq(employeeRoles.id, id));
+    return !!result;
+  }
+
+  async listEmployeeRoles(): Promise<EmployeeRole[]> {
+    return await db
+      .select()
+      .from(employeeRoles)
+      .where(eq(employeeRoles.active, true))
+      .orderBy(employeeRoles.title);
+  }
+
+  async listEmployeeRolesByDepartment(department: string): Promise<EmployeeRole[]> {
+    return await db
+      .select()
+      .from(employeeRoles)
+      .where(and(
+        eq(employeeRoles.department, department),
+        eq(employeeRoles.active, true)
+      ))
+      .orderBy(employeeRoles.title);
+  }
+
+  // Операции с компетенциями
+  async getCompetency(id: number): Promise<Competency | undefined> {
+    const [competency] = await db.select().from(competencies).where(eq(competencies.id, id));
+    return competency;
+  }
+
+  async createCompetency(competency: InsertCompetency): Promise<Competency> {
+    const [newCompetency] = await db.insert(competencies).values(competency).returning();
+    return newCompetency;
+  }
+
+  async updateCompetency(id: number, competencyData: Partial<InsertCompetency>): Promise<Competency | undefined> {
+    const [updatedCompetency] = await db
+      .update(competencies)
+      .set({ ...competencyData, updatedAt: new Date() })
+      .where(eq(competencies.id, id))
+      .returning();
+    return updatedCompetency;
+  }
+
+  async deleteCompetency(id: number): Promise<boolean> {
+    const result = await db.delete(competencies).where(eq(competencies.id, id));
+    return !!result;
+  }
+
+  async listCompetencies(): Promise<Competency[]> {
+    return await db
+      .select()
+      .from(competencies)
+      .orderBy(competencies.name);
+  }
+
+  async listCompetenciesByCategory(category: string): Promise<Competency[]> {
+    return await db
+      .select()
+      .from(competencies)
+      .where(eq(competencies.category, category))
+      .orderBy(competencies.name);
+  }
+
+  // Операции с ассесментами
+  async getAssessment(id: number): Promise<Assessment | undefined> {
+    const [assessment] = await db.select().from(assessments).where(eq(assessments.id, id));
+    return assessment;
+  }
+
+  async createAssessment(assessment: InsertAssessment): Promise<Assessment> {
+    const [newAssessment] = await db.insert(assessments).values(assessment).returning();
+    return newAssessment;
+  }
+
+  async updateAssessment(id: number, assessmentData: Partial<InsertAssessment>): Promise<Assessment | undefined> {
+    const [updatedAssessment] = await db
+      .update(assessments)
+      .set({ ...assessmentData, updatedAt: new Date() })
+      .where(eq(assessments.id, id))
+      .returning();
+    return updatedAssessment;
+  }
+
+  async deleteAssessment(id: number): Promise<boolean> {
+    const result = await db.delete(assessments).where(eq(assessments.id, id));
+    return !!result;
+  }
+
+  async listAssessments(): Promise<Assessment[]> {
+    return await db
+      .select()
+      .from(assessments)
+      .orderBy(desc(assessments.createdAt));
+  }
+
+  async listAssessmentsByRole(roleId: number): Promise<Assessment[]> {
+    return await db
+      .select()
+      .from(assessments)
+      .where(eq(assessments.roleId, roleId))
+      .orderBy(desc(assessments.createdAt));
+  }
+
+  // Операции с вопросами для ассесментов
+  async getAssessmentQuestion(id: number): Promise<AssessmentQuestion | undefined> {
+    const [question] = await db.select().from(assessmentQuestions).where(eq(assessmentQuestions.id, id));
+    return question;
+  }
+
+  async createAssessmentQuestion(question: InsertAssessmentQuestion): Promise<AssessmentQuestion> {
+    const [newQuestion] = await db.insert(assessmentQuestions).values(question).returning();
+    return newQuestion;
+  }
+
+  async updateAssessmentQuestion(id: number, questionData: Partial<InsertAssessmentQuestion>): Promise<AssessmentQuestion | undefined> {
+    const [updatedQuestion] = await db
+      .update(assessmentQuestions)
+      .set({ ...questionData, updatedAt: new Date() })
+      .where(eq(assessmentQuestions.id, id))
+      .returning();
+    return updatedQuestion;
+  }
+
+  async deleteAssessmentQuestion(id: number): Promise<boolean> {
+    const result = await db.delete(assessmentQuestions).where(eq(assessmentQuestions.id, id));
+    return !!result;
+  }
+
+  async listAssessmentQuestions(assessmentId: number): Promise<AssessmentQuestion[]> {
+    return await db
+      .select()
+      .from(assessmentQuestions)
+      .where(eq(assessmentQuestions.assessmentId, assessmentId));
+  }
+
+  async listAssessmentQuestionsByDifficulty(assessmentId: number, difficulty: string): Promise<AssessmentQuestion[]> {
+    return await db
+      .select()
+      .from(assessmentQuestions)
+      .where(and(
+        eq(assessmentQuestions.assessmentId, assessmentId),
+        sql`${assessmentQuestions.difficulty} = ${difficulty}`
+      ));
+  }
+
+  async listAssessmentQuestionsByCompetency(assessmentId: number, competencyId: number): Promise<AssessmentQuestion[]> {
+    return await db
+      .select()
+      .from(assessmentQuestions)
+      .where(and(
+        eq(assessmentQuestions.assessmentId, assessmentId),
+        eq(assessmentQuestions.competencyId, competencyId)
+      ));
+  }
+
+  // Операции с сессиями прохождения ассесментов
+  async getAssessmentSession(id: number): Promise<AssessmentSession | undefined> {
+    const [session] = await db.select().from(assessmentSessions).where(eq(assessmentSessions.id, id));
+    return session;
+  }
+
+  async createAssessmentSession(session: InsertAssessmentSession): Promise<AssessmentSession> {
+    const [newSession] = await db.insert(assessmentSessions).values(session).returning();
+    return newSession;
+  }
+
+  async updateAssessmentSession(id: number, sessionData: Partial<InsertAssessmentSession>): Promise<AssessmentSession | undefined> {
+    const [updatedSession] = await db
+      .update(assessmentSessions)
+      .set(sessionData)
+      .where(eq(assessmentSessions.id, id))
+      .returning();
+    return updatedSession;
+  }
+
+  async completeAssessmentSession(id: number, results: any): Promise<AssessmentSession> {
+    // Получаем все ответы пользователя
+    const answers = await this.listAssessmentAnswersBySession(id);
+    
+    // Получаем сессию
+    const [session] = await db.select().from(assessmentSessions).where(eq(assessmentSessions.id, id));
+    
+    if (!session) {
+      throw new Error('Сессия не найдена');
+    }
+    
+    // Получаем все вопросы ассесмента
+    const questions = await this.listAssessmentQuestions(session.assessmentId);
+    
+    // Подсчитываем общий балл
+    const totalPossiblePoints = questions.reduce((sum, q) => sum + q.points, 0);
+    const earnedPoints = answers.reduce((sum, a) => sum + (a.points || 0), 0);
+    
+    // Подсчитываем процент правильных ответов
+    const scorePercentage = totalPossiblePoints > 0 
+      ? Math.floor((earnedPoints / totalPossiblePoints) * 100) 
+      : 0;
+    
+    // Определяем уровень сотрудника на основе процента
+    let level: 'junior' | 'middle' | 'senior' = 'junior';
+    if (scorePercentage >= 80) {
+      level = 'senior';
+    } else if (scorePercentage >= 60) {
+      level = 'middle';
+    }
+    
+    // Анализируем результаты по компетенциям
+    const competencyResults: {[key: number]: {id: number, name: string, score: number, maxScore: number, percentage: number}} = {};
+    
+    // Группируем вопросы по компетенциям
+    for (const question of questions) {
+      const competencyId = question.competencyId;
+      
+      if (!competencyResults[competencyId]) {
+        const competency = await this.getCompetency(competencyId);
+        if (competency) {
+          competencyResults[competencyId] = {
+            id: competencyId,
+            name: competency.name,
+            score: 0,
+            maxScore: 0,
+            percentage: 0
+          };
+        }
+      }
+      
+      if (competencyResults[competencyId]) {
+        competencyResults[competencyId].maxScore += question.points;
+      }
+    }
+    
+    // Добавляем заработанные баллы на основе ответов
+    for (const answer of answers) {
+      const question = questions.find(q => q.id === answer.questionId);
+      if (question && answer.isCorrect && competencyResults[question.competencyId]) {
+        competencyResults[question.competencyId].score += answer.points || 0;
+      }
+    }
+    
+    // Расчитываем проценты для каждой компетенции
+    for (const competencyId in competencyResults) {
+      const result = competencyResults[competencyId];
+      result.percentage = result.maxScore > 0 
+        ? Math.floor((result.score / result.maxScore) * 100) 
+        : 0;
+    }
+    
+    // Обновляем сессию с результатами
+    const [completedSession] = await db
+      .update(assessmentSessions)
+      .set({
+        status: 'completed',
+        completedAt: new Date(),
+        score: earnedPoints,
+        scorePercentage,
+        timeSpent: Math.floor((Date.now() - session.startedAt.getTime()) / 1000),
+        competenciesResult: competencyResults,
+        level
+      })
+      .where(eq(assessmentSessions.id, id))
+      .returning();
+    
+    // ИДЕЯ: На основе результатов можно автоматически создать персональный план обучения
+    // TODO: Автоматическое создание плана обучения на основе результатов
+    
+    if (!completedSession) {
+      throw new Error('Не удалось обновить сессию');
+    }
+    
+    return completedSession;
+  }
+
+  async listAssessmentSessionsByUser(userId: number): Promise<AssessmentSession[]> {
+    return await db
+      .select()
+      .from(assessmentSessions)
+      .where(eq(assessmentSessions.userId, userId))
+      .orderBy(desc(assessmentSessions.startedAt));
+  }
+
+  async listAssessmentSessionsByAssessment(assessmentId: number): Promise<AssessmentSession[]> {
+    return await db
+      .select()
+      .from(assessmentSessions)
+      .where(eq(assessmentSessions.assessmentId, assessmentId))
+      .orderBy(desc(assessmentSessions.startedAt));
+  }
+
+  // Операции с ответами пользователя
+  async getAssessmentAnswer(id: number): Promise<AssessmentAnswer | undefined> {
+    const [answer] = await db.select().from(assessmentAnswers).where(eq(assessmentAnswers.id, id));
+    return answer;
+  }
+
+  async createAssessmentAnswer(answer: InsertAssessmentAnswer): Promise<AssessmentAnswer> {
+    // Получаем вопрос, на который отвечают
+    const [question] = await db
+      .select()
+      .from(assessmentQuestions)
+      .where(eq(assessmentQuestions.id, answer.questionId));
+    
+    if (!question) {
+      throw new Error('Вопрос не найден');
+    }
+    
+    // Проверяем правильность ответа
+    let isCorrect = false;
+    let points = 0;
+    
+    // Сравниваем ответы в зависимости от типа вопроса
+    if (question.type === 'multiple_choice' || question.type === 'true_false') {
+      isCorrect = answer.answer === question.correctAnswer;
+    } else if (question.type === 'text_answer') {
+      // Для текстовых ответов можно использовать более гибкую проверку
+      // Например, проверять на наличие ключевых слов
+      const userAnswer = answer.answer.toLowerCase().trim();
+      const correctAnswer = question.correctAnswer?.toLowerCase().trim() || '';
+      
+      // Простая проверка - совпадает ли ответ хотя бы частично
+      isCorrect = userAnswer.includes(correctAnswer) || correctAnswer.includes(userAnswer);
+    } else if (question.type === 'image_based') {
+      // Для вопросов с изображениями просто сравниваем ответы
+      isCorrect = answer.answer === question.correctAnswer;
+    }
+    
+    // Если ответ правильный, начисляем баллы
+    if (isCorrect) {
+      points = question.points;
+    }
+    
+    // Создаем запись об ответе с указанием правильности и баллов
+    const answerData = {
+      ...answer,
+      isCorrect,
+      points
+    };
+    
+    const [newAnswer] = await db.insert(assessmentAnswers).values(answerData).returning();
+    return newAnswer;
+  }
+
+  async updateAssessmentAnswer(id: number, answerData: Partial<InsertAssessmentAnswer>): Promise<AssessmentAnswer | undefined> {
+    const [updatedAnswer] = await db
+      .update(assessmentAnswers)
+      .set(answerData)
+      .where(eq(assessmentAnswers.id, id))
+      .returning();
+    return updatedAnswer;
+  }
+
+  async listAssessmentAnswersBySession(sessionId: number): Promise<AssessmentAnswer[]> {
+    return await db
+      .select()
+      .from(assessmentAnswers)
+      .where(eq(assessmentAnswers.sessionId, sessionId))
+      .orderBy(assessmentAnswers.answeredAt);
+  }
+
+  // Генерация вопросов для ассесмента с помощью ИИ
+  async generateAssessmentQuestions(assessmentId: number, count: number): Promise<AssessmentQuestion[]> {
+    // Получаем информацию об ассесменте
+    const assessment = await this.getAssessment(assessmentId);
+    if (!assessment) {
+      throw new Error('Ассесмент не найден');
+    }
+    
+    // Получаем роль, для которой создается ассесмент
+    const role = await this.getEmployeeRole(assessment.roleId);
+    if (!role) {
+      throw new Error('Роль не найдена');
+    }
+    
+    // Получаем целевые компетенции
+    const targetCompetencies = assessment.targetCompetencies as any[] || [];
+    
+    // Здесь должен быть запрос к API OpenAI для генерации вопросов
+    // Но т.к. интеграция с OpenAI пока не реализована, создаем заглушку
+    
+    const questions: InsertAssessmentQuestion[] = [];
+    
+    // В реальном приложении запрос к OpenAI выглядел бы примерно так:
+    // const prompt = `Сгенерируй ${count} вопросов для оценки компетенций сотрудника отеля на должности "${role.title}".
+    // Департамент: ${role.department}
+    // Целевые компетенции: ${targetCompetencies.map(c => c.name).join(', ')}
+    // Вопросы должны быть разного уровня сложности (easy, medium, hard).
+    // Формат: список вопросов с вариантами ответов, указанием правильного ответа и его объяснением.`;
+    
+    // TODO: Добавить настоящую интеграцию с OpenAI
+    
+    // В реальном сценарии мы бы получили ответ от API и обработали его
+    // Сейчас просто возвращаем пустой массив
+    return [];
+  }
+
+  // Аналитика по ассесментам
+  async getAssessmentStatistics(assessmentId: number): Promise<any> {
+    const sessions = await this.listAssessmentSessionsByAssessment(assessmentId);
+    
+    // Базовая статистика
+    const totalSessions = sessions.length;
+    const completedSessions = sessions.filter(s => s.status === 'completed').length;
+    const averageScore = sessions.reduce((sum, s) => sum + (s.scorePercentage || 0), 0) / totalSessions || 0;
+    
+    // Распределение по уровням
+    const levelDistribution = {
+      junior: sessions.filter(s => s.level === 'junior').length,
+      middle: sessions.filter(s => s.level === 'middle').length,
+      senior: sessions.filter(s => s.level === 'senior').length
+    };
+    
+    // Статистика по компетенциям
+    const competencyStats: { [key: number]: { name: string, averageScore: number, count: number } } = {};
+    
+    for (const session of sessions) {
+      if (session.competenciesResult) {
+        const results = session.competenciesResult as any;
+        
+        for (const competencyId in results) {
+          const result = results[competencyId];
+          
+          if (!competencyStats[competencyId]) {
+            competencyStats[competencyId] = {
+              name: result.name,
+              averageScore: 0,
+              count: 0
+            };
+          }
+          
+          competencyStats[competencyId].averageScore += result.percentage;
+          competencyStats[competencyId].count++;
+        }
+      }
+    }
+    
+    // Рассчитываем средние баллы по компетенциям
+    for (const competencyId in competencyStats) {
+      const stat = competencyStats[competencyId];
+      stat.averageScore = stat.count > 0 ? stat.averageScore / stat.count : 0;
+    }
+    
+    return {
+      totalSessions,
+      completedSessions,
+      averageScore,
+      levelDistribution,
+      competencyStats
+    };
+  }
+
+  async getUserAssessmentResults(userId: number): Promise<any> {
+    const sessions = await this.listAssessmentSessionsByUser(userId);
+    
+    const results = [];
+    
+    for (const session of sessions) {
+      const assessment = await this.getAssessment(session.assessmentId);
+      const role = assessment ? await this.getEmployeeRole(assessment.roleId) : null;
+      
+      results.push({
+        sessionId: session.id,
+        assessmentId: session.assessmentId,
+        assessmentTitle: assessment?.title || 'Неизвестный ассесмент',
+        role: role?.title || 'Неизвестная роль',
+        status: session.status,
+        score: session.score,
+        scorePercentage: session.scorePercentage,
+        level: session.level,
+        startedAt: session.startedAt,
+        completedAt: session.completedAt,
+        timeSpent: session.timeSpent,
+        competenciesResult: session.competenciesResult
+      });
+    }
+    
+    return results;
+  }
+
+  async getDepartmentAssessmentResults(department: string): Promise<any> {
+    // Получаем роли в данном департаменте
+    const roles = await this.listEmployeeRolesByDepartment(department);
+    
+    const departmentResults = {
+      department,
+      roleResults: [],
+      overall: {
+        totalSessions: 0,
+        completedSessions: 0,
+        averageScore: 0,
+        levelDistribution: {
+          junior: 0,
+          middle: 0,
+          senior: 0
+        }
+      }
+    } as any;
+    
+    let totalScoreSum = 0;
+    
+    // Получаем результаты по каждой роли
+    for (const role of roles) {
+      // Получаем ассесменты для этой роли
+      const assessmentsForRole = await this.listAssessmentsByRole(role.id);
+      
+      const roleResult = {
+        roleId: role.id,
+        roleTitle: role.title,
+        assessments: [],
+        totalSessions: 0,
+        completedSessions: 0,
+        averageScore: 0
+      } as any;
+      
+      // Для каждого ассесмента получаем статистику
+      for (const assessment of assessmentsForRole) {
+        const stats = await this.getAssessmentStatistics(assessment.id);
+        
+        roleResult.assessments.push({
+          assessmentId: assessment.id,
+          title: assessment.title,
+          ...stats
+        });
+        
+        // Добавляем к общей статистике роли
+        roleResult.totalSessions += stats.totalSessions;
+        roleResult.completedSessions += stats.completedSessions;
+        totalScoreSum += stats.averageScore * stats.completedSessions;
+        
+        // Добавляем к общей статистике департамента
+        departmentResults.overall.totalSessions += stats.totalSessions;
+        departmentResults.overall.completedSessions += stats.completedSessions;
+        departmentResults.overall.levelDistribution.junior += stats.levelDistribution.junior;
+        departmentResults.overall.levelDistribution.middle += stats.levelDistribution.middle;
+        departmentResults.overall.levelDistribution.senior += stats.levelDistribution.senior;
+      }
+      
+      // Рассчитываем средний балл для роли
+      roleResult.averageScore = roleResult.completedSessions > 0 
+        ? totalScoreSum / roleResult.completedSessions 
+        : 0;
+      
+      departmentResults.roleResults.push(roleResult);
+    }
+    
+    // Рассчитываем средний балл для департамента
+    departmentResults.overall.averageScore = departmentResults.overall.completedSessions > 0 
+      ? totalScoreSum / departmentResults.overall.completedSessions 
+      : 0;
+    
+    return departmentResults;
+  }
 }
 
 // Use PostgreSQL database instead of in-memory storage
