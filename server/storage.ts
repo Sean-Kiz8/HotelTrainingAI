@@ -8,7 +8,13 @@ import {
   modules, type Module, type InsertModule,
   lessons, type Lesson, type InsertLesson,
   lessonMedia, type LessonMedia, type InsertLessonMedia,
-  lessonProgress, type LessonProgress, type InsertLessonProgress
+  lessonProgress, type LessonProgress, type InsertLessonProgress,
+  // Импорты для геймификации
+  achievements, type Achievement, type InsertAchievement,
+  userAchievements, type UserAchievement, type InsertUserAchievement,
+  rewards, type Reward, type InsertReward,
+  userRewards, type UserReward, type InsertUserReward,
+  userLevels, type UserLevel, type InsertUserLevel
 } from "@shared/schema";
 
 export interface IStorage {
@@ -77,6 +83,39 @@ export interface IStorage {
   createChatMessage(chatMessage: InsertChatMessage): Promise<ChatMessage>;
   updateChatResponse(id: number, response: string): Promise<ChatMessage | undefined>;
   listChatMessagesByUser(userId: number, limit: number): Promise<ChatMessage[]>;
+  
+  // Геймификация - Достижения
+  getAchievement(id: number): Promise<Achievement | undefined>;
+  createAchievement(achievement: InsertAchievement): Promise<Achievement>;
+  updateAchievement(id: number, achievementData: Partial<InsertAchievement>): Promise<Achievement | undefined>;
+  deleteAchievement(id: number): Promise<boolean>;
+  listAchievements(): Promise<Achievement[]>;
+  listAchievementsByType(type: string): Promise<Achievement[]>;
+  
+  // Геймификация - Достижения пользователей
+  getUserAchievement(userId: number, achievementId: number): Promise<UserAchievement | undefined>;
+  createUserAchievement(userAchievement: InsertUserAchievement): Promise<UserAchievement>;
+  listUserAchievementsByUser(userId: number): Promise<UserAchievement[]>;
+  
+  // Геймификация - Вознаграждения
+  getReward(id: number): Promise<Reward | undefined>;
+  createReward(reward: InsertReward): Promise<Reward>;
+  updateReward(id: number, rewardData: Partial<InsertReward>): Promise<Reward | undefined>;
+  deleteReward(id: number): Promise<boolean>;
+  listRewards(): Promise<Reward[]>;
+  listActiveRewards(): Promise<Reward[]>;
+  
+  // Геймификация - Вознаграждения пользователей
+  getUserReward(userId: number, rewardId: number): Promise<UserReward | undefined>;
+  createUserReward(userReward: InsertUserReward): Promise<UserReward>;
+  listUserRewardsByUser(userId: number): Promise<UserReward[]>;
+  
+  // Геймификация - Уровни пользователей
+  getUserLevel(userId: number): Promise<UserLevel | undefined>;
+  createUserLevel(userLevel: InsertUserLevel): Promise<UserLevel>;
+  updateUserLevel(userId: number, userLevelData: Partial<InsertUserLevel>): Promise<UserLevel | undefined>;
+  addUserPoints(userId: number, points: number): Promise<UserLevel | undefined>;
+  getLeaderboard(limit?: number): Promise<UserLevel[]>;
 }
 
 import { db } from "./db";
@@ -463,6 +502,229 @@ export class DatabaseStorage implements IStorage {
       .from(chatMessages)
       .where(eq(chatMessages.userId, userId))
       .orderBy(desc(chatMessages.timestamp))
+      .limit(limit);
+  }
+  
+  // Геймификация - Достижения
+  async getAchievement(id: number): Promise<Achievement | undefined> {
+    const [achievement] = await db.select().from(achievements).where(eq(achievements.id, id));
+    return achievement;
+  }
+  
+  async createAchievement(achievement: InsertAchievement): Promise<Achievement> {
+    const [newAchievement] = await db.insert(achievements).values(achievement).returning();
+    return newAchievement;
+  }
+  
+  async updateAchievement(id: number, achievementData: Partial<InsertAchievement>): Promise<Achievement | undefined> {
+    const [updatedAchievement] = await db
+      .update(achievements)
+      .set(achievementData)
+      .where(eq(achievements.id, id))
+      .returning();
+    return updatedAchievement;
+  }
+  
+  async deleteAchievement(id: number): Promise<boolean> {
+    const result = await db.delete(achievements).where(eq(achievements.id, id));
+    return !!result;
+  }
+  
+  async listAchievements(): Promise<Achievement[]> {
+    return await db.select().from(achievements);
+  }
+  
+  async listAchievementsByType(type: string): Promise<Achievement[]> {
+    return await db
+      .select()
+      .from(achievements)
+      .where(eq(achievements.type, type as any));
+  }
+  
+  // Геймификация - Достижения пользователей
+  async getUserAchievement(userId: number, achievementId: number): Promise<UserAchievement | undefined> {
+    const [userAchievement] = await db
+      .select()
+      .from(userAchievements)
+      .where(
+        and(
+          eq(userAchievements.userId, userId),
+          eq(userAchievements.achievementId, achievementId)
+        )
+      );
+    return userAchievement;
+  }
+  
+  async createUserAchievement(userAchievement: InsertUserAchievement): Promise<UserAchievement> {
+    // Проверяем, существует ли уже такое достижение у пользователя
+    const existingAchievement = await this.getUserAchievement(
+      userAchievement.userId,
+      userAchievement.achievementId
+    );
+    
+    if (existingAchievement) {
+      return existingAchievement;
+    }
+    
+    const [newUserAchievement] = await db.insert(userAchievements).values(userAchievement).returning();
+    
+    // Получаем информацию о достижении
+    const achievement = await this.getAchievement(userAchievement.achievementId);
+    
+    if (achievement) {
+      // Добавляем очки пользователю
+      await this.addUserPoints(userAchievement.userId, achievement.pointsAwarded);
+      
+      // Создаем активность
+      await this.createActivity({
+        userId: userAchievement.userId,
+        type: "achievement_earned"
+      });
+    }
+    
+    return newUserAchievement;
+  }
+  
+  async listUserAchievementsByUser(userId: number): Promise<UserAchievement[]> {
+    return await db
+      .select()
+      .from(userAchievements)
+      .where(eq(userAchievements.userId, userId));
+  }
+  
+  // Геймификация - Вознаграждения
+  async getReward(id: number): Promise<Reward | undefined> {
+    const [reward] = await db.select().from(rewards).where(eq(rewards.id, id));
+    return reward;
+  }
+  
+  async createReward(reward: InsertReward): Promise<Reward> {
+    const [newReward] = await db.insert(rewards).values(reward).returning();
+    return newReward;
+  }
+  
+  async updateReward(id: number, rewardData: Partial<InsertReward>): Promise<Reward | undefined> {
+    const [updatedReward] = await db
+      .update(rewards)
+      .set(rewardData)
+      .where(eq(rewards.id, id))
+      .returning();
+    return updatedReward;
+  }
+  
+  async deleteReward(id: number): Promise<boolean> {
+    const result = await db.delete(rewards).where(eq(rewards.id, id));
+    return !!result;
+  }
+  
+  async listRewards(): Promise<Reward[]> {
+    return await db.select().from(rewards);
+  }
+  
+  async listActiveRewards(): Promise<Reward[]> {
+    return await db
+      .select()
+      .from(rewards)
+      .where(eq(rewards.active, true));
+  }
+  
+  // Геймификация - Вознаграждения пользователей
+  async getUserReward(userId: number, rewardId: number): Promise<UserReward | undefined> {
+    const [userReward] = await db
+      .select()
+      .from(userRewards)
+      .where(
+        and(
+          eq(userRewards.userId, userId),
+          eq(userRewards.rewardId, rewardId)
+        )
+      );
+    return userReward;
+  }
+  
+  async createUserReward(userReward: InsertUserReward): Promise<UserReward> {
+    const [newUserReward] = await db.insert(userRewards).values(userReward).returning();
+    
+    // Создаем активность
+    await this.createActivity({
+      userId: userReward.userId,
+      type: "reward_claimed"
+    });
+    
+    return newUserReward;
+  }
+  
+  async listUserRewardsByUser(userId: number): Promise<UserReward[]> {
+    return await db
+      .select()
+      .from(userRewards)
+      .where(eq(userRewards.userId, userId));
+  }
+  
+  // Геймификация - Уровни пользователей
+  async getUserLevel(userId: number): Promise<UserLevel | undefined> {
+    const [userLevel] = await db
+      .select()
+      .from(userLevels)
+      .where(eq(userLevels.userId, userId));
+    return userLevel;
+  }
+  
+  async createUserLevel(userLevel: InsertUserLevel): Promise<UserLevel> {
+    const [newUserLevel] = await db.insert(userLevels).values(userLevel).returning();
+    return newUserLevel;
+  }
+  
+  async updateUserLevel(userId: number, userLevelData: Partial<InsertUserLevel>): Promise<UserLevel | undefined> {
+    const [updatedUserLevel] = await db
+      .update(userLevels)
+      .set(userLevelData)
+      .where(eq(userLevels.userId, userId))
+      .returning();
+    return updatedUserLevel;
+  }
+  
+  async addUserPoints(userId: number, points: number): Promise<UserLevel | undefined> {
+    // Получаем текущий уровень пользователя
+    let userLevel = await this.getUserLevel(userId);
+    
+    // Если уровень не существует, создаем его
+    if (!userLevel) {
+      userLevel = await this.createUserLevel({
+        userId,
+        level: 1,
+        points: 0,
+        nextLevelPoints: 100
+      });
+    }
+    
+    // Вычисляем новое количество очков
+    const newPoints = userLevel.points + points;
+    
+    // Проверяем, достиг ли пользователь нового уровня
+    if (newPoints >= userLevel.nextLevelPoints) {
+      const newLevel = userLevel.level + 1;
+      const nextLevelPoints = 100 * Math.pow(1.5, newLevel);
+      
+      // Обновляем уровень пользователя
+      return await this.updateUserLevel(userId, {
+        level: newLevel,
+        points: newPoints,
+        nextLevelPoints: Math.round(nextLevelPoints)
+      });
+    } else {
+      // Просто обновляем очки
+      return await this.updateUserLevel(userId, {
+        points: newPoints
+      });
+    }
+  }
+  
+  async getLeaderboard(limit: number = 10): Promise<UserLevel[]> {
+    return await db
+      .select()
+      .from(userLevels)
+      .orderBy([desc(userLevels.level), desc(userLevels.points)])
       .limit(limit);
   }
 }

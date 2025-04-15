@@ -187,6 +187,95 @@ export const insertChatMessageSchema = createInsertSchema(chatMessages).omit({
   timestamp: true,
 });
 
+// Геймификация
+export const achievementTypes = pgEnum("achievement_type", [
+  "course_completion", // Завершение курса
+  "module_completion", // Завершение модуля
+  "perfect_score",     // Идеальный результат в тесте
+  "fast_completion",   // Быстрое завершение
+  "consistent_learner" // Регулярное обучение
+]);
+
+export const achievements = pgTable("achievements", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  type: achievementTypes("type").notNull(),
+  icon: text("icon"), // Название иконки из lucide-react
+  pointsAwarded: integer("points_awarded").notNull().default(0),
+  badgeColor: text("badge_color").default("primary"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertAchievementSchema = createInsertSchema(achievements).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const userAchievements = pgTable("user_achievements", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  achievementId: integer("achievement_id").notNull(),
+  earnedAt: timestamp("earned_at").notNull().defaultNow(),
+  metadata: jsonb("metadata"),
+});
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({
+  id: true,
+  earnedAt: true,
+});
+
+export const rewardTypes = pgEnum("reward_type", [
+  "badge",     // Значок
+  "certificate", // Сертификат
+  "points",    // Очки
+  "bonus"      // Бонус (например, выходной)
+]);
+
+export const rewards = pgTable("rewards", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  type: rewardTypes("type").notNull(),
+  pointsRequired: integer("points_required").default(0),
+  image: text("image"),
+  active: boolean("active").default(true),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertRewardSchema = createInsertSchema(rewards).omit({
+  id: true,
+  createdAt: true,
+});
+
+export const userRewards = pgTable("user_rewards", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull(),
+  rewardId: integer("reward_id").notNull(),
+  claimedAt: timestamp("claimed_at").notNull().defaultNow(),
+  status: text("status").default("claimed"),
+});
+
+export const insertUserRewardSchema = createInsertSchema(userRewards).omit({
+  id: true,
+  claimedAt: true,
+});
+
+// Таблица для рейтинга и уровней сотрудников
+export const userLevels = pgTable("user_levels", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().unique(),
+  level: integer("level").notNull().default(1),
+  points: integer("points").notNull().default(0),
+  nextLevelPoints: integer("next_level_points").notNull().default(100),
+  lastActivity: timestamp("last_activity").notNull().defaultNow(),
+});
+
+export const insertUserLevelSchema = createInsertSchema(userLevels).omit({
+  id: true,
+  lastActivity: true,
+});
+
 // Type definitions
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -217,3 +306,18 @@ export type InsertActivity = z.infer<typeof insertActivitySchema>;
 
 export type ChatMessage = typeof chatMessages.$inferSelect;
 export type InsertChatMessage = z.infer<typeof insertChatMessageSchema>;
+
+export type Achievement = typeof achievements.$inferSelect;
+export type InsertAchievement = z.infer<typeof insertAchievementSchema>;
+
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+
+export type Reward = typeof rewards.$inferSelect;
+export type InsertReward = z.infer<typeof insertRewardSchema>;
+
+export type UserReward = typeof userRewards.$inferSelect;
+export type InsertUserReward = z.infer<typeof insertUserRewardSchema>;
+
+export type UserLevel = typeof userLevels.$inferSelect;
+export type InsertUserLevel = z.infer<typeof insertUserLevelSchema>;
