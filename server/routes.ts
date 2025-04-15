@@ -366,10 +366,44 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Get all courses for context
         const courses = await storage.listCourses();
         
+        // Get the user's enrollments to know which courses they're taking
+        const userEnrollments = user ? await storage.listEnrollmentsByUser(user.id) : [];
+        const enrolledCourseIds = userEnrollments.map(e => e.courseId);
+        
+        // Get more details about enrolled courses, including modules and lessons
+        let detailedCourseContent = "";
+        
+        if (enrolledCourseIds.length > 0) {
+          for (const courseId of enrolledCourseIds) {
+            const course = await storage.getCourse(courseId);
+            if (!course) continue;
+            
+            const modules = await storage.listModulesByCourse(courseId);
+            
+            detailedCourseContent += `\nCourse: ${course.title}\nDescription: ${course.description}\nModules:\n`;
+            
+            for (const module of modules) {
+              detailedCourseContent += `- Module: ${module.title}\n  Description: ${module.description}\n  Lessons:\n`;
+              
+              const lessons = await storage.listLessonsByModule(module.id);
+              for (const lesson of lessons) {
+                detailedCourseContent += `    * ${lesson.title}: ${lesson.description}\n`;
+                
+                // Get lesson media to have more context about the content
+                const lessonMedia = await storage.listMediaByLesson(lesson.id);
+                if (lessonMedia.length > 0) {
+                  detailedCourseContent += `      Media: ${lessonMedia.map(m => m.title).join(', ')}\n`;
+                }
+              }
+            }
+          }
+        }
+        
         // Create context about the hotel training system
         const systemPrompt = `
           You are an AI assistant for a hotel staff training system called HotelLearn.
           The system helps with onboarding new staff and providing ongoing training.
+          
           You have knowledge about the following courses:
           ${courses.map(c => `- ${c.title}: ${c.description} (Department: ${c.department})`).join('\n')}
           
@@ -377,9 +411,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           who is a ${user?.role || 'staff member'} 
           ${user?.department ? `in the ${user?.department} department` : ''}.
           
+          ${detailedCourseContent ? `
+          Here is detailed information about the courses this user is enrolled in:
+          ${detailedCourseContent}
+          ` : ''}
+          
           Be helpful, concise, and knowledgeable about hotel operations and training.
           If you don't know something specific about this hotel, provide general best practices
           for the hospitality industry.
+          
+          If the user is asking about specific course content, refer to the detailed course information provided.
+          If the user asks about modules or lessons they're enrolled in, you can provide specific information about those.
         `;
         
         // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
