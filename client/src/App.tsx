@@ -92,8 +92,9 @@ function App() {
                   
                   {/* AI Personal Learning Path routes */}
                   <ProtectedRoute path="/learning-paths" component={LearningPaths} />
-                  <ProtectedRoute path="/learning-paths/:id" component={LearningPathDetails} />
+                  <ProtectedRoute path="/learning-path/:id" component={LearningPathDetails} />
                   <ProtectedRoute path="/learning-path-generator" component={LearningPathGenerator} />
+                  <ProtectedRoute path="/ai-learning-path" component={AILearningPath} />
                   
                   {/* Debug route */}
                   <ProtectedRoute path="/debug" component={DebugPage} />

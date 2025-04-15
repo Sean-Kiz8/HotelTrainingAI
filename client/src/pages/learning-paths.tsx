@@ -217,12 +217,25 @@ export default function LearningPaths() {
         title="Персональные планы обучения"
         subtitle="Просмотр и управление индивидуальными планами обучения сотрудников"
         action={
-          <Button asChild>
-            <Link href="/learning-path-generator">
-              <PlusCircle className="mr-2 h-4 w-4" />
-              Создать новый план
-            </Link>
-          </Button>
+          <div className="flex gap-2">
+            <Button asChild variant="outline">
+              <Link href="/ai-learning-path">
+                <div className="flex items-center gap-2">
+                  <span className="relative flex h-3 w-3 items-center justify-center">
+                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40"></span>
+                    <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                  </span>
+                  AI-генерация
+                </div>
+              </Link>
+            </Button>
+            <Button asChild>
+              <Link href="/learning-path-generator">
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Создать план
+              </Link>
+            </Button>
+          </div>
         }
         headerRight={
           <SearchInput
@@ -272,12 +285,25 @@ export default function LearningPaths() {
                   : "У вас пока нет персональных планов обучения"
               }
             </p>
-            <Button asChild>
-              <Link href="/learning-path-generator">
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Создать новый план
-              </Link>
-            </Button>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button asChild variant="outline">
+                <Link href="/ai-learning-path">
+                  <div className="flex items-center gap-2">
+                    <span className="relative flex h-3 w-3 items-center justify-center">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-40"></span>
+                      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
+                    </span>
+                    AI-генерация
+                  </div>
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/learning-path-generator">
+                  <PlusCircle className="mr-2 h-4 w-4" />
+                  Создать новый план
+                </Link>
+              </Button>
+            </div>
           </div>
         )}
       </div>
