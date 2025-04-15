@@ -25,6 +25,7 @@ interface Step3CoursePreviewProps {
   isGenerating: boolean;
   onGenerateCourse: () => void;
   fetchFilesFromServer?: () => Promise<void>;
+  onRemoveFile?: (fileId: string) => void;
 }
 
 export function Step3CoursePreview({ 
@@ -32,7 +33,8 @@ export function Step3CoursePreview({
   settings, 
   isGenerating,
   onGenerateCourse,
-  fetchFilesFromServer
+  fetchFilesFromServer,
+  onRemoveFile
 }: Step3CoursePreviewProps) {
   // Получаем подходящую иконку для формата курса
   const getFormatIcon = (format: string) => {
@@ -257,7 +259,7 @@ export function Step3CoursePreview({
               {files.length > 0 ? (
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                   {files.map((file) => (
-                    <div key={file.id} className="flex items-center p-2 border rounded-md">
+                    <div key={file.id} className="flex items-center p-2 border rounded-md group">
                       <div className="mr-2">
                         {file.type.includes('image') ? (
                           <FileImage className="h-5 w-5 text-blue-500" />
@@ -279,6 +281,21 @@ export function Step3CoursePreview({
                           ID: {file.id} • Тип: {file.type.split('/')[1] || file.type}
                         </p>
                       </div>
+                      {onRemoveFile && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="opacity-0 group-hover:opacity-100 transition-opacity ml-2 h-7 w-7 p-0 text-red-500 hover:text-red-700 hover:bg-red-50" 
+                          title="Удалить файл"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            onRemoveFile(file.id);
+                          }}
+                        >
+                          <FileX className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   ))}
                 </div>

@@ -48,12 +48,32 @@ export function Step4CourseGeneration({ generatedCourse }: Step4CourseGeneration
     
     generatedCourse.modules.forEach(module => {
       module.lessons.forEach(lesson => {
-        totalMinutes += lesson.duration;
+        // Преобразуем duration в число, учитывая, что оно может быть строкой или числом
+        let durationMinutes = 0;
+        if (typeof lesson.duration === 'number') {
+          durationMinutes = lesson.duration;
+        } else if (typeof lesson.duration === 'string') {
+          // Пытаемся извлечь число из строки (например, "10 мин.")
+          const match = lesson.duration.match(/\d+/);
+          if (match) {
+            durationMinutes = parseInt(match[0], 10);
+          }
+        }
+        
+        // Проверяем на корректность значения (избегаем NaN, бесконечности, отрицательных значений)
+        if (isFinite(durationMinutes) && durationMinutes >= 0) {
+          totalMinutes += durationMinutes;
+        }
       });
     });
     
+    // Проверка на корректность значения totalMinutes
+    if (!isFinite(totalMinutes) || totalMinutes < 0) {
+      return "Время не определено";
+    }
+    
     const hours = Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
+    const minutes = Math.floor(totalMinutes % 60);
     
     if (hours === 0) {
       return `${minutes} минут`;
