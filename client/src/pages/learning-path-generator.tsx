@@ -93,7 +93,7 @@ export default function LearningPathGenerator() {
       });
 
       // Переходим на страницу просмотра созданного плана
-      navigate(`/learning-paths/${data.learningPath.id}`);
+      navigate(`/learning-path-details/${data.learningPath.id}`);
     },
     onError: (error) => {
       console.error("Ошибка при создании плана обучения:", error);
