@@ -171,7 +171,8 @@ export default function CourseDetailsPage() {
       const res = await apiRequest("POST", "/api/enrollments", {
         userId,
         courseId,
-        status: "active"
+        progress: 0,
+        completed: false
       });
       return await res.json();
     },
