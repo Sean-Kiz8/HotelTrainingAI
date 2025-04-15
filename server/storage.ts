@@ -24,7 +24,11 @@ import {
   assessments, type Assessment, type InsertAssessment,
   assessmentQuestions, type AssessmentQuestion, type InsertAssessmentQuestion,
   assessmentSessions, type AssessmentSession, type InsertAssessmentSession,
-  assessmentAnswers, type AssessmentAnswer, type InsertAssessmentAnswer
+  assessmentAnswers, type AssessmentAnswer, type InsertAssessmentAnswer,
+  // Импорты для микро-обучающего контента
+  microLearningContent, type MicroLearningContent, type InsertMicroLearningContent,
+  microLearningAssignments, type MicroLearningAssignment, type InsertMicroLearningAssignment,
+  microLearningProgress, type MicroLearningProgress, type InsertMicroLearningProgress
 } from "@shared/schema";
 
 export interface IStorage {
@@ -229,6 +233,7 @@ export interface IStorage {
   createMicroLearningProgress(progress: InsertMicroLearningProgress): Promise<MicroLearningProgress>;
   updateMicroLearningProgress(id: number, progressData: Partial<InsertMicroLearningProgress>): Promise<MicroLearningProgress | undefined>;
   completeMicroLearningProgress(id: number, quizScore?: number): Promise<MicroLearningProgress | undefined>;
+  listMicroLearningProgress(): Promise<MicroLearningProgress[]>;
 
   // Генерация микро-обучающего контента на основе результатов ассесмента
   generateMicroLearningContent(assessmentSessionId: number, options?: { type?: string, count?: number }): Promise<MicroLearningContent[]>;

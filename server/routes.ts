@@ -2661,6 +2661,365 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ================ Маршруты для микро-обучающего контента ================
+  
+  // Получение списка всех микро-обучающих материалов
+  app.get("/api/micro-learning", async (req, res) => {
+    try {
+      const content = await storage.listMicroLearningContent();
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching micro-learning content:", error);
+      res.status(500).json({ error: "Ошибка при получении микро-обучающих материалов" });
+    }
+  });
+  
+  // Получение микро-обучающего материала по ID
+  app.get("/api/micro-learning/:id", async (req, res) => {
+    try {
+      const contentId = parseInt(req.params.id);
+      const content = await storage.getMicroLearningContent(contentId);
+      
+      if (!content) {
+        return res.status(404).json({ error: "Микро-обучающий материал не найден" });
+      }
+      
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching micro-learning content:", error);
+      res.status(500).json({ error: "Ошибка при получении микро-обучающего материала" });
+    }
+  });
+  
+  // Создание нового микро-обучающего материала
+  app.post("/api/micro-learning", async (req, res) => {
+    try {
+      const contentData = req.body;
+      
+      // Проверяем, что пользователь имеет право создавать контент
+      if (req.session.user && (req.session.user.role === "admin" || req.session.user.role === "trainer")) {
+        // Назначаем создателя
+        contentData.created_by_id = req.session.user.id;
+      } else {
+        contentData.created_by_id = 1; // По умолчанию админ
+      }
+      
+      // Добавляем дату создания
+      contentData.created_at = new Date();
+      
+      const newContent = await storage.createMicroLearningContent(contentData);
+      res.status(201).json(newContent);
+    } catch (error) {
+      console.error("Error creating micro-learning content:", error);
+      res.status(500).json({ error: "Ошибка при создании микро-обучающего материала" });
+    }
+  });
+  
+  // Обновление микро-обучающего материала
+  app.put("/api/micro-learning/:id", async (req, res) => {
+    try {
+      const contentId = parseInt(req.params.id);
+      const contentData = req.body;
+      
+      // Обновляем дату изменения
+      contentData.updated_at = new Date();
+      
+      const updatedContent = await storage.updateMicroLearningContent(contentId, contentData);
+      
+      if (!updatedContent) {
+        return res.status(404).json({ error: "Микро-обучающий материал не найден" });
+      }
+      
+      res.json(updatedContent);
+    } catch (error) {
+      console.error("Error updating micro-learning content:", error);
+      res.status(500).json({ error: "Ошибка при обновлении микро-обучающего материала" });
+    }
+  });
+  
+  // Удаление микро-обучающего материала
+  app.delete("/api/micro-learning/:id", async (req, res) => {
+    try {
+      const contentId = parseInt(req.params.id);
+      const deleted = await storage.deleteMicroLearningContent(contentId);
+      
+      if (!deleted) {
+        return res.status(404).json({ error: "Микро-обучающий материал не найден" });
+      }
+      
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting micro-learning content:", error);
+      res.status(500).json({ error: "Ошибка при удалении микро-обучающего материала" });
+    }
+  });
+  
+  // Получение микро-обучающего контента по компетенции
+  app.get("/api/micro-learning/by-competency/:competencyId", async (req, res) => {
+    try {
+      const competencyId = parseInt(req.params.competencyId);
+      const content = await storage.listMicroLearningContentByCompetency(competencyId);
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching micro-learning content by competency:", error);
+      res.status(500).json({ error: "Ошибка при получении микро-обучающего контента по компетенции" });
+    }
+  });
+  
+  // Получение микро-обучающего контента по уровню
+  app.get("/api/micro-learning/by-level/:level", async (req, res) => {
+    try {
+      const level = req.params.level;
+      const content = await storage.listMicroLearningContentByTargetLevel(level);
+      res.json(content);
+    } catch (error) {
+      console.error("Error fetching micro-learning content by level:", error);
+      res.status(500).json({ error: "Ошибка при получении микро-обучающего контента по уровню" });
+    }
+  });
+  
+  // Генерация микро-обучающего контента по результатам ассесмента
+  app.post("/api/micro-learning/generate/:assessmentSessionId", async (req, res) => {
+    try {
+      const sessionId = parseInt(req.params.assessmentSessionId);
+      const options = req.body;
+      
+      const content = await storage.generateMicroLearningContent(sessionId, options);
+      res.status(201).json(content);
+    } catch (error) {
+      console.error("Error generating micro-learning content:", error);
+      res.status(500).json({ error: "Ошибка при генерации микро-обучающего контента" });
+    }
+  });
+  
+  // ================ Маршруты для назначений микро-обучающего контента ================
+  
+  // Получение назначения по ID
+  app.get("/api/micro-learning-assignments/:id", async (req, res) => {
+    try {
+      const assignmentId = parseInt(req.params.id);
+      const assignment = await storage.getMicroLearningAssignment(assignmentId);
+      
+      if (!assignment) {
+        return res.status(404).json({ error: "Назначение не найдено" });
+      }
+      
+      res.json(assignment);
+    } catch (error) {
+      console.error("Error fetching micro-learning assignment:", error);
+      res.status(500).json({ error: "Ошибка при получении назначения" });
+    }
+  });
+  
+  // Назначение микро-обучающего контента пользователю
+  app.post("/api/micro-learning-assignments", async (req, res) => {
+    try {
+      const assignmentData = req.body;
+      
+      // Добавляем дату назначения
+      assignmentData.assigned_at = new Date();
+      
+      const newAssignment = await storage.createMicroLearningAssignment(assignmentData);
+      res.status(201).json(newAssignment);
+    } catch (error) {
+      console.error("Error creating micro-learning assignment:", error);
+      res.status(500).json({ error: "Ошибка при создании назначения" });
+    }
+  });
+  
+  // Обновление назначения
+  app.put("/api/micro-learning-assignments/:id", async (req, res) => {
+    try {
+      const assignmentId = parseInt(req.params.id);
+      const assignmentData = req.body;
+      
+      const updatedAssignment = await storage.updateMicroLearningAssignment(assignmentId, assignmentData);
+      
+      if (!updatedAssignment) {
+        return res.status(404).json({ error: "Назначение не найдено" });
+      }
+      
+      res.json(updatedAssignment);
+    } catch (error) {
+      console.error("Error updating micro-learning assignment:", error);
+      res.status(500).json({ error: "Ошибка при обновлении назначения" });
+    }
+  });
+  
+  // Получение всех назначений для пользователя
+  app.get("/api/micro-learning-assignments/user/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const assignments = await storage.listMicroLearningAssignmentsByUser(userId);
+      
+      res.json(assignments);
+    } catch (error) {
+      console.error("Error fetching user's micro-learning assignments:", error);
+      res.status(500).json({ error: "Ошибка при получении назначений пользователя" });
+    }
+  });
+  
+  // Завершение назначения микро-обучающего контента
+  app.post("/api/micro-learning-assignments/:id/complete", async (req, res) => {
+    try {
+      const assignmentId = parseInt(req.params.id);
+      const { feedback, rating } = req.body;
+      
+      const completedAssignment = await storage.completeMicroLearningAssignment(
+        assignmentId, 
+        feedback, 
+        rating ? parseInt(rating) : undefined
+      );
+      
+      if (!completedAssignment) {
+        return res.status(404).json({ error: "Назначение не найдено" });
+      }
+      
+      res.json(completedAssignment);
+    } catch (error) {
+      console.error("Error completing micro-learning assignment:", error);
+      res.status(500).json({ error: "Ошибка при завершении назначения" });
+    }
+  });
+  
+  // ================ Маршруты для прогресса по микро-обучающему контенту ================
+  
+  // Создание или обновление прогресса
+  app.post("/api/micro-learning-progress", async (req, res) => {
+    try {
+      const progressData = req.body;
+      
+      // Проверяем, существует ли уже прогресс для этого назначения
+      let existingProgress;
+      if (progressData.assignment_id) {
+        const assignments = await storage.listMicroLearningProgress();
+        existingProgress = assignments.find(p => p.assignment_id === progressData.assignment_id);
+      }
+      
+      let progress;
+      
+      if (existingProgress) {
+        // Обновляем существующий прогресс
+        progress = await storage.updateMicroLearningProgress(existingProgress.id, progressData);
+      } else {
+        // Создаем новый прогресс
+        progressData.started_at = progressData.started_at || new Date();
+        progress = await storage.createMicroLearningProgress(progressData);
+      }
+      
+      res.json(progress);
+    } catch (error) {
+      console.error("Error saving micro-learning progress:", error);
+      res.status(500).json({ error: "Ошибка при сохранении прогресса" });
+    }
+  });
+  
+  // Обновление прогресса
+  app.put("/api/micro-learning-progress/:id", async (req, res) => {
+    try {
+      const progressId = parseInt(req.params.id);
+      const progressData = req.body;
+      
+      const updatedProgress = await storage.updateMicroLearningProgress(progressId, progressData);
+      
+      if (!updatedProgress) {
+        return res.status(404).json({ error: "Прогресс не найден" });
+      }
+      
+      res.json(updatedProgress);
+    } catch (error) {
+      console.error("Error updating micro-learning progress:", error);
+      res.status(500).json({ error: "Ошибка при обновлении прогресса" });
+    }
+  });
+  
+  // Завершение прогресса
+  app.post("/api/micro-learning-progress/:id/complete", async (req, res) => {
+    try {
+      const progressId = parseInt(req.params.id);
+      const { quizScore } = req.body;
+      
+      const completedProgress = await storage.completeMicroLearningProgress(
+        progressId, 
+        quizScore ? parseInt(quizScore) : undefined
+      );
+      
+      if (!completedProgress) {
+        return res.status(404).json({ error: "Прогресс не найден" });
+      }
+      
+      res.json(completedProgress);
+    } catch (error) {
+      console.error("Error completing micro-learning progress:", error);
+      res.status(500).json({ error: "Ошибка при завершении прогресса" });
+    }
+  });
+  
+  // ================ Рекомендации и аналитика микро-обучающего контента ================
+  
+  // Получение рекомендаций по микро-обучающему контенту для пользователя
+  app.get("/api/micro-learning/recommendations/user/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const count = req.query.count ? parseInt(req.query.count as string) : 5;
+      
+      const recommendations = await storage.recommendMicroLearningForUser(userId, count);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting micro-learning recommendations:", error);
+      res.status(500).json({ error: "Ошибка при получении рекомендаций" });
+    }
+  });
+  
+  // Получение рекомендаций по компетенции
+  app.get("/api/micro-learning/recommendations/competency/:competencyId", async (req, res) => {
+    try {
+      const competencyId = parseInt(req.params.competencyId);
+      const count = req.query.count ? parseInt(req.query.count as string) : 3;
+      
+      const recommendations = await storage.recommendMicroLearningByCompetency(competencyId, count);
+      res.json(recommendations);
+    } catch (error) {
+      console.error("Error getting micro-learning recommendations by competency:", error);
+      res.status(500).json({ error: "Ошибка при получении рекомендаций по компетенции" });
+    }
+  });
+  
+  // Получение общей статистики по микро-обучающему контенту
+  app.get("/api/micro-learning/statistics", async (req, res) => {
+    try {
+      const statistics = await storage.getMicroLearningStatistics();
+      res.json(statistics);
+    } catch (error) {
+      console.error("Error getting micro-learning statistics:", error);
+      res.status(500).json({ error: "Ошибка при получении статистики" });
+    }
+  });
+  
+  // Получение статистики по микро-обучающему контенту для пользователя
+  app.get("/api/micro-learning/statistics/user/:userId", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const statistics = await storage.getUserMicroLearningStatistics(userId);
+      res.json(statistics);
+    } catch (error) {
+      console.error("Error getting user micro-learning statistics:", error);
+      res.status(500).json({ error: "Ошибка при получении статистики пользователя" });
+    }
+  });
+  
+  // Получение статистики по микро-обучающему контенту для компетенции
+  app.get("/api/micro-learning/statistics/competency/:competencyId", async (req, res) => {
+    try {
+      const competencyId = parseInt(req.params.competencyId);
+      const statistics = await storage.getCompetencyMicroLearningStatistics(competencyId);
+      res.json(statistics);
+    } catch (error) {
+      console.error("Error getting competency micro-learning statistics:", error);
+      res.status(500).json({ error: "Ошибка при получении статистики по компетенции" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
