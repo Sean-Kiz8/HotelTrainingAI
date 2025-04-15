@@ -105,7 +105,12 @@ function LoginForm() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    loginMutation.mutate(formData);
+    loginMutation.mutate(formData, {
+      onSuccess: () => {
+        // Форсированный редирект на главную страницу после успешного входа
+        window.location.href = "/";
+      }
+    });
   };
 
   return (
@@ -152,7 +157,7 @@ function LoginForm() {
 }
 
 function RegisterForm({ onComplete }: { onComplete: () => void }) {
-  const { registerMutation } = useAuth();
+  const { registerMutation, loginMutation } = useAuth();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -175,6 +180,16 @@ function RegisterForm({ onComplete }: { onComplete: () => void }) {
     registerMutation.mutate(formData, {
       onSuccess: () => {
         onComplete();
+        // Автоматический вход после регистрации
+        loginMutation.mutate({
+          username: formData.username,
+          password: formData.password
+        }, {
+          onSuccess: () => {
+            // Форсированный редирект на главную страницу после успешного входа
+            window.location.href = "/";
+          }
+        });
       }
     });
   };
