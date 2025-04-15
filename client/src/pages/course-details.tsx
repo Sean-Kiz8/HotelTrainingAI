@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { ChevronLeft, Users, Clock, Award, BookOpen, Copy, Mail } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -18,6 +19,7 @@ import { SharePreviewCard } from "@/components/course/share-preview-card";
 export default function CourseDetailsPage() {
   const params = useParams();
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const courseId = params.id ? parseInt(params.id) : undefined;
   
   // Fetch course by ID
@@ -233,9 +235,50 @@ export default function CourseDetailsPage() {
                   <div className="space-y-3">
                     <h4 className="text-sm font-medium">Пригласить участников по email</h4>
                     <div className="flex flex-col gap-3">
-                      <Input placeholder="Введите email адрес" type="email" />
-                      <Input placeholder="Добавить еще email адрес" type="email" />
-                      <Button className="w-full md:w-fit">
+                      <Input 
+                        placeholder="Введите email адрес" 
+                        type="email" 
+                        id="email-1"
+                      />
+                      <Input 
+                        placeholder="Добавить еще email адрес" 
+                        type="email"
+                        id="email-2" 
+                      />
+                      <Button 
+                        className="w-full md:w-fit"
+                        onClick={() => {
+                          const email1 = (document.getElementById('email-1') as HTMLInputElement)?.value;
+                          const email2 = (document.getElementById('email-2') as HTMLInputElement)?.value;
+                          
+                          const emails = [email1, email2].filter(email => 
+                            email && email.includes('@') && email.includes('.')
+                          );
+                          
+                          if (emails.length === 0) {
+                            toast({
+                              title: "Ошибка отправки",
+                              description: "Пожалуйста, введите хотя бы один корректный email",
+                              variant: "destructive",
+                            });
+                            return;
+                          }
+                          
+                          // В реальном приложении здесь был бы API запрос
+                          toast({
+                            title: "Приглашения отправлены",
+                            description: `Приглашения на курс "${course.title}" отправлены на ${emails.join(', ')}`,
+                          });
+                          
+                          // Очищаем поля
+                          if (document.getElementById('email-1')) {
+                            (document.getElementById('email-1') as HTMLInputElement).value = '';
+                          }
+                          if (document.getElementById('email-2')) {
+                            (document.getElementById('email-2') as HTMLInputElement).value = '';
+                          }
+                        }}
+                      >
                         <Mail className="h-4 w-4 mr-2" /> Отправить приглашения
                       </Button>
                     </div>
@@ -268,8 +311,27 @@ export default function CourseDetailsPage() {
                   <div className="space-y-3">
                     <h4 className="text-sm font-medium">Поделиться в социальных сетях</h4>
                     <div className="flex gap-2">
-                      <Button variant="outline" className="w-full">Telegram</Button>
-                      <Button variant="outline" className="w-full">WhatsApp</Button>
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => {
+                          const text = encodeURIComponent(`Приглашаю на курс: ${course.title}`);
+                          const url = encodeURIComponent(`${window.location.origin}/course-details/${course.id}`);
+                          window.open(`https://t.me/share/url?url=${url}&text=${text}`, '_blank');
+                        }}
+                      >
+                        Telegram
+                      </Button>
+                      <Button 
+                        variant="outline" 
+                        className="w-full"
+                        onClick={() => {
+                          const text = encodeURIComponent(`Приглашаю на курс: ${course.title} ${window.location.origin}/course-details/${course.id}`);
+                          window.open(`https://api.whatsapp.com/send?text=${text}`, '_blank');
+                        }}
+                      >
+                        WhatsApp
+                      </Button>
                     </div>
                   </div>
                 </div>
