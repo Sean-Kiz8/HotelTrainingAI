@@ -1,6 +1,6 @@
 import { useLocation } from "wouter";
 import { LogOut } from "lucide-react";
-import { useAuth } from "@/context/auth-context";
+import { useAuth } from "@/hooks/use-auth";
 import { useChatbot } from "@/context/chatbot-context";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -26,7 +26,7 @@ const staffNavItems = [
 
 export function Sidebar() {
   const [location, navigate] = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const { openChatbot } = useChatbot();
   
   // Всегда отображаем боковое меню для разработки
@@ -134,10 +134,11 @@ export function Sidebar() {
           <Button 
             variant="ghost" 
             className="w-full justify-start text-neutral-700" 
-            onClick={logout}
+            onClick={() => logoutMutation.mutate()}
+            disabled={logoutMutation.isPending}
           >
             <LogOut className="mr-2 h-4 w-4" />
-            Выйти
+            {logoutMutation.isPending ? "Выход..." : "Выйти"}
           </Button>
         </div>
       </div>

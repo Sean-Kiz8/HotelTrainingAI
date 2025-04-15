@@ -1,4 +1,4 @@
-import express, { type Express, Request, Response } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { z } from "zod";
@@ -9,6 +9,7 @@ import {
   insertModuleSchema, insertLessonSchema, insertLessonMediaSchema,
   mediaTypeEnum
 } from "@shared/schema";
+import { setupAuth } from "./auth";
 import OpenAI from "openai";
 import multer from "multer";
 import path from "path-browserify";
@@ -109,6 +110,8 @@ async function generateThumbnail(filePath: string, mediaType: string, thumbnailP
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Настройка аутентификации на основе сессий
+  setupAuth(app);
   // User routes
   app.get("/api/users", async (req, res) => {
     const users = await storage.listUsers();

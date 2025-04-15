@@ -1,8 +1,7 @@
-import { ReactNode } from "react";
+import { ReactNode, useContext } from "react";
 import { Sidebar } from "./sidebar";
 import { MobileHeader } from "./mobile-header";
 import { AIChat } from "../chatbot/ai-chat";
-import { useAuth } from "@/context/auth-context";
 
 interface MainLayoutProps {
   children: ReactNode;

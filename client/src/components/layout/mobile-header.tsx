@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
-import { useAuth } from "@/context/auth-context";
+import { useAuth } from "@/hooks/use-auth";
 import { useChatbot } from "@/context/chatbot-context";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
@@ -28,7 +28,7 @@ const staffNavItems = [
 
 export function MobileHeader() {
   const [location, navigate] = useLocation();
-  const { user, logout } = useAuth();
+  const { user, logoutMutation } = useAuth();
   const { openChatbot } = useChatbot();
   const [isOpen, setIsOpen] = useState(false);
   
@@ -45,7 +45,7 @@ export function MobileHeader() {
   };
   
   const handleLogout = () => {
-    logout();
+    logoutMutation.mutate();
     setIsOpen(false);
   };
   
@@ -161,9 +161,10 @@ export function MobileHeader() {
                   variant="ghost" 
                   className="w-full justify-start text-neutral-700" 
                   onClick={handleLogout}
+                  disabled={logoutMutation.isPending}
                 >
                   <LogOut className="mr-2 h-4 w-4" />
-                  Выйти
+                  {logoutMutation.isPending ? "Выход..." : "Выйти"}
                 </Button>
               </div>
             </SheetContent>
