@@ -6,6 +6,7 @@ import Dashboard from "./pages/dashboard";
 import Courses from "./pages/courses";
 import CourseDetails from "./pages/course-details";
 import CreateCourse from "./pages/create-course";
+import SmartCourse from "./pages/smart-course";
 import Employees from "./pages/employees";
 import Analytics from "./pages/analytics";
 import Settings from "./pages/settings";
