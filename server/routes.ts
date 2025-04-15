@@ -18,10 +18,16 @@ import multer from "multer";
 import path from "path-browserify";
 import fs from "fs-extra";
 import sharp from "sharp";
+import { 
+  generateLearningPath, 
+  analyzeUserProfileAndRecommend, 
+  generateCourseInsight 
+} from "./utils/openai";
 
-// Initialize OpenAI
+// Initialize OpenAI для совместимости с существующим кодом
+// (новый код будет использовать функции из ./utils/openai)
 const openai = new OpenAI({ 
-  apiKey: process.env.OPENAI_API_KEY || "sk-fakekey" 
+  apiKey: process.env.OPENAI_API_KEY 
 });
 
 // Configure multer storage
