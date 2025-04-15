@@ -74,7 +74,7 @@ const upload = multer({
 });
 
 // Helper function to get media type from mime type
-function getMediaTypeFromMimeType(mimeType: string): string {
+function getMediaTypeFromMimeType(mimeType: string): "image" | "video" | "audio" | "document" | "presentation" {
   if (mimeType.startsWith('image/')) {
     return 'image';
   } else if (mimeType.startsWith('video/')) {

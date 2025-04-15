@@ -7,7 +7,7 @@ interface CourseCardProps {
   description: string;
   department: string;
   participantCount: number;
-  image: string;
+  image: string | null;
   rating: number;
   ratingCount: number;
   onClick?: () => void;
@@ -58,7 +58,15 @@ export function CourseCard({
   return (
     <Card className="overflow-hidden">
       <div className={`h-40 ${bg} flex items-center justify-center`}>
-        <span className={`material-icons text-5xl ${text}`}>{image}</span>
+        {image ? (
+          <img 
+            src={image} 
+            alt={title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <span className={`material-icons text-5xl ${text}`}>school</span>
+        )}
       </div>
       <CardContent className="p-4">
         <div className="flex justify-between">
