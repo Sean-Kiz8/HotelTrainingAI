@@ -421,8 +421,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
     
     if (courseId) {
+      // Получаем записи на курс и добавляем данные пользователей
       const enrollments = await storage.listEnrollmentsByCourse(courseId);
-      return res.json(enrollments);
+      
+      // Добавляем информацию о пользователях для каждой записи
+      const populatedEnrollments = await Promise.all(enrollments.map(async (enrollment) => {
+        const user = await storage.getUser(enrollment.userId);
+        return {
+          ...enrollment,
+          user: user ? {
+            id: user.id,
+            username: user.username
+          } : null
+        };
+      }));
+      
+      return res.json(populatedEnrollments);
     }
     
     res.status(400).json({ message: "Missing userId or courseId parameter" });
