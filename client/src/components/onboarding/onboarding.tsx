@@ -17,6 +17,11 @@ export function Onboarding() {
     return null;
   }
 
+  // Убедимся, что шаги загружены и текущий шаг существует
+  if (!steps || steps.length === 0 || !steps[currentStep]) {
+    return null;
+  }
+
   const currentStepData = steps[currentStep];
 
   return (
