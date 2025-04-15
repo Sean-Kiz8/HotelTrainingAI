@@ -25,6 +25,8 @@ const formSchema = z.object({
   level: z.enum(["junior", "middle", "senior"], {
     required_error: "Пожалуйста, выберите уровень сотрудника",
   }),
+  userLevel: z.string().min(1, { message: "Выберите уровень" }),
+  userDepartment: z.string().min(1, { message: "Выберите отдел" }),
   targetSkills: z.string().min(5, { message: "Опишите навыки, которые нужно развить" }),
 });
 
@@ -49,6 +51,8 @@ export default function LearningPathGenerator() {
       userId: "",
       position: "",
       level: "junior",
+      userLevel: "",
+      userDepartment: "",
       targetSkills: "",
     },
   });
@@ -199,6 +203,60 @@ export default function LearningPathGenerator() {
                         </Select>
                         <FormDescription>
                           Текущий уровень квалификации сотрудника
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="userLevel"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Уровень подготовки</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Выберите уровень подготовки" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="beginner">Начальный</SelectItem>
+                            <SelectItem value="intermediate">Средний</SelectItem>
+                            <SelectItem value="advanced">Продвинутый</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Текущий уровень подготовки сотрудника
+                        </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="userDepartment"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Отдел</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Выберите отдел" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="front_office">Прием и размещение</SelectItem>
+                            <SelectItem value="housekeeping">Хозяйственный отдел</SelectItem>
+                            <SelectItem value="food_and_beverage">Ресторанная служба</SelectItem>
+                            <SelectItem value="maintenance">Техническая служба</SelectItem>
+                            <SelectItem value="sales">Отдел продаж</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormDescription>
+                          Отдел, в котором работает сотрудник
                         </FormDescription>
                         <FormMessage />
                       </FormItem>
