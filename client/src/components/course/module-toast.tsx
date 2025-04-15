@@ -1,8 +1,18 @@
 import React from "react";
 import { BookOpen, Check, ExternalLink } from "lucide-react";
 import { ToastAction } from "@/components/ui/toast";
-import { IModule } from "@/types/course";
 import { useLocation } from "wouter";
+
+// Используем локальное определение интерфейса, так как модуль определен в course-details.tsx
+interface IModule {
+  id: number;
+  title: string;
+  description: string;
+  courseId: number;
+  orderIndex?: number;
+  order?: number;
+  lessons?: any[];
+}
 
 interface ModuleToastProps {
   module: IModule;

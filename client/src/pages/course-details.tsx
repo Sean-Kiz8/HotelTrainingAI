@@ -18,6 +18,7 @@ import {
 import { useToast } from "@/hooks/use-toast";
 import { ShareWidget } from "@/components/course/share-widget";
 import { SharePreviewCard } from "@/components/course/share-preview-card";
+import { ModuleToast, LessonToast } from "@/components/course/module-toast";
 import {
   Accordion,
   AccordionContent,
@@ -126,12 +127,24 @@ export default function CourseDetailsPage() {
       const res = await apiRequest("POST", "/api/lessons", data);
       return await res.json();
     },
-    onSuccess: () => {
+    onSuccess: (createdLesson) => {
       queryClient.invalidateQueries({ queryKey: [`/api/modules?courseId=${courseId}`] });
+      
+      // Найдем модуль, к которому относится урок
+      const module = modules.find(mod => mod.id === createdLesson.moduleId);
+      
       toast({
-        title: "Урок создан",
-        description: "Новый урок был успешно добавлен в модуль",
+        description: (
+          <LessonToast 
+            lessonTitle={createdLesson.title}
+            moduleTitle={module?.title || 'Модуль'} 
+            courseId={Number(courseId)}
+          />
+        ),
+        duration: 5000,
+        className: "group p-4"
       });
+      
       setShowAddLessonDialog(false);
       setActiveModuleId(null);
     },
