@@ -77,6 +77,7 @@ export default function CourseDetailsPage() {
   const [showAddModuleDialog, setShowAddModuleDialog] = useState(false);
   const [showAddLessonDialog, setShowAddLessonDialog] = useState(false);
   const [showAddParticipantDialog, setShowAddParticipantDialog] = useState(false);
+  const [showDeleteConfirmDialog, setShowDeleteConfirmDialog] = useState(false);
   const [activeModuleId, setActiveModuleId] = useState<number | null>(null);
   
   // Fetch course by ID
@@ -208,6 +209,39 @@ export default function CourseDetailsPage() {
     setShowAddLessonDialog(true);
   };
   
+  // Мутация для удаления курса
+  const deleteCourseМutation = useMutation({
+    mutationFn: async () => {
+      const res = await apiRequest("DELETE", `/api/courses/${courseId}`);
+      return await res.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/courses'] });
+      toast({
+        title: "Успех",
+        description: "Курс успешно удален",
+      });
+      setLocation('/courses');
+    },
+    onError: (error) => {
+      toast({
+        title: "Ошибка при удалении курса",
+        description: error.message,
+        variant: "destructive",
+      });
+    }
+  });
+  
+  // Обработчик удаления курса
+  const handleDeleteCourse = () => {
+    setShowDeleteConfirmDialog(true);
+  };
+  
+  // Подтверждение удаления курса
+  const confirmDeleteCourse = () => {
+    deleteCourseМutation.mutate();
+  };
+  
   // Записать пользователя на курс
   const handleEnrollUser = (userId: number) => {
     enrollUserMutation.mutate(userId);
@@ -280,14 +314,25 @@ export default function CourseDetailsPage() {
   return (
     <div className="p-4 md:p-6">
       <div className="flex justify-between items-center mb-4">
-        <Button 
-          variant="outline" 
-          size="sm"
-          onClick={() => setLocation('/courses')}
-        >
-          <ChevronLeft className="mr-2 h-4 w-4" />
-          Назад к курсам
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setLocation('/courses')}
+          >
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Назад к курсам
+          </Button>
+          
+          <Button 
+            variant="destructive"
+            size="sm"
+            onClick={handleDeleteCourse}
+          >
+            <Trash2 className="mr-2 h-4 w-4" />
+            Удалить курс
+          </Button>
+        </div>
         
         <ShareWidget 
           courseId={course.id} 
@@ -706,6 +751,28 @@ export default function CourseDetailsPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Диалог подтверждения удаления курса */}
+      <AlertDialog open={showDeleteConfirmDialog} onOpenChange={setShowDeleteConfirmDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Вы уверены, что хотите удалить курс?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Это действие нельзя отменить. Курс и все связанные с ним данные будут удалены безвозвратно.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Отмена</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={confirmDeleteCourse}
+              disabled={deleteCourseМutation.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteCourseМutation.isPending ? "Удаление..." : "Удалить"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
