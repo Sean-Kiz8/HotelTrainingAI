@@ -188,11 +188,11 @@ export default function LearningPaths() {
     enabled: !!user?.id,
   });
 
-  // Получаем список всех учебных планов (только для админов)
+  // Получаем список всех учебных планов
   const { data: allLearningPaths, isLoading: isLoadingAll } = useQuery({
     queryKey: ["/api/learning-paths"],
-    // Запрос будет выполнен только для админов и при выборе вкладки "Все"
-    enabled: !!user?.id && isAdmin && activeTab === "all",
+    // Убираем зависимость от авторизации в режиме разработки
+    enabled: activeTab === "all",
   });
 
   // Фильтрация по поисковому запросу

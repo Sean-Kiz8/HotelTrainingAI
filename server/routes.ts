@@ -1,6 +1,7 @@
 import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
 import { z } from "zod";
 import { 
   insertUserSchema, insertCourseSchema, 
@@ -8,7 +9,8 @@ import {
   insertChatMessageSchema, insertMediaFileSchema,
   insertModuleSchema, insertLessonSchema, insertLessonMediaSchema,
   insertLearningPathSchema, insertLearningPathCourseSchema,
-  mediaTypeEnum, employeeLevelEnum
+  mediaTypeEnum, employeeLevelEnum,
+  learningPaths
 } from "@shared/schema";
 import { setupAuth } from "./auth";
 import OpenAI from "openai";
@@ -1511,7 +1513,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.json(learningPaths);
       }
       
-      res.status(400).json({ message: "Missing userId or createdById parameter" });
+      // В режиме разработки возвращаем все доступные планы
+      // В реальном приложении здесь будет проверка прав доступа
+      const allPaths = await db.select().from(learningPaths);
+      return res.json(allPaths);
     } catch (error) {
       console.error("Error fetching learning paths:", error);
       res.status(500).json({ error: "Failed to fetch learning paths" });

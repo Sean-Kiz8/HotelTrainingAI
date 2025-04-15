@@ -28,6 +28,9 @@ export interface IStorage {
   updateUser(id: number, userData: Partial<InsertUser>): Promise<User | undefined>;
   listUsers(): Promise<User[]>;
   
+  // Дополнительный метод для получения всех учебных планов
+  listAllLearningPaths(): Promise<LearningPath[]>;
+  
   // Media operations
   getMediaFile(id: number): Promise<MediaFile | undefined>;
   createMediaFile(mediaFile: InsertMediaFile): Promise<MediaFile>;
