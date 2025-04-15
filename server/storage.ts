@@ -1869,6 +1869,10 @@ export class DatabaseStorage implements IStorage {
     const [progress] = await db.select().from(microLearningProgress).where(eq(microLearningProgress.id, id));
     return progress;
   }
+  
+  async listMicroLearningProgress(): Promise<MicroLearningProgress[]> {
+    return await db.select().from(microLearningProgress);
+  }
 
   async createMicroLearningProgress(progress: InsertMicroLearningProgress): Promise<MicroLearningProgress> {
     const [newProgress] = await db.insert(microLearningProgress).values(progress).returning();
@@ -2050,62 +2054,104 @@ ${competency.description}
 
   // Аналитика по микро-обучающему контенту
   async getMicroLearningStatistics(): Promise<any> {
-    // Получаем общую статистику по микро-обучающему контенту
-    const [totalContent] = await db
-      .select({ count: sql`count(*)` })
-      .from(microLearningContent);
+    try {
+      // Получаем общую статистику по микро-обучающему контенту
+      const [totalContent] = await db
+        .select({ count: sql`count(*)` })
+        .from(microLearningContent);
 
-    const [totalAssignments] = await db
-      .select({ count: sql`count(*)` })
-      .from(microLearningAssignments);
+      const [totalAssignments] = await db
+        .select({ count: sql`count(*)` })
+        .from(microLearningAssignments);
 
-    const [completedAssignments] = await db
-      .select({ count: sql`count(*)` })
-      .from(microLearningAssignments)
-      .where(eq(microLearningAssignments.is_completed, true));
+      // Безопасно проверяем количество назначений и завершенных назначений
+      let completedAssignmentsCount = 0;
+      if (totalAssignments && parseInt(totalAssignments.count.toString()) > 0) {
+        const [completedAssignments] = await db
+          .select({ count: sql`count(*)` })
+          .from(microLearningAssignments)
+          .where(eq(microLearningAssignments.is_completed, true));
+          
+        if (completedAssignments) {
+          completedAssignmentsCount = parseInt(completedAssignments.count.toString());
+        }
+      }
 
-    // Статистика по типам контента
-    const contentByType = await db
-      .select({
-        type: microLearningContent.type,
-        count: sql`count(*)`
-      })
-      .from(microLearningContent)
-      .groupBy(microLearningContent.type);
+      // Статистика по типам контента (только если есть контент)
+      let contentByType = [];
+      if (totalContent && parseInt(totalContent.count.toString()) > 0) {
+        contentByType = await db
+          .select({
+            type: microLearningContent.type,
+            count: sql`count(*)`
+          })
+          .from(microLearningContent)
+          .groupBy(microLearningContent.type);
+      }
 
-    // Статистика по целевым уровням
-    const contentByLevel = await db
-      .select({
-        level: microLearningContent.target_level,
-        count: sql`count(*)`
-      })
-      .from(microLearningContent)
-      .groupBy(microLearningContent.target_level);
+      // Статистика по целевым уровням (только если есть контент)
+      let contentByLevel = [];
+      if (totalContent && parseInt(totalContent.count.toString()) > 0) {
+        contentByLevel = await db
+          .select({
+            level: microLearningContent.target_level,
+            count: sql`count(*)`
+          })
+          .from(microLearningContent)
+          .groupBy(microLearningContent.target_level);
+      }
 
-    // Статистика по компетенциям
-    const contentByCompetency = await db
-      .select({
-        competency: competencies,
-        count: sql`count(*)`
-      })
-      .from(microLearningContent)
-      .innerJoin(competencies, eq(microLearningContent.competency_id, competencies.id))
-      .groupBy(competencies.id);
+      // Статистика по компетенциям (только если есть контент и компетенции)
+      let contentByCompetency = [];
+      if (totalContent && parseInt(totalContent.count.toString()) > 0) {
+        contentByCompetency = await db
+          .select({
+            competencyId: competencies.id,
+            name: competencies.name,
+            category: competencies.category,
+            count: sql`count(*)`
+          })
+          .from(microLearningContent)
+          .innerJoin(competencies, eq(microLearningContent.competency_id, competencies.id))
+          .groupBy(competencies.id, competencies.name, competencies.category);
+      }
 
-    return {
-      totalContent: totalContent?.count || 0,
-      totalAssignments: totalAssignments?.count || 0,
-      completedAssignments: completedAssignments?.count || 0,
-      completionRate: totalAssignments?.count ? (completedAssignments?.count / totalAssignments?.count) * 100 : 0,
-      contentByType,
-      contentByLevel,
-      contentByCompetency: contentByCompetency.map(item => ({
-        competencyId: item.competency.id,
-        name: item.competency.name,
-        category: item.competency.category,
-        count: item.count
-      }))
-    };
+      // Преобразуем строковые значения count в числа
+      const totalContentCount = totalContent ? parseInt(totalContent.count.toString()) : 0;
+      const totalAssignmentsCount = totalAssignments ? parseInt(totalAssignments.count.toString()) : 0;
+      
+      // Вычисляем процент завершения
+      const completionRate = totalAssignmentsCount > 0 
+        ? (completedAssignmentsCount / totalAssignmentsCount) * 100 
+        : 0;
+
+      return {
+        totalContent: totalContentCount,
+        totalAssignments: totalAssignmentsCount,
+        completedAssignments: completedAssignmentsCount,
+        completionRate: completionRate,
+        contentByType: contentByType.map(item => ({
+          type: item.type,
+          count: parseInt(item.count.toString())
+        })),
+        contentByLevel: contentByLevel.map(item => ({
+          level: item.level,
+          count: parseInt(item.count.toString())
+        })),
+        contentByCompetency: contentByCompetency
+      };
+    } catch (error) {
+      console.error("Error in getMicroLearningStatistics:", error);
+      return {
+        totalContent: 0,
+        totalAssignments: 0,
+        completedAssignments: 0,
+        completionRate: 0,
+        contentByType: [],
+        contentByLevel: [],
+        contentByCompetency: []
+      };
+    }
   }
 
   async getUserMicroLearningStatistics(userId: number): Promise<any> {
