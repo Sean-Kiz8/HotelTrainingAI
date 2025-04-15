@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useLocation } from "wouter";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Header } from "@/components/layout/header";
@@ -158,11 +159,19 @@ function Stars({ rating, count }: { rating: number, count: number }) {
 
 // Компонент отображения курса
 function CourseCard({ course }: { course: Course }) {
+  const [, setLocation] = useLocation();
   const departmentStyle = getDepartmentColors(course.department);
+  
+  const goToCourseDetails = () => {
+    setLocation(`/course/${course.id}`);
+  };
   
   return (
     <div className="bg-white rounded-lg shadow-sm overflow-hidden hover:shadow-md transition-shadow">
-      <div className={`h-40 ${departmentStyle.bg} flex items-center justify-center`}>
+      <div 
+        className={`h-40 ${departmentStyle.bg} flex items-center justify-center cursor-pointer`}
+        onClick={goToCourseDetails}
+      >
         <span className={`material-icons text-5xl ${departmentStyle.text}`}>{course.image}</span>
       </div>
       <div className="p-4">
@@ -172,11 +181,19 @@ function CourseCard({ course }: { course: Course }) {
           </span>
           <span className="text-neutral-500 text-xs">{course.participants} участников</span>
         </div>
-        <h4 className="font-medium text-lg mt-2 line-clamp-1">{course.title}</h4>
+        <h4 
+          className="font-medium text-lg mt-2 line-clamp-1 cursor-pointer hover:text-primary"
+          onClick={goToCourseDetails}
+        >
+          {course.title}
+        </h4>
         <p className="text-neutral-600 text-sm mt-1 line-clamp-2">{course.description}</p>
         <div className="mt-3 flex justify-between items-center">
           <Stars rating={course.rating} count={course.ratingCount} />
-          <button className="text-primary text-sm hover:text-primary-dark">
+          <button 
+            className="text-primary text-sm hover:text-primary-dark"
+            onClick={goToCourseDetails}
+          >
             Подробнее
           </button>
         </div>

@@ -9,6 +9,7 @@ import { ChatbotProvider } from "./context/chatbot-context";
 import { ChatbotButton } from "./components/chatbot/chatbot-button";
 import Mockup from "./mockup";
 import AllCourses from "./pages/all-courses";
+import CourseDetails from "./pages/course-details";
 
 // Простая маршрутизация
 function AppRoutes() {
@@ -16,6 +17,7 @@ function AppRoutes() {
     <Switch>
       <Route path="/" component={Mockup} />
       <Route path="/courses" component={AllCourses} />
+      <Route path="/course/:id" component={CourseDetails} />
       <Route path="/:rest*">
         {() => <Mockup />}
       </Route>
