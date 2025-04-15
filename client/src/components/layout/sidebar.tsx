@@ -26,19 +26,10 @@ export function Sidebar() {
   const { user, logout } = useAuth();
   const { openChatbot } = useChatbot();
   
-  // Всегда отображаем боковое меню на десктопе, не проверяем user
-  // Используем заглушку для демонстрации
-  const mockUser = {
-    name: "Админ",
-    role: "admin",
-    position: "Менеджер",
-    avatar: ""
-  };
-  
-  const userInfo = user || mockUser;
+  if (!user) return null;
   
   return (
-    <aside className="md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r border-neutral-200 bg-white">
+    <aside className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0 border-r border-neutral-200 bg-white">
       <div className="flex flex-col flex-grow pt-5 pb-4 overflow-y-auto">
         {/* Logo */}
         <div className="flex items-center flex-shrink-0 px-4 mb-5">
@@ -50,12 +41,12 @@ export function Sidebar() {
         <div className="flex-shrink-0 px-4 pb-3 border-b border-neutral-200">
           <div className="flex items-center">
             <Avatar className="w-10 h-10 mr-3">
-              <AvatarImage src={userInfo.avatar || ""} alt={userInfo.name} />
-              <AvatarFallback>{userInfo.name.charAt(0)}</AvatarFallback>
+              <AvatarImage src={user.avatar || ""} alt={user.name} />
+              <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
             </Avatar>
             <div>
-              <p className="font-medium">{userInfo.name}</p>
-              <p className="text-xs text-neutral-500">{userInfo.role === "admin" ? "Тренинг-менеджер" : userInfo.position}</p>
+              <p className="font-medium">{user.name}</p>
+              <p className="text-xs text-neutral-500">{user.role === "admin" ? "Тренинг-менеджер" : user.position}</p>
             </div>
           </div>
         </div>
@@ -67,24 +58,22 @@ export function Sidebar() {
           </p>
           <nav className="flex-1 px-2 space-y-1">
             {adminNavItems.map((item) => (
-              <div key={item.href}>
-                <Link href={item.href}>
-                  <div className={cn(
-                    "flex items-center px-2 py-2 rounded-md group transition-colors cursor-pointer",
-                    location === item.href 
-                      ? "bg-primary text-white" 
-                      : "text-neutral-700 hover:bg-neutral-100"
+              <Link key={item.href} href={item.href}>
+                <a className={cn(
+                  "flex items-center px-2 py-2 rounded-md group transition-colors",
+                  location === item.href 
+                    ? "bg-primary text-white" 
+                    : "text-neutral-700 hover:bg-neutral-100"
+                )}>
+                  <span className={cn(
+                    "material-icons mr-3 text-lg",
+                    location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
                   )}>
-                    <span className={cn(
-                      "material-icons mr-3 text-lg",
-                      location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
-                    )}>
-                      {item.icon}
-                    </span>
-                    {item.label}
-                  </div>
-                </Link>
-              </div>
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </a>
+              </Link>
             ))}
           </nav>
           
@@ -93,24 +82,22 @@ export function Sidebar() {
           </p>
           <nav className="flex-1 px-2 space-y-1">
             {staffNavItems.map((item) => (
-              <div key={item.href}>
-                <Link href={item.href}>
-                  <div className={cn(
-                    "flex items-center px-2 py-2 rounded-md group transition-colors cursor-pointer",
-                    location === item.href 
-                      ? "bg-primary text-white" 
-                      : "text-neutral-700 hover:bg-neutral-100"
+              <Link key={item.href} href={item.href}>
+                <a className={cn(
+                  "flex items-center px-2 py-2 rounded-md group transition-colors",
+                  location === item.href 
+                    ? "bg-primary text-white" 
+                    : "text-neutral-700 hover:bg-neutral-100"
+                )}>
+                  <span className={cn(
+                    "material-icons mr-3 text-lg",
+                    location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
                   )}>
-                    <span className={cn(
-                      "material-icons mr-3 text-lg",
-                      location === item.href ? "text-white" : "text-neutral-500 group-hover:text-neutral-700"
-                    )}>
-                      {item.icon}
-                    </span>
-                    {item.label}
-                  </div>
-                </Link>
-              </div>
+                    {item.icon}
+                  </span>
+                  {item.label}
+                </a>
+              </Link>
             ))}
           </nav>
         </div>

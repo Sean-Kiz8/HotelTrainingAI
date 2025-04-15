@@ -86,27 +86,25 @@ export function MobileHeader() {
                   <ul>
                     {adminNavItems.map((item) => (
                       <li key={item.href}>
-                        <div>
-                          <Link href={item.href}>
-                            <div 
-                              className={cn(
-                                "flex items-center px-4 py-2 cursor-pointer",
-                                location === item.href 
-                                  ? "text-primary font-medium bg-primary bg-opacity-10" 
-                                  : "text-neutral-700 hover:bg-neutral-100"
-                              )}
-                              onClick={handleMenuItemClick}
-                            >
-                              <span className={cn(
-                                "material-icons mr-3 text-sm",
-                                location === item.href ? "text-primary" : "text-neutral-500"
-                              )}>
-                                {item.icon}
-                              </span>
-                              {item.label}
-                            </div>
-                          </Link>
-                        </div>
+                        <Link href={item.href}>
+                          <a 
+                            className={cn(
+                              "flex items-center px-4 py-2",
+                              location === item.href 
+                                ? "text-primary font-medium bg-primary bg-opacity-10" 
+                                : "text-neutral-700 hover:bg-neutral-100"
+                            )}
+                            onClick={handleMenuItemClick}
+                          >
+                            <span className={cn(
+                              "material-icons mr-3 text-sm",
+                              location === item.href ? "text-primary" : "text-neutral-500"
+                            )}>
+                              {item.icon}
+                            </span>
+                            {item.label}
+                          </a>
+                        </Link>
                       </li>
                     ))}
                   </ul>
@@ -119,27 +117,25 @@ export function MobileHeader() {
                   <ul>
                     {staffNavItems.map((item) => (
                       <li key={item.href}>
-                        <div>
-                          <Link href={item.href}>
-                            <div 
-                              className={cn(
-                                "flex items-center px-4 py-2 cursor-pointer",
-                                location === item.href 
-                                  ? "text-primary font-medium bg-primary bg-opacity-10" 
-                                  : "text-neutral-700 hover:bg-neutral-100"
-                              )}
-                              onClick={handleMenuItemClick}
-                            >
-                              <span className={cn(
-                                "material-icons mr-3 text-sm",
-                                location === item.href ? "text-primary" : "text-neutral-500"
-                              )}>
-                                {item.icon}
-                              </span>
-                              {item.label}
-                            </div>
-                          </Link>
-                        </div>
+                        <Link href={item.href}>
+                          <a 
+                            className={cn(
+                              "flex items-center px-4 py-2",
+                              location === item.href 
+                                ? "text-primary font-medium bg-primary bg-opacity-10" 
+                                : "text-neutral-700 hover:bg-neutral-100"
+                            )}
+                            onClick={handleMenuItemClick}
+                          >
+                            <span className={cn(
+                              "material-icons mr-3 text-sm",
+                              location === item.href ? "text-primary" : "text-neutral-500"
+                            )}>
+                              {item.icon}
+                            </span>
+                            {item.label}
+                          </a>
+                        </Link>
                       </li>
                     ))}
                   </ul>
