@@ -29,7 +29,8 @@ export function MobileHeader() {
   const { openChatbot } = useChatbot();
   const [isOpen, setIsOpen] = useState(false);
   
-  if (!user) return null;
+  // Всегда отображаем мобильный заголовок для разработки
+  // if (!user) return null;
   
   const handleMenuItemClick = (href: string) => {
     setIsOpen(false);
@@ -74,12 +75,12 @@ export function MobileHeader() {
               <div className="p-4 border-b border-neutral-200">
                 <div className="flex items-center">
                   <Avatar className="w-10 h-10 mr-3">
-                    <AvatarImage src={user.avatar || ""} alt={user.name} />
-                    <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={user?.avatar || ""} alt={user?.name || "Пользователь"} />
+                    <AvatarFallback>{user?.name?.charAt(0) || "П"}</AvatarFallback>
                   </Avatar>
                   <div>
-                    <p className="font-medium">{user.name}</p>
-                    <p className="text-xs text-neutral-500">{user.role === "admin" ? "Тренинг-менеджер" : user.position}</p>
+                    <p className="font-medium">{user?.name || "Пользователь"}</p>
+                    <p className="text-xs text-neutral-500">{user?.role === "admin" ? "Тренинг-менеджер" : user?.position || "Сотрудник"}</p>
                   </div>
                 </div>
               </div>
@@ -177,8 +178,8 @@ export function MobileHeader() {
           </Button>
           
           <Avatar className="w-8 h-8">
-            <AvatarImage src={user.avatar || ""} alt={user.name} />
-            <AvatarFallback>{user.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={user?.avatar || ""} alt={user?.name || "Пользователь"} />
+            <AvatarFallback>{user?.name?.charAt(0) || "П"}</AvatarFallback>
           </Avatar>
         </div>
       </div>
