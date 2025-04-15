@@ -101,7 +101,7 @@ export default function CourseDetailsPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/modules`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/modules`, { courseId }] });
       toast({
         title: "Модуль создан",
         description: "Новый модуль был успешно добавлен в курс",
@@ -124,7 +124,7 @@ export default function CourseDetailsPage() {
       return await res.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: [`/api/modules`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/modules`, { courseId }] });
       toast({
         title: "Урок создан",
         description: "Новый урок был успешно добавлен в модуль",
@@ -254,7 +254,7 @@ export default function CourseDetailsPage() {
             <BookOpen className="h-5 w-5 text-secondary" />
             <div>
               <p className="text-sm text-muted-foreground">Модулей</p>
-              <p className="text-lg font-medium">0</p>
+              <p className="text-lg font-medium">{modules?.length || 0}</p>
             </div>
           </CardContent>
         </Card>
