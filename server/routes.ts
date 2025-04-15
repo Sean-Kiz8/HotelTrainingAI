@@ -2674,10 +2674,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Получение микро-обучающего материала по ID
-  app.get("/api/micro-learning/:id", async (req, res) => {
+  // Получение микро-обучающего материала по ID (только для числовых ID)
+  app.get("/api/micro-learning/:id([0-9]+)", async (req, res) => {
     try {
       const contentId = parseInt(req.params.id);
+      
+      if (isNaN(contentId)) {
+        return res.status(400).json({ error: "Некорректный ID материала" });
+      }
+      
       const content = await storage.getMicroLearningContent(contentId);
       
       if (!content) {
@@ -2716,9 +2721,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Обновление микро-обучающего материала
-  app.put("/api/micro-learning/:id", async (req, res) => {
+  app.put("/api/micro-learning/:id([0-9]+)", async (req, res) => {
     try {
       const contentId = parseInt(req.params.id);
+      
+      if (isNaN(contentId)) {
+        return res.status(400).json({ error: "Некорректный ID материала" });
+      }
+      
       const contentData = req.body;
       
       // Обновляем дату изменения
@@ -2738,9 +2748,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Удаление микро-обучающего материала
-  app.delete("/api/micro-learning/:id", async (req, res) => {
+  app.delete("/api/micro-learning/:id([0-9]+)", async (req, res) => {
     try {
       const contentId = parseInt(req.params.id);
+      
+      if (isNaN(contentId)) {
+        return res.status(400).json({ error: "Некорректный ID материала" });
+      }
+      
       const deleted = await storage.deleteMicroLearningContent(contentId);
       
       if (!deleted) {
@@ -2795,9 +2810,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // ================ Маршруты для назначений микро-обучающего контента ================
   
   // Получение назначения по ID
-  app.get("/api/micro-learning-assignments/:id", async (req, res) => {
+  app.get("/api/micro-learning-assignments/:id([0-9]+)", async (req, res) => {
     try {
       const assignmentId = parseInt(req.params.id);
+      
+      if (isNaN(assignmentId)) {
+        return res.status(400).json({ error: "Некорректный ID назначения" });
+      }
+      
       const assignment = await storage.getMicroLearningAssignment(assignmentId);
       
       if (!assignment) {
@@ -2828,9 +2848,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Обновление назначения
-  app.put("/api/micro-learning-assignments/:id", async (req, res) => {
+  app.put("/api/micro-learning-assignments/:id([0-9]+)", async (req, res) => {
     try {
       const assignmentId = parseInt(req.params.id);
+      
+      if (isNaN(assignmentId)) {
+        return res.status(400).json({ error: "Некорректный ID назначения" });
+      }
+      
       const assignmentData = req.body;
       
       const updatedAssignment = await storage.updateMicroLearningAssignment(assignmentId, assignmentData);
@@ -2847,9 +2872,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
   
   // Получение всех назначений для пользователя
-  app.get("/api/micro-learning-assignments/user/:userId", async (req, res) => {
+  app.get("/api/micro-learning-assignments/user/:userId([0-9]+)", async (req, res) => {
     try {
       const userId = parseInt(req.params.userId);
+      
+      if (isNaN(userId)) {
+        return res.status(400).json({ error: "Некорректный ID пользователя" });
+      }
+      
       const assignments = await storage.listMicroLearningAssignmentsByUser(userId);
       
       res.json(assignments);
