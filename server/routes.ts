@@ -3806,11 +3806,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (key) {
           // Удаляем конкретный ключ из всех кешей
-          results.courses = await coursesCache.delete(key);
-          results.users = await usersCache.delete(key);
-          results.media = await mediaCache.delete(key);
-          results.analytics = await analyticsCache.delete(key);
-          results.assessments = await assessmentsCache.delete(key);
+          results.courses = await coursesCache.delete(key) ? 1 : 0;
+          results.users = await usersCache.delete(key) ? 1 : 0;
+          results.media = await mediaCache.delete(key) ? 1 : 0;
+          results.analytics = await analyticsCache.delete(key) ? 1 : 0;
+          results.assessments = await assessmentsCache.delete(key) ? 1 : 0;
           
           return res.json({
             success: true,

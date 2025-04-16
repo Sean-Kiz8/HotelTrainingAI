@@ -62,14 +62,32 @@ class ReplitDBClient implements ReplitDB {
    */
   async set(key: string, value: any): Promise<boolean> {
     try {
+      // Преобразуем значение в строку, если это не строка
       const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
+      
+      // Используем URLSearchParams для корректной отправки данных
+      const formData = new URLSearchParams();
+      formData.append('value', stringValue);
       
       const response = await fetch(`${this.baseUrl}/${encodeURIComponent(key)}`, {
         method: 'POST',
-        body: stringValue,
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: formData.toString()
       });
       
       if (!response.ok) {
+        // Выводим больше информации о запросе
+        console.error(`Запрос к Replit DB не удался: ${response.status} ${response.statusText}`);
+        console.error(`URL: ${this.baseUrl}/${encodeURIComponent(key)}`);
+        console.error(`Длина данных: ${stringValue.length} символов`);
+        if (stringValue.length < 1000) {
+          console.error(`Данные: ${stringValue}`);
+        } else {
+          console.error(`Данные слишком большие для вывода`);
+        }
+        
         throw new Error(`Ошибка при сохранении данных: ${response.status} ${response.statusText}`);
       }
       
