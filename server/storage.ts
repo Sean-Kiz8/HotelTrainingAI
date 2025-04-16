@@ -25,6 +25,8 @@ import {
   assessmentQuestions, type AssessmentQuestion, type InsertAssessmentQuestion,
   assessmentSessions, type AssessmentSession, type InsertAssessmentSession,
   assessmentAnswers, type AssessmentAnswer, type InsertAssessmentAnswer,
+  // Импорты для ресурсов курса
+  courseResources, type CourseResource, type InsertCourseResource,
   // Импорты для микро-обучающего контента
   microLearningContent, type MicroLearningContent, type InsertMicroLearningContent,
   microLearningAssignments, type MicroLearningAssignment, type InsertMicroLearningAssignment,
@@ -56,6 +58,12 @@ export interface IStorage {
   updateCourse(id: number, courseData: Partial<InsertCourse>): Promise<Course | undefined>;
   listCourses(): Promise<Course[]>;
   listCoursesByDepartment(department: string): Promise<Course[]>;
+  
+  // Course resource operations
+  getCourseResource(id: number): Promise<CourseResource | undefined>;
+  createCourseResource(resource: InsertCourseResource): Promise<CourseResource>;
+  deleteCourseResource(id: number): Promise<boolean>;
+  listCourseResourcesByCourse(courseId: number): Promise<CourseResource[]>;
 
   // Module operations
   getModule(id: number): Promise<Module | undefined>;

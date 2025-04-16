@@ -563,6 +563,30 @@ export type InsertAssessmentSession = z.infer<typeof insertAssessmentSessionSche
 export type AssessmentAnswer = typeof assessmentAnswers.$inferSelect;
 export type InsertAssessmentAnswer = z.infer<typeof insertAssessmentAnswerSchema>;
 
+// Enum для типов ресурсов курса
+export const courseResourceTypeEnum = pgEnum("course_resource_type", [
+  "attachment",
+  "reference",
+  "example",
+  "practice"
+]);
+
+// Таблица ресурсов курса (связь курса с медиафайлами)
+export const courseResources = pgTable("course_resources", {
+  id: serial("id").primaryKey(),
+  courseId: integer("course_id").notNull().references(() => courses.id),
+  mediaId: integer("media_id").notNull().references(() => mediaFiles.id),
+  type: courseResourceTypeEnum("type").notNull().default("attachment"),
+  description: text("description"),
+  order: integer("order").default(0),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+});
+
+export const insertCourseResourceSchema = createInsertSchema(courseResources).omit({
+  id: true,
+  createdAt: true,
+});
+
 // Enum для типов микро-обучающего контента
 export const microLearningTypeEnum = pgEnum("micro_learning_type", [
   "text",
@@ -628,6 +652,9 @@ export const insertMicroLearningProgressSchema = createInsertSchema(microLearnin
   id: true,
   last_accessed_at: true,
 });
+
+export type CourseResource = typeof courseResources.$inferSelect;
+export type InsertCourseResource = z.infer<typeof insertCourseResourceSchema>;
 
 export type MicroLearningContent = typeof microLearningContent.$inferSelect;
 export type InsertMicroLearningContent = z.infer<typeof insertMicroLearningContentSchema>;
