@@ -3788,6 +3788,103 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  app.delete("/api/cache/clear", async (req, res) => {
+    try {
+      const prefix = req.query.prefix as string;
+      const key = req.query.key as string;
+      
+      if (!prefix) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Missing required parameter: prefix" 
+        });
+      }
+      
+      // Если запрошено очистить все кеши
+      if (prefix === 'all') {
+        const results: Record<string, number> = {};
+        
+        if (key) {
+          // Удаляем конкретный ключ из всех кешей
+          results.courses = await coursesCache.delete(key);
+          results.users = await usersCache.delete(key);
+          results.media = await mediaCache.delete(key);
+          results.analytics = await analyticsCache.delete(key);
+          results.assessments = await assessmentsCache.delete(key);
+          
+          return res.json({
+            success: true,
+            operation: `delete_key_from_all(${key})`,
+            results
+          });
+        } else {
+          // Очищаем все кеши
+          results.courses = await coursesCache.clear();
+          results.users = await usersCache.clear();
+          results.media = await mediaCache.clear();
+          results.analytics = await analyticsCache.clear();
+          results.assessments = await assessmentsCache.clear();
+          
+          return res.json({
+            success: true,
+            operation: 'clear_all',
+            results
+          });
+        }
+      }
+      
+      // Получаем нужный кеш-менеджер по префиксу
+      let cacheManager: CacheManager;
+      switch (prefix) {
+        case 'courses':
+          cacheManager = coursesCache;
+          break;
+        case 'users':
+          cacheManager = usersCache;
+          break;
+        case 'media':
+          cacheManager = mediaCache;
+          break;
+        case 'analytics':
+          cacheManager = analyticsCache;
+          break;
+        case 'assessments':
+          cacheManager = assessmentsCache;
+          break;
+        default:
+          // Если префикс не соответствует ни одному из предопределенных, создаем временный
+          cacheManager = new CacheManager(prefix);
+      }
+      
+      if (key) {
+        // Удаляем конкретный ключ из указанного кеша
+        const success = await cacheManager.delete(key);
+        return res.json({
+          success,
+          operation: `delete_key(${key})`,
+          prefix
+        });
+      } else {
+        // Очищаем весь кеш с данным префиксом
+        const deletedCount = await cacheManager.clear();
+        
+        return res.json({
+          success: deletedCount >= 0,
+          operation: 'clear_prefix',
+          deletedCount,
+          prefix
+        });
+      }
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Failed to clear cache" 
+      });
+    }
+  });
+  
+  // Оставим старый маршрут для обратной совместимости
   app.delete("/api/cache/clear/:prefix", async (req, res) => {
     try {
       const { prefix } = req.params;

@@ -33,7 +33,7 @@ const CacheTestPage = () => {
       return response.json();
     },
     enabled: !!cachePrefix && !!cacheKey,
-    refetchInterval: refreshInterval,
+    refetchInterval: refreshInterval ? refreshInterval : false,
   });
 
   // Мутация для установки данных в кеш
@@ -63,7 +63,7 @@ const CacheTestPage = () => {
       const url = options.key
         ? `/api/cache/clear?prefix=${options.prefix}&key=${options.key}`
         : `/api/cache/clear?prefix=${options.prefix}`;
-      return apiRequest(url, { method: 'DELETE' });
+      return apiRequest('DELETE', url);
     },
     onSuccess: (data, variables) => {
       if (variables.key) {
