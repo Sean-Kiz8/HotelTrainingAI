@@ -76,6 +76,7 @@ export function Step2CourseSettings({ settings, onSettingsChange }: Step2CourseS
   const [audience, setAudience] = useState<string[]>(settings.targetAudience || []);
   const [formats, setFormats] = useState<string[]>(settings.format || []);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   // Инициализация формы с текущими настройками
   const form = useForm<z.infer<typeof formSchema>>({
@@ -168,6 +169,7 @@ export function Step2CourseSettings({ settings, onSettingsChange }: Step2CourseS
   // Генерация описания через AI
   const handleGenerateDescription = async () => {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/ai/generate-course-description", {
         method: "POST",
@@ -180,12 +182,17 @@ export function Step2CourseSettings({ settings, onSettingsChange }: Step2CourseS
           modulesCount: form.getValues("modulesCount"),
         }),
       });
-      if (!response.ok) throw new Error("Ошибка генерации описания");
-      const data = await response.json();
+      const text = await response.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch {
+        throw new Error('Ошибка генерации: сервер вернул невалидный ответ');
+      }
       form.setValue("description", data.description, { shouldValidate: true });
       onSettingsChange({ description: data.description });
-    } catch (e) {
-      // Можно добавить обработку ошибок
+    } catch (e: any) {
+      setError(e?.message || 'Ошибка генерации описания');
     } finally {
       setLoading(false);
     }
@@ -248,6 +255,9 @@ export function Step2CourseSettings({ settings, onSettingsChange }: Step2CourseS
                     {loading ? "Генерируем..." : "Сгенерировать описание"}
                   </button>
                 </div>
+                {error && (
+                  <div className="text-red-600 text-sm mt-2">{error}</div>
+                )}
                 <FormDescription>
                   Подробное описание курса, его целей и ожидаемых результатов
                 </FormDescription>

@@ -43,38 +43,30 @@ export default function MediaLibraryPage() {
               Управляйте изображениями, видео, аудио и документами для использования в учебных материалах
             </PageHeaderDescription>
           </div>
-          <Button>
-            <Upload className="mr-2 h-4 w-4" />
-            Загрузить файл
-          </Button>
+          <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Upload className="mr-2 h-4 w-4" />
+                Загрузить файл
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md">
+              <DialogHeader>
+                <DialogTitle>Загрузка медиафайла</DialogTitle>
+                <DialogDescription>
+                  Загрузите изображения, видео, аудио или документы для использования в учебных материалах
+                </DialogDescription>
+              </DialogHeader>
+              <MediaUpload
+                userId={user.id}
+                onUploadComplete={() => setUploadDialogOpen(false)}
+              />
+            </DialogContent>  
+          </Dialog>
         </div>
       </PageHeader>
 
       <Separator className="mb-8" />
-
-      <div className="flex items-center justify-between mb-8">
-        <div></div>
-        <Dialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Upload className="mr-2 h-4 w-4" />
-              Загрузить файл
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-md">
-            <DialogHeader>
-              <DialogTitle>Загрузка медиафайла</DialogTitle>
-              <DialogDescription>
-                Загрузите изображения, видео, аудио или документы для использования в учебных материалах
-              </DialogDescription>
-            </DialogHeader>
-            <MediaUpload
-              userId={user.id}
-              onUploadComplete={() => setUploadDialogOpen(false)}
-            />
-          </DialogContent>  
-        </Dialog>
-      </div>
 
       <Tabs defaultValue="all" className="mb-8">
         <TabsList className="mb-6">
