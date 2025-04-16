@@ -162,13 +162,7 @@ export default function Assessments() {
         />
       </PageHeader>
 
-      {/* Debug info */}
-      {debugInfo && (
-        <div className="bg-yellow-50 border border-yellow-300 rounded p-4 mb-4 text-xs text-yellow-900">
-          <b>Debug info:</b>
-          <pre className="overflow-x-auto whitespace-pre-wrap">{JSON.stringify({ user, ...debugInfo }, null, 2)}</pre>
-        </div>
-      )}
+
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {isLoading ? (
@@ -247,9 +241,6 @@ export default function Assessments() {
               ))
             ) : (
               <div className="col-span-full text-center py-12 text-neutral-500">
-                <div className="mb-4 text-xs text-neutral-500">
-                  <b>userId:</b> {user?.id ? user.id : 'undefined'}
-                </div>
                 {searchQuery ? (
                   <p>Ассесменты по запросу "{searchQuery}" не найдены</p>
                 ) : (

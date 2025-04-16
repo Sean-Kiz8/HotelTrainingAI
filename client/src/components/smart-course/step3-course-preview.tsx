@@ -18,6 +18,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useState } from "react";
 
 interface Step3CoursePreviewProps {
   files: UploadedFile[];
@@ -38,6 +39,8 @@ export function Step3CoursePreview({
   onRemoveFile,
   onGenerateContent
 }: Step3CoursePreviewProps) {
+  const [error, setError] = useState<string | null>(null);
+
   // Получаем подходящую иконку для формата курса
   const getFormatIcon = (format: string) => {
     switch (format) {
@@ -98,6 +101,27 @@ export function Step3CoursePreview({
     };
     
     return formatMap[formatId] || formatId;
+  };
+
+  // Обёртка для генерации содержания с обработкой ошибок
+  const handleGenerateContentSafe = async () => {
+    setError(null);
+    if (!onGenerateContent) return;
+    try {
+      await onGenerateContent();
+    } catch (e: any) {
+      setError(e?.message || 'Ошибка генерации содержания');
+    }
+  };
+
+  // Обёртка для генерации курса с обработкой ошибок
+  const handleGenerateCourseSafe = async () => {
+    setError(null);
+    try {
+      await onGenerateCourse();
+    } catch (e: any) {
+      setError(e?.message || 'Ошибка генерации курса');
+    }
   };
 
   return (
@@ -240,25 +264,24 @@ export function Step3CoursePreview({
         {/* Правая колонка */}
         <div className="space-y-6">
           {/* Загруженные материалы */}
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Загруженные материалы</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex justify-between items-center mb-2">
-                <h4 className="text-sm font-medium">Материалы ({files.length})</h4>
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  onClick={() => fetchFilesFromServer && fetchFilesFromServer()}
-                  className="text-xs"
-                >
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  Обновить
-                </Button>
-              </div>
-              
-              {files.length > 0 ? (
+          {files.length > 0 ? (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Загруженные материалы</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between items-center mb-2">
+                  <h4 className="text-sm font-medium">Материалы ({files.length})</h4>
+                  <Button 
+                    variant="outline" 
+                    size="sm" 
+                    onClick={() => fetchFilesFromServer && fetchFilesFromServer()}
+                    className="text-xs"
+                  >
+                    <RefreshCw className="h-3 w-3 mr-1" />
+                    Обновить
+                  </Button>
+                </div>
                 <div className="space-y-2 max-h-[300px] overflow-y-auto pr-2">
                   {files.map((file) => (
                     <div key={file.id} className="flex items-center p-2 border rounded-md group">
@@ -301,17 +324,23 @@ export function Step3CoursePreview({
                     </div>
                   ))}
                 </div>
-              ) : (
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg">Загруженные материалы</CardTitle>
+              </CardHeader>
+              <CardContent>
                 <div className="text-center py-4">
                   <FileX className="h-12 w-12 text-muted-foreground/40 mx-auto mb-2" />
                   <p className="text-sm text-muted-foreground">
-                    Нет загруженных материалов. Вернитесь к шагу 1, чтобы загрузить файлы,
-                    или нажмите кнопку "Обновить".
+                    Нет загруженных материалов. Вернитесь к шагу 1, чтобы загрузить файлы.
                   </p>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
           
           {/* Готовность */}
           <Alert className={files.length === 0 ? "border-amber-200 bg-amber-50" : "border-emerald-200 bg-emerald-50"}>
@@ -326,30 +355,36 @@ export function Step3CoursePreview({
             </AlertDescription>
           </Alert>
           
+          {/* Сообщение об ошибке */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertTitle>Ошибка</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          
           <div className="flex flex-col gap-3 mt-6">
-            <div className="flex gap-3">
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={onGenerateContent}
-                variant="secondary"
-                disabled={isGenerating}
-              >
-                Сгенерировать содержание
-              </Button>
-              <Button 
-                className="w-full" 
-                size="lg"
-                onClick={onGenerateCourse}
-                disabled={isGenerating || (!settings.title || !settings.description)}
-              >
-                {isGenerating ? "Генерация курса..." : "Создать курс"}
-              </Button>
-            </div>
+            <Button 
+              className="w-full" 
+              size="lg"
+              onClick={handleGenerateContentSafe}
+              variant="secondary"
+              disabled={isGenerating}
+            >
+              Сгенерировать содержание
+            </Button>
             <p className="text-sm text-muted-foreground">
               Процесс генерации может занять до нескольких минут в зависимости от 
               сложности курса и объема загруженных материалов. Пожалуйста, дождитесь завершения обработки.
             </p>
+            <Button 
+              className="w-full mt-2" 
+              size="lg"
+              onClick={handleGenerateCourseSafe}
+              disabled={isGenerating || (!settings.title || !settings.description)}
+            >
+              {isGenerating ? "Генерация курса..." : "Создать курс"}
+            </Button>
           </div>
         </div>
       </div>
