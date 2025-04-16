@@ -210,13 +210,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Course routes
   app.get("/api/courses", async (req, res) => {
     const department = req.query.department as string | undefined;
-
-    if (department) {
-      const courses = await storage.listCoursesByDepartment(department);
-      return res.json(courses);
+    const useCache = req.query.cache !== 'false'; // По умолчанию используем кеш
+    
+    // Формируем ключ кеша в зависимости от параметров
+    const cacheKey = department ? `courses_dept_${department}` : 'courses_all';
+    
+    // Пытаемся получить данные из кеша, если кеширование разрешено
+    if (useCache) {
+      const cachedData = await coursesCache.get(cacheKey);
+      if (cachedData) {
+        console.log(`[Cache Hit] Using cached data for ${cacheKey}`);
+        return res.json(cachedData);
+      }
+      console.log(`[Cache Miss] No cached data for ${cacheKey}`);
     }
-
-    const courses = await storage.listCourses();
+    
+    // Получаем данные из базы данных
+    let courses;
+    if (department) {
+      courses = await storage.listCoursesByDepartment(department);
+    } else {
+      courses = await storage.listCourses();
+    }
+    
+    // Сохраняем в кеш, если кеширование разрешено
+    if (useCache) {
+      await coursesCache.set(cacheKey, courses);
+      console.log(`[Cache Set] Saved data to cache for ${cacheKey}`);
+    }
+    
     res.json(courses);
   });
 
@@ -3605,6 +3627,215 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Ошибка генерации курса:", error);
       res.status(500).json({ error: "Не удалось сгенерировать курс" });
+    }
+  });
+
+  // Маршруты для работы с кешем (Replit DB)
+  app.get("/api/cache/get", async (req, res) => {
+    try {
+      const { prefix, key } = req.query;
+      
+      if (!prefix || !key) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Missing required parameters: prefix and key" 
+        });
+      }
+      
+      // Получаем нужный кеш-менеджер по префиксу
+      let cacheManager: CacheManager;
+      switch (prefix) {
+        case 'courses':
+          cacheManager = coursesCache;
+          break;
+        case 'users':
+          cacheManager = usersCache;
+          break;
+        case 'media':
+          cacheManager = mediaCache;
+          break;
+        case 'analytics':
+          cacheManager = analyticsCache;
+          break;
+        case 'assessments':
+          cacheManager = assessmentsCache;
+          break;
+        default:
+          // Если префикс не соответствует ни одному из предопределенных, создаем временный
+          cacheManager = new CacheManager(prefix as string);
+      }
+      
+      // Получаем данные из кеша
+      const data = await cacheManager.get(key as string);
+      
+      return res.json({
+        success: true,
+        data,
+        exists: data !== null,
+        key,
+        prefix
+      });
+    } catch (error) {
+      console.error('Error getting cache:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Failed to get data from cache" 
+      });
+    }
+  });
+  
+  app.post("/api/cache/set", async (req, res) => {
+    try {
+      const { prefix, key, value, ttl } = req.body;
+      
+      if (!prefix || !key || value === undefined) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Missing required parameters: prefix, key, and value" 
+        });
+      }
+      
+      // Получаем нужный кеш-менеджер по префиксу
+      let cacheManager: CacheManager;
+      switch (prefix) {
+        case 'courses':
+          cacheManager = coursesCache;
+          break;
+        case 'users':
+          cacheManager = usersCache;
+          break;
+        case 'media':
+          cacheManager = mediaCache;
+          break;
+        case 'analytics':
+          cacheManager = analyticsCache;
+          break;
+        case 'assessments':
+          cacheManager = assessmentsCache;
+          break;
+        default:
+          // Если префикс не соответствует ни одному из предопределенных, создаем временный
+          cacheManager = new CacheManager(prefix);
+      }
+      
+      // Сохраняем данные в кеш
+      const success = await cacheManager.set(key, value, ttl);
+      
+      return res.json({
+        success,
+        key,
+        prefix,
+        ttl: ttl || cacheManager.defaultTTL,
+        expiresAt: new Date(Date.now() + (ttl || cacheManager.defaultTTL) * 1000)
+      });
+    } catch (error) {
+      console.error('Error setting cache:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Failed to set data in cache" 
+      });
+    }
+  });
+  
+  app.delete("/api/cache/delete", async (req, res) => {
+    try {
+      const { prefix, key } = req.body;
+      
+      if (!prefix || !key) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Missing required parameters: prefix and key" 
+        });
+      }
+      
+      // Получаем нужный кеш-менеджер по префиксу
+      let cacheManager: CacheManager;
+      switch (prefix) {
+        case 'courses':
+          cacheManager = coursesCache;
+          break;
+        case 'users':
+          cacheManager = usersCache;
+          break;
+        case 'media':
+          cacheManager = mediaCache;
+          break;
+        case 'analytics':
+          cacheManager = analyticsCache;
+          break;
+        case 'assessments':
+          cacheManager = assessmentsCache;
+          break;
+        default:
+          // Если префикс не соответствует ни одному из предопределенных, создаем временный
+          cacheManager = new CacheManager(prefix);
+      }
+      
+      // Удаляем данные из кеша
+      const success = await cacheManager.delete(key);
+      
+      return res.json({
+        success,
+        key,
+        prefix
+      });
+    } catch (error) {
+      console.error('Error deleting from cache:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Failed to delete data from cache" 
+      });
+    }
+  });
+  
+  app.delete("/api/cache/clear/:prefix", async (req, res) => {
+    try {
+      const { prefix } = req.params;
+      
+      if (!prefix) {
+        return res.status(400).json({ 
+          success: false, 
+          error: "Missing required parameter: prefix" 
+        });
+      }
+      
+      // Получаем нужный кеш-менеджер по префиксу
+      let cacheManager: CacheManager;
+      switch (prefix) {
+        case 'courses':
+          cacheManager = coursesCache;
+          break;
+        case 'users':
+          cacheManager = usersCache;
+          break;
+        case 'media':
+          cacheManager = mediaCache;
+          break;
+        case 'analytics':
+          cacheManager = analyticsCache;
+          break;
+        case 'assessments':
+          cacheManager = assessmentsCache;
+          break;
+        default:
+          // Если префикс не соответствует ни одному из предопределенных, создаем временный
+          cacheManager = new CacheManager(prefix);
+      }
+      
+      // Очищаем весь кеш с данным префиксом
+      const deletedCount = await cacheManager.clear();
+      
+      return res.json({
+        success: deletedCount >= 0,
+        deletedCount,
+        prefix
+      });
+    } catch (error) {
+      console.error('Error clearing cache:', error);
+      return res.status(500).json({ 
+        success: false, 
+        error: "Failed to clear cache" 
+      });
     }
   });
 

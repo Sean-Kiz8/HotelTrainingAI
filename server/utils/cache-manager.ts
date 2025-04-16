@@ -4,8 +4,8 @@ import { replitDB } from './replit-db';
  * Класс для управления кешированием данных с использованием Replit DB
  */
 export class CacheManager {
-  private prefix: string;
-  private defaultTTL: number; // время жизни кеша в секундах
+  readonly prefix: string;
+  readonly defaultTTL: number; // время жизни кеша в секундах
 
   /**
    * Создает новый экземпляр менеджера кеша
