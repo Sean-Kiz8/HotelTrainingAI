@@ -3274,6 +3274,147 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Не удалось сгенерировать описание курса" });
     }
   });
+  
+  // Генерация содержания курса с помощью ИИ
+  app.post("/api/ai/generate-course-content", async (req, res) => {
+    try {
+      const { files, settings, useAI } = req.body;
+      if (!settings) {
+        return res.status(400).json({ error: "Не указаны настройки курса" });
+      }
+      
+      // Получаем данные о файлах
+      const mediaFiles = [];
+      if (files && files.length > 0) {
+        for (const fileId of files) {
+          const mediaFile = await storage.getMediaFile(parseInt(fileId));
+          if (mediaFile) {
+            mediaFiles.push(mediaFile);
+          }
+        }
+      }
+      
+      // Заглушка для тестирования
+      const generatedContent = {
+        title: settings.title,
+        description: settings.description,
+        modules: []
+      };
+      
+      // Генерируем модули курса в зависимости от указанного количества
+      for (let i = 0; i < settings.modulesCount; i++) {
+        const module = {
+          id: i + 1,
+          title: `Модуль ${i + 1}`,
+          description: `Описание модуля ${i + 1}`,
+          lessons: []
+        };
+        
+        // Генерируем уроки для каждого модуля
+        for (let j = 0; j < 3; j++) {
+          module.lessons.push({
+            id: j + 1,
+            title: `Урок ${j + 1}`,
+            content: `Содержание урока ${j + 1}`,
+            duration: "30 минут",
+            type: settings.format.includes("text") ? "text" : settings.format[0]
+          });
+        }
+        
+        generatedContent.modules.push(module);
+      }
+      
+      res.json(generatedContent);
+    } catch (error) {
+      console.error("Ошибка генерации содержания курса:", error);
+      res.status(500).json({ error: "Не удалось сгенерировать содержание курса" });
+    }
+  });
+  
+  // Получение списка загруженных файлов
+  app.get("/api/media/list", async (req, res) => {
+    try {
+      const files = await storage.listMediaFiles();
+      res.json(files);
+    } catch (error) {
+      console.error("Ошибка получения списка файлов:", error);
+      res.status(500).json({ error: "Не удалось получить список файлов" });
+    }
+  });
+  
+  // Генерация полного курса
+  app.post("/api/courses/generate", async (req, res) => {
+    try {
+      const { files, settings, useAI } = req.body;
+      if (!settings) {
+        return res.status(400).json({ error: "Не указаны настройки курса" });
+      }
+      
+      // Получаем данные о файлах
+      const mediaFiles = [];
+      if (files && files.length > 0) {
+        for (const fileId of files) {
+          const mediaFile = await storage.getMediaFile(parseInt(fileId));
+          if (mediaFile) {
+            mediaFiles.push(mediaFile);
+          }
+        }
+      }
+      
+      // Создаем новый курс в базе данных
+      const newCourse = await storage.createCourse({
+        title: settings.title,
+        description: settings.description,
+        department: settings.targetAudience && settings.targetAudience.length > 0 ? settings.targetAudience[0] : "general",
+        createdById: 1, // Временно устанавливаем ID создателя как 1 (админ)
+        active: true
+      });
+      
+      // Добавляем модули
+      const modules = [];
+      for (let i = 0; i < settings.modulesCount; i++) {
+        const module = await storage.createModule({
+          courseId: newCourse.id,
+          title: `Модуль ${i + 1}`,
+          description: `Описание модуля ${i + 1}`,
+          order: i
+        });
+        
+        // Добавляем уроки к модулю
+        for (let j = 0; j < 3; j++) {
+          await storage.createLesson({
+            moduleId: module.id,
+            title: `Урок ${j + 1}`,
+            content: `Содержание урока ${j + 1}`,
+            order: j,
+            duration: 30 // в минутах
+          });
+        }
+        
+        modules.push(module);
+      }
+      
+      // Добавляем связь с загруженными файлами
+      if (mediaFiles.length > 0) {
+        for (const file of mediaFiles) {
+          await storage.createCourseResource({
+            courseId: newCourse.id,
+            mediaId: file.id,
+            type: "attachment"
+          });
+        }
+      }
+      
+      // Возвращаем результат с созданным курсом и модулями
+      res.json({
+        ...newCourse,
+        modules
+      });
+    } catch (error) {
+      console.error("Ошибка генерации курса:", error);
+      res.status(500).json({ error: "Не удалось сгенерировать курс" });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
