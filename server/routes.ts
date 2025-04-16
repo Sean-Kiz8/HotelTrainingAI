@@ -1261,7 +1261,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Неверный ID файла" });
       }
       
-      const file = await storage.getMediaFileById(fileId);
+      const file = await storage.getMediaFile(fileId);
       if (!file) {
         return res.status(404).json({ error: "Файл не найден" });
       }
@@ -3438,18 +3438,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
           order: i
         });
         
+        const lessons = []; // Сохраняем уроки для включения в ответ
+        
         // Добавляем уроки к модулю
         for (let j = 0; j < 3; j++) {
-          await storage.createLesson({
+          const lesson = await storage.createLesson({
             moduleId: module.id,
             title: `Урок ${j + 1}`,
             content: `Содержание урока ${j + 1}`,
             order: j,
             duration: 30 // в минутах, числовое значение
           });
+          
+          // Добавляем информацию о созданном уроке
+          lessons.push({
+            id: lesson.id,
+            title: lesson.title,
+            content: lesson.content,
+            duration: lesson.duration,
+            type: 'text'
+          });
         }
         
-        modules.push(module);
+        // Сохраняем модуль с уроками
+        modules.push({
+          id: module.id,
+          title: module.title,
+          description: module.description,
+          lessons: lessons
+        });
       }
       
       // Добавляем связь с загруженными файлами
@@ -3463,10 +3480,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Возвращаем результат с созданным курсом и модулями
+      // Возвращаем результат с созданным курсом и модулями, включая ID курса
       res.json({
-        ...newCourse,
-        modules
+        id: newCourse.id,
+        title: newCourse.title,
+        description: newCourse.description,
+        modules: modules
       });
     } catch (error) {
       console.error("Ошибка генерации курса:", error);
