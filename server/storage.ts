@@ -381,6 +381,30 @@ export class DatabaseStorage implements IStorage {
       .from(courses)
       .where(eq(courses.department, department));
   }
+  
+  // Course resource operations
+  async getCourseResource(id: number): Promise<CourseResource | undefined> {
+    const [resource] = await db.select().from(courseResources).where(eq(courseResources.id, id));
+    return resource;
+  }
+
+  async createCourseResource(resource: InsertCourseResource): Promise<CourseResource> {
+    const [newResource] = await db.insert(courseResources).values(resource).returning();
+    return newResource;
+  }
+
+  async deleteCourseResource(id: number): Promise<boolean> {
+    const result = await db.delete(courseResources).where(eq(courseResources.id, id));
+    return !!result;
+  }
+
+  async listCourseResourcesByCourse(courseId: number): Promise<CourseResource[]> {
+    return await db
+      .select()
+      .from(courseResources)
+      .where(eq(courseResources.courseId, courseId))
+      .orderBy(courseResources.order);
+  }
 
   // Module operations
   async getModule(id: number): Promise<Module | undefined> {
