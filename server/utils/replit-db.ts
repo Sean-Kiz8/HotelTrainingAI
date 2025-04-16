@@ -1,111 +1,133 @@
 import fetch from 'node-fetch';
 
+// Интерфейс для Replit DB
+interface ReplitDB {
+  get(key: string): Promise<any>;
+  set(key: string, value: any): Promise<boolean>;
+  delete(key: string): Promise<boolean>;
+  list(prefix?: string): Promise<string[]>;
+}
+
 /**
- * Класс для работы с Replit Key-Value DB
+ * Класс для работы с Replit Key-Value Store (Replit DB)
  */
-export class ReplitDB {
-  private dbUrl: string;
+class ReplitDBClient implements ReplitDB {
+  private baseUrl: string;
 
   constructor() {
-    this.dbUrl = process.env.REPLIT_DB_URL || '';
-    if (!this.dbUrl) {
-      console.warn('REPLIT_DB_URL не определен. Кеширование через Replit DB не будет работать.');
+    if (!process.env.REPLIT_DB_URL) {
+      console.warn('REPLIT_DB_URL не установлен. Работа с базой данных Replit может быть недоступна.');
     }
+    
+    this.baseUrl = process.env.REPLIT_DB_URL || 'https://kv.replit.com/v0';
   }
 
   /**
-   * Получение значения по ключу
-   * @param key Ключ для поиска
-   * @returns Значение или null, если ключ не найден
+   * Получить значение по ключу
+   * @param key ключ для поиска
+   * @returns значение, сохраненное для ключа, или null, если ключ не найден
    */
-  async get(key: string): Promise<any | null> {
+  async get(key: string): Promise<any> {
     try {
-      if (!this.dbUrl) return null;
+      const response = await fetch(`${this.baseUrl}/${encodeURIComponent(key)}`);
       
-      const response = await fetch(`${this.dbUrl}/${encodeURIComponent(key)}`);
-      if (response.status === 404) return null;
+      if (response.status === 404) {
+        return null;
+      }
       
-      const value = await response.text();
-      if (!value) return null;
+      if (!response.ok) {
+        throw new Error(`Ошибка при получении данных: ${response.status} ${response.statusText}`);
+      }
+      
+      const text = await response.text();
       
       try {
-        // Пытаемся распарсить как JSON
-        return JSON.parse(value);
+        // Пробуем распарсить как JSON
+        return JSON.parse(text);
       } catch {
-        // Если не удалось распарсить, возвращаем как есть
-        return value;
+        // Если не удалось распарсить как JSON, возвращаем как есть
+        return text;
       }
     } catch (error) {
-      console.error(`Ошибка при получении значения по ключу ${key}:`, error);
+      console.error(`Ошибка при получении значения для ключа ${key}:`, error);
       return null;
     }
   }
 
   /**
-   * Установка значения по ключу
-   * @param key Ключ
-   * @param value Значение (будет автоматически сериализовано в JSON если это объект)
+   * Установить значение для ключа
+   * @param key ключ для сохранения
+   * @param value значение для сохранения (объект будет сериализован в JSON)
    * @returns true в случае успеха, false в случае ошибки
    */
   async set(key: string, value: any): Promise<boolean> {
     try {
-      if (!this.dbUrl) return false;
+      const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
       
-      const valueToStore = typeof value === 'object' ? JSON.stringify(value) : value;
-      
-      const response = await fetch(this.dbUrl, {
+      const response = await fetch(`${this.baseUrl}/${encodeURIComponent(key)}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: `${encodeURIComponent(key)}=${encodeURIComponent(valueToStore)}`,
+        body: stringValue,
       });
       
-      return response.status === 200;
+      if (!response.ok) {
+        throw new Error(`Ошибка при сохранении данных: ${response.status} ${response.statusText}`);
+      }
+      
+      return true;
     } catch (error) {
-      console.error(`Ошибка при установке значения по ключу ${key}:`, error);
+      console.error(`Ошибка при установке значения для ключа ${key}:`, error);
       return false;
     }
   }
 
   /**
-   * Удаление значения по ключу
-   * @param key Ключ для удаления
+   * Удалить значение по ключу
+   * @param key ключ для удаления
    * @returns true в случае успеха, false в случае ошибки
    */
   async delete(key: string): Promise<boolean> {
     try {
-      if (!this.dbUrl) return false;
-      
-      const response = await fetch(`${this.dbUrl}/${encodeURIComponent(key)}`, {
+      const response = await fetch(`${this.baseUrl}/${encodeURIComponent(key)}`, {
         method: 'DELETE',
       });
       
-      return response.status === 200;
+      if (!response.ok) {
+        throw new Error(`Ошибка при удалении данных: ${response.status} ${response.statusText}`);
+      }
+      
+      return true;
     } catch (error) {
-      console.error(`Ошибка при удалении значения по ключу ${key}:`, error);
+      console.error(`Ошибка при удалении значения для ключа ${key}:`, error);
       return false;
     }
   }
 
   /**
-   * Получение списка всех ключей
-   * @param prefix Опциональный префикс для фильтрации ключей
-   * @returns Массив ключей или пустой массив в случае ошибки
+   * Получить список ключей с определенным префиксом
+   * @param prefix опциональный префикс для фильтрации ключей
+   * @returns массив ключей
    */
   async list(prefix?: string): Promise<string[]> {
     try {
-      if (!this.dbUrl) return [];
+      let url = `${this.baseUrl}?encode=true`;
+      if (prefix) {
+        url += `&prefix=${encodeURIComponent(prefix)}`;
+      }
       
-      const url = prefix 
-        ? `${this.dbUrl}?prefix=${encodeURIComponent(prefix)}`
-        : this.dbUrl;
-        
       const response = await fetch(url);
-      const body = await response.text();
       
-      if (!body) return [];
-      return body.split('\n');
+      if (!response.ok) {
+        throw new Error(`Ошибка при получении списка ключей: ${response.status} ${response.statusText}`);
+      }
+      
+      const text = await response.text();
+      
+      if (!text) {
+        return [];
+      }
+      
+      // Replit возвращает ключи, разделенные символом новой строки
+      return text.split('\n').map(key => decodeURIComponent(key));
     } catch (error) {
       console.error('Ошибка при получении списка ключей:', error);
       return [];
@@ -113,5 +135,5 @@ export class ReplitDB {
   }
 }
 
-// Экспортируем экземпляр для использования в приложении
-export const replitDB = new ReplitDB();
+// Создаем и экспортируем единственный экземпляр для работы с Replit DB
+export const replitDB = new ReplitDBClient();

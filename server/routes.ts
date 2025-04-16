@@ -18,6 +18,7 @@ import {
 } from "@shared/schema";
 import { eq } from "drizzle-orm";
 import { setupAuth } from "./auth";
+import { CacheManager, coursesCache, usersCache, mediaCache, analyticsCache, assessmentsCache } from './utils/cache-manager';
 import OpenAI from "openai";
 import { generateAILearningPath } from "./utils/openai";
 import multer from "multer";

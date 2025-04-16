@@ -21,7 +21,11 @@ export default function StorageTestPage() {
   const fetchFiles = async () => {
     try {
       setLoading(true);
-      const files = await apiRequest('/api/media/list');
+      const response = await fetch('/api/media/list');
+      if (!response.ok) {
+        throw new Error(`Ошибка получения списка файлов: ${response.status}`);
+      }
+      const files = await response.json();
       setUploadedFiles(files || []);
     } catch (error) {
       console.error('Error fetching files:', error);

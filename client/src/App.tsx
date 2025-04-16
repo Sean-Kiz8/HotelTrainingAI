@@ -31,6 +31,7 @@ import AssessmentSession from "./pages/assessment-session";
 import AssessmentResults from "./pages/assessment-results";
 import AssessmentDetails from "./pages/assessment-details";
 import StorageTestPage from "./pages/storage-test";
+import CacheTestPage from "./pages/cache-test";
 import { useEffect } from "react";
 import { ProtectedRoute } from "./lib/protected-route";
 // Используем единую систему авторизации
@@ -125,6 +126,12 @@ function App() {
 
                     {/* Debug route */}
                     <ProtectedRoute path="/debug" component={DebugPage} />
+                    
+                    {/* Storage test route */}
+                    <ProtectedRoute path="/storage-test" component={StorageTestPage} />
+                    
+                    {/* Cache test route */}
+                    <ProtectedRoute path="/cache-test" component={CacheTestPage} />
 
                     {/* Fallback to 404 */}
                     <Route component={NotFound} />
