@@ -301,7 +301,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           filesSummary = mediaFiles.map(f => `- ${f.filename || f.originalFilename || 'Файл'} (${f.mediaType || f.mimeType || 'тип не определён'})`).join('\n');
         }
         // Импортируем функцию генерации через OpenAI
-        const { generateCourseWithAI } = require("./utils/openai");
+        const { generateCourseWithAI } = await import("./utils/openai");
         const aiCourse = await generateCourseWithAI(settings, filesSummary);
 
         // Сохраняем курс и модули/уроки в БД
