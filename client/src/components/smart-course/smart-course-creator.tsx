@@ -73,6 +73,14 @@ export function SmartCourseCreator() {
   const [error, setError] = useState<string | null>(null);
   const [useAI, setUseAI] = useState<boolean>(true);
 
+  // Восстановление файлов из localStorage при инициализации
+  useEffect(() => {
+    const savedFiles = localStorage.getItem('smartCourseFiles');
+    if (savedFiles) {
+      setFiles(JSON.parse(savedFiles));
+    }
+  }, []);
+
   // Функция для загрузки файлов с сервера
   const fetchFilesFromServer = async () => {
     try {
@@ -96,13 +104,6 @@ export function SmartCourseCreator() {
     // Обновляем состояние, удаляя файл с указанным id
     setFiles(prevFiles => prevFiles.filter(file => file.id !== fileId));
   };
-  
-  // При переходе на шаг 3 (предпросмотр) загружаем файлы с сервера
-  useEffect(() => {
-    if (currentStep === 3) {
-      fetchFilesFromServer();
-    }
-  }, [currentStep]);
 
   const steps = [
     { id: 1, name: "Загрузка материалов", component: Step1FileUpload },
@@ -125,6 +126,7 @@ export function SmartCourseCreator() {
 
   const handleFilesChange = (newFiles: UploadedFile[]) => {
     setFiles(newFiles);
+    localStorage.setItem('smartCourseFiles', JSON.stringify(newFiles));
   };
 
   const handleSettingsChange = (settings: Partial<CourseSettings>) => {
@@ -134,7 +136,6 @@ export function SmartCourseCreator() {
   const handleGenerateCourse = async () => {
     setIsGenerating(true);
     setError(null);
-    
     try {
       // API запрос для генерации курса
       const response = await fetch('/api/courses/generate', {
@@ -148,15 +149,14 @@ export function SmartCourseCreator() {
           useAI: useAI
         }),
       });
-      
       if (!response.ok) {
         throw new Error('Ошибка при генерации курса');
       }
-      
       const data = await response.json();
       setGeneratedCourse(data);
-      // После успешной генерации переходим на последний шаг
       setCurrentStep(4);
+      // Очищаем localStorage после успешного создания курса
+      localStorage.removeItem('smartCourseFiles');
     } catch (err) {
       console.error('Error generating course:', err);
       setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
