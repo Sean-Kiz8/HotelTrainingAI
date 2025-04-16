@@ -324,6 +324,27 @@ export function Step3CoursePreview({
                     </div>
                   ))}
                 </div>
+
+                {/* Предпросмотр PDF для выбранного файла */}
+                {files.some(f => f.type.includes('pdf')) && (
+                  <div className="mt-4 pt-4 border-t border-border">
+                    <h4 className="text-sm font-medium mb-2">Предпросмотр PDF</h4>
+                    <div className="flex flex-col gap-2">
+                      {files.filter(f => f.type.includes('pdf')).map(file => (
+                        <div key={`preview-${file.id}`} className="border rounded-md p-2">
+                          <p className="text-sm font-medium mb-1">{file.name}</p>
+                          <div className="w-full bg-muted rounded-md relative overflow-hidden" style={{ height: '150px' }}>
+                            <iframe 
+                              src={file.url}
+                              className="absolute inset-0 w-full h-full"
+                              title={`Предпросмотр ${file.name}`}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </CardContent>
             </Card>
           ) : (

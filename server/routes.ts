@@ -3387,7 +3387,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             title: `Урок ${j + 1}`,
             content: `Содержание урока ${j + 1}`,
             order: j,
-            duration: 30 // в минутах
+            duration: 30 // в минутах, числовое значение
           });
         }
         
