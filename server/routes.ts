@@ -1253,6 +1253,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Media routes
   // Специфичные маршруты должны быть объявлены до общих маршрутов с параметрами
+  // Маршрут для получения файла по ID
+  app.get("/api/media/file/:id", async (req, res) => {
+    try {
+      const fileId = parseInt(req.params.id);
+      if (isNaN(fileId)) {
+        return res.status(400).json({ error: "Неверный ID файла" });
+      }
+      
+      const file = await storage.getMediaFileById(fileId);
+      if (!file) {
+        return res.status(404).json({ error: "Файл не найден" });
+      }
+      
+      // Формируем путь к файлу
+      const filePath = file.path || (file.filename ? `uploads/media/${file.filename}` : null);
+      
+      if (!filePath) {
+        return res.status(404).json({ error: "Путь к файлу не найден" });
+      }
+      
+      // Отправляем файл клиенту
+      res.sendFile(filePath, { root: '.' });
+      
+    } catch (error) {
+      console.error("Ошибка при получении файла:", error);
+      res.status(500).json({ error: "Не удалось получить файл" });
+    }
+  });
+  
   // Сначала объявляем /api/media/list
   app.get("/api/media/list", async (req, res) => {
     try {
@@ -3294,37 +3323,66 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
-      // Заглушка для тестирования
-      const generatedContent = {
-        title: settings.title,
-        description: settings.description,
-        modules: []
-      };
+      // Импортируем функцию для генерации контента
+      const { generateCourseContent } = await import('./utils/openai');
       
-      // Генерируем модули курса в зависимости от указанного количества
-      for (let i = 0; i < settings.modulesCount; i++) {
-        const module = {
-          id: i + 1,
-          title: `Модуль ${i + 1}`,
-          description: `Описание модуля ${i + 1}`,
-          lessons: []
+      try {
+        // Вызываем функцию генерации контента
+        const generatedContent = await generateCourseContent(
+          settings.title,
+          settings.description,
+          {
+            targetAudience: settings.targetAudience || [],
+            difficultyLevel: settings.difficultyLevel || 'beginner',
+            modulesCount: settings.modulesCount || 3,
+            format: settings.format || ['text'],
+            includeTests: settings.includeTests || false,
+            includeQuizzes: settings.includeQuizzes || false
+          },
+          mediaFiles.map(file => ({
+            id: file.id.toString(),
+            name: file.originalFilename || file.filename || 'Файл',
+            type: file.mimeType || file.mediaType || 'unknown',
+            url: file.url || ''
+          }))
+        );
+        
+        res.json(generatedContent);
+      } catch (error) {
+        console.error("Ошибка при вызове generateCourseContent:", error);
+        
+        // Если произошла ошибка с API, возвращаем заготовку
+        const generatedContent = {
+          title: settings.title,
+          description: settings.description,
+          modules: []
         };
         
-        // Генерируем уроки для каждого модуля
-        for (let j = 0; j < 3; j++) {
-          module.lessons.push({
-            id: j + 1,
-            title: `Урок ${j + 1}`,
-            content: `Содержание урока ${j + 1}`,
-            duration: "30 минут",
-            type: settings.format.includes("text") ? "text" : settings.format[0]
-          });
+        // Генерируем модули курса в зависимости от указанного количества
+        for (let i = 0; i < settings.modulesCount; i++) {
+          const module = {
+            id: i + 1,
+            title: `Модуль ${i + 1}`,
+            description: `Описание модуля ${i + 1}`,
+            lessons: []
+          };
+          
+          // Генерируем уроки для каждого модуля
+          for (let j = 0; j < 3; j++) {
+            module.lessons.push({
+              id: j + 1,
+              title: `Урок ${j + 1}`,
+              content: `Содержание урока ${j + 1}`,
+              duration: 30, // числовой тип для длительности
+              type: settings.format.includes("text") ? "text" : settings.format[0]
+            });
+          }
+          
+          generatedContent.modules.push(module);
         }
         
-        generatedContent.modules.push(module);
+        res.json(generatedContent);
       }
-      
-      res.json(generatedContent);
     } catch (error) {
       console.error("Ошибка генерации содержания курса:", error);
       res.status(500).json({ error: "Не удалось сгенерировать содержание курса" });
