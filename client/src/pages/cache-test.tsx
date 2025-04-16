@@ -1,234 +1,391 @@
-import { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { apiRequest } from '@/lib/queryClient';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Card, CardHeader, CardTitle, CardContent, CardFooter, CardDescription } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Separator } from '@/components/ui/separator';
+import { useToast } from '@/hooks/use-toast';
+import { HelpCircle, RefreshCw, Trash2, Save, Search } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 
-export default function CacheTestPage() {
-  const [key, setKey] = useState('test_key');
-  const [value, setValue] = useState('');
-  const [prefix, setPrefix] = useState('test');
-  const [ttl, setTtl] = useState('3600');
-  const [result, setResult] = useState<any>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+const CacheTestPage = () => {
+  const [cachePrefix, setCachePrefix] = useState<string>('courses');
+  const [cacheKey, setCacheKey] = useState<string>('test');
+  const [cacheValue, setCacheValue] = useState<string>('');
+  const [cacheTTL, setCacheTTL] = useState<number>(3600);
+  const [refreshInterval, setRefreshInterval] = useState<number | null>(null);
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
 
-  // Установка значения в кеш
-  const handleSet = async () => {
-    if (!key) {
-      setError('Ключ не может быть пустым');
-      return;
-    }
-
-    if (!value) {
-      setError('Значение не может быть пустым');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    
-    try {
-      const response = await fetch('/api/cache/set', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prefix,
-          key,
-          value,
-          ttl: parseInt(ttl),
-        }),
-      });
-
+  // Запрос для получения данных из кеша
+  const getCacheQuery = useQuery({
+    queryKey: ['/api/cache/get', cachePrefix, cacheKey],
+    queryFn: async () => {
+      const response = await fetch(`/api/cache/get?prefix=${cachePrefix}&key=${cacheKey}`);
       if (!response.ok) {
-        throw new Error(`Ошибка: ${response.status}`);
+        throw new Error('Ошибка при получении данных из кеша');
+      }
+      return response.json();
+    },
+    enabled: !!cachePrefix && !!cacheKey,
+    refetchInterval: refreshInterval,
+  });
+
+  // Мутация для установки данных в кеш
+  const setCacheMutation = useMutation({
+    mutationFn: async (data: { prefix: string; key: string; value: string; ttl?: number }) => {
+      return apiRequest('POST', '/api/cache/set', data);
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Кеш обновлен',
+        description: `Данные успешно сохранены в кеш ${cachePrefix}:${cacheKey}`,
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/cache/get', cachePrefix, cacheKey] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Ошибка',
+        description: `Не удалось сохранить данные в кеш: ${error}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Мутация для очистки кеша
+  const clearCacheMutation = useMutation({
+    mutationFn: async (options: { prefix: string; key?: string }) => {
+      const url = options.key
+        ? `/api/cache/clear?prefix=${options.prefix}&key=${options.key}`
+        : `/api/cache/clear?prefix=${options.prefix}`;
+      return apiRequest(url, { method: 'DELETE' });
+    },
+    onSuccess: (data, variables) => {
+      if (variables.key) {
+        toast({
+          title: 'Кеш очищен',
+          description: `Ключ ${variables.key} удален из кеша ${variables.prefix}`,
+        });
+      } else {
+        toast({
+          title: 'Кеш очищен',
+          description: `Весь кеш ${variables.prefix} был очищен`,
+        });
+      }
+      queryClient.invalidateQueries({ queryKey: ['/api/cache/get'] });
+    },
+    onError: (error) => {
+      toast({
+        title: 'Ошибка',
+        description: `Не удалось очистить кеш: ${error}`,
+        variant: 'destructive',
+      });
+    },
+  });
+
+  // Эффект для установки начальных данных в форму, если они получены из кеша
+  useEffect(() => {
+    if (getCacheQuery.data?.data?.value) {
+      try {
+        if (typeof getCacheQuery.data.data.value === 'object') {
+          setCacheValue(JSON.stringify(getCacheQuery.data.data.value, null, 2));
+        } else {
+          setCacheValue(getCacheQuery.data.data.value);
+        }
+      } catch (e) {
+        setCacheValue(String(getCacheQuery.data.data.value));
+      }
+    }
+  }, [getCacheQuery.data]);
+
+  // Обработчик сохранения данных в кеш
+  const handleSaveCache = () => {
+    try {
+      // Попытка распарсить JSON, если данные в формате JSON
+      let valueToCache;
+      try {
+        valueToCache = JSON.parse(cacheValue);
+      } catch (e) {
+        // Если не JSON, то сохраняем как строку
+        valueToCache = cacheValue;
       }
 
-      const data = await response.json();
-      setResult(data);
-    } catch (err) {
-      setError(`Ошибка: ${err}`);
-      console.error('Error setting cache:', err);
-    } finally {
-      setLoading(false);
+      setCacheMutation.mutate({
+        prefix: cachePrefix,
+        key: cacheKey,
+        value: valueToCache,
+        ttl: cacheTTL > 0 ? cacheTTL : undefined,
+      });
+    } catch (error) {
+      toast({
+        title: 'Ошибка',
+        description: `Не удалось преобразовать данные: ${error}`,
+        variant: 'destructive',
+      });
     }
   };
 
-  // Получение значения из кеша
-  const handleGet = async () => {
-    if (!key) {
-      setError('Ключ не может быть пустым');
-      return;
-    }
-
-    setLoading(true);
-    setError('');
-    
-    try {
-      const response = await fetch(`/api/cache/get?prefix=${prefix}&key=${key}`);
-      
-      if (!response.ok) {
-        throw new Error(`Ошибка: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setResult(data);
-      
-      if (data.success && data.data) {
-        setValue(typeof data.data === 'object' ? JSON.stringify(data.data, null, 2) : data.data.toString());
-      }
-    } catch (err) {
-      setError(`Ошибка: ${err}`);
-      console.error('Error getting cache:', err);
-    } finally {
-      setLoading(false);
-    }
+  // Обработчик очистки кеша
+  const handleClearCache = (key?: string) => {
+    clearCacheMutation.mutate({
+      prefix: cachePrefix,
+      key: key || undefined,
+    });
   };
 
-  // Удаление значения из кеша
-  const handleDelete = async () => {
-    if (!key) {
-      setError('Ключ не может быть пустым');
-      return;
+  // Индикатор состояния кеша
+  const renderCacheStatus = () => {
+    if (getCacheQuery.isLoading) {
+      return <Badge variant="outline" className="animate-pulse">Загрузка...</Badge>;
     }
 
-    setLoading(true);
-    setError('');
-    
-    try {
-      const response = await fetch(`/api/cache/delete`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          prefix,
-          key,
-        }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Ошибка: ${response.status}`);
-      }
-
-      const data = await response.json();
-      setResult(data);
-      
-      if (data.success) {
-        setValue('');
-      }
-    } catch (err) {
-      setError(`Ошибка: ${err}`);
-      console.error('Error deleting cache:', err);
-    } finally {
-      setLoading(false);
+    if (getCacheQuery.isError) {
+      return <Badge variant="destructive">Ошибка</Badge>;
     }
+
+    if (getCacheQuery.data?.found) {
+      return <Badge variant="success">Найдено в кеше</Badge>;
+    }
+
+    return <Badge variant="secondary">Не найдено в кеше</Badge>;
   };
 
   return (
-    <div className="container mx-auto py-8">
-      <h1 className="text-3xl font-bold mb-6">Тестирование Replit DB кеширования</h1>
+    <div className="container mx-auto p-6">
+      <h1 className="text-3xl font-bold mb-6">Тестирование системы кеширования</h1>
       
-      {error && (
-        <div className="mb-4 p-4 rounded-md bg-red-50 text-red-700">
-          {error}
-        </div>
-      )}
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <Card>
-          <CardHeader>
-            <CardTitle>Управление кешем</CardTitle>
-            <CardDescription>Тестирование механизма кеширования с Replit DB</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="prefix">Префикс</Label>
-              <Input 
-                id="prefix" 
-                value={prefix}
-                onChange={(e) => setPrefix(e.target.value)}
-                placeholder="test"
-              />
-              <p className="text-sm text-gray-500">Префикс для группировки кешей</p>
-            </div>
-            
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="key">Ключ</Label>
-              <Input 
-                id="key" 
-                value={key}
-                onChange={(e) => setKey(e.target.value)}
-                placeholder="test_key"
-              />
-            </div>
-            
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="value">Значение</Label>
-              <Textarea 
-                id="value" 
-                value={value}
-                onChange={(e) => setValue(e.target.value)}
-                placeholder="Введите значение для кеширования"
-                rows={5}
-              />
-            </div>
-            
-            <div className="grid w-full items-center gap-1.5">
-              <Label htmlFor="ttl">Время жизни (секунды)</Label>
-              <Input 
-                id="ttl" 
-                type="number"
-                value={ttl}
-                onChange={(e) => setTtl(e.target.value)}
-                placeholder="3600"
-              />
-              <p className="text-sm text-gray-500">Время в секундах до истечения срока кеша</p>
-            </div>
-          </CardContent>
-          <CardFooter className="flex gap-2">
-            <Button 
-              onClick={handleSet} 
-              disabled={loading || !key || !value}
-            >
-              {loading ? 'Загрузка...' : 'Установить'}
-            </Button>
-            <Button 
-              variant="outline" 
-              onClick={handleGet} 
-              disabled={loading || !key}
-            >
-              Получить
-            </Button>
-            <Button 
-              variant="destructive" 
-              onClick={handleDelete} 
-              disabled={loading || !key}
-            >
-              Удалить
-            </Button>
-          </CardFooter>
-        </Card>
+      <Tabs defaultValue="manage" className="mb-6">
+        <TabsList className="mb-4">
+          <TabsTrigger value="manage">Управление кешем</TabsTrigger>
+          <TabsTrigger value="info">Информация о кеше</TabsTrigger>
+        </TabsList>
         
-        <Card>
-          <CardHeader>
-            <CardTitle>Результат операции</CardTitle>
-            <CardDescription>Ответ от сервера после выполнения операции</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {result ? (
-              <pre className="bg-gray-100 p-4 rounded-md overflow-auto max-h-[400px] text-sm">
-                {JSON.stringify(result, null, 2)}
+        <TabsContent value="manage">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle className="flex items-center justify-between">
+                  <span>Получение данных из кеша</span>
+                  {renderCacheStatus()}
+                </CardTitle>
+                <CardDescription>
+                  Введите префикс и ключ кеша для получения данных
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4">
+                  <div className="flex flex-col space-y-2">
+                    <Label htmlFor="cache-prefix">Префикс кеша</Label>
+                    <Select
+                      value={cachePrefix}
+                      onValueChange={setCachePrefix}
+                    >
+                      <SelectTrigger id="cache-prefix">
+                        <SelectValue placeholder="Выберите префикс кеша" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="courses">courses (курсы)</SelectItem>
+                        <SelectItem value="users">users (пользователи)</SelectItem>
+                        <SelectItem value="media">media (медиафайлы)</SelectItem>
+                        <SelectItem value="analytics">analytics (аналитика)</SelectItem>
+                        <SelectItem value="assessments">assessments (оценки)</SelectItem>
+                        <SelectItem value="custom">пользовательский</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    
+                    {cachePrefix === 'custom' && (
+                      <Input
+                        placeholder="Введите префикс кеша"
+                        value={cachePrefix === 'custom' ? '' : cachePrefix}
+                        onChange={(e) => setCachePrefix(e.target.value)}
+                        className="mt-2"
+                      />
+                    )}
+                  </div>
+                  
+                  <div className="flex flex-col space-y-2">
+                    <Label htmlFor="cache-key">Ключ кеша</Label>
+                    <Input
+                      id="cache-key"
+                      placeholder="Ключ кеша"
+                      value={cacheKey}
+                      onChange={(e) => setCacheKey(e.target.value)}
+                    />
+                  </div>
+                  
+                  <div className="flex flex-col space-y-2">
+                    <Label htmlFor="refresh-interval">Интервал обновления (мс)</Label>
+                    <Input
+                      id="refresh-interval"
+                      type="number"
+                      placeholder="0 - отключено"
+                      value={refreshInterval === null ? '' : refreshInterval}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        setRefreshInterval(isNaN(value) || value <= 0 ? null : value);
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button onClick={() => queryClient.invalidateQueries({ queryKey: ['/api/cache/get', cachePrefix, cacheKey] })}>
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Обновить
+                </Button>
+                
+                <Button variant="destructive" onClick={() => handleClearCache(cacheKey)}>
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Удалить
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            <Card className="col-span-1">
+              <CardHeader>
+                <CardTitle>Запись данных в кеш</CardTitle>
+                <CardDescription>
+                  Введите данные для сохранения в кеш
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid gap-4">
+                  <div className="flex flex-col space-y-2">
+                    <Label htmlFor="cache-value">Данные (JSON или текст)</Label>
+                    <Textarea
+                      id="cache-value"
+                      placeholder="Введите данные для кеширования (объект JSON или текст)"
+                      value={cacheValue}
+                      onChange={(e) => setCacheValue(e.target.value)}
+                      rows={8}
+                    />
+                  </div>
+                  
+                  <div className="flex flex-col space-y-2">
+                    <Label htmlFor="cache-ttl">Время жизни кеша (секунды)</Label>
+                    <Input
+                      id="cache-ttl"
+                      type="number"
+                      placeholder="Время жизни в секундах"
+                      value={cacheTTL}
+                      onChange={(e) => {
+                        const value = parseInt(e.target.value);
+                        setCacheTTL(isNaN(value) ? 3600 : value);
+                      }}
+                    />
+                  </div>
+                </div>
+              </CardContent>
+              <CardFooter className="flex justify-between">
+                <Button variant="secondary" onClick={() => setCacheValue('')}>
+                  Очистить
+                </Button>
+                
+                <Button 
+                  variant="default" 
+                  onClick={handleSaveCache}
+                  disabled={!cacheValue || !cacheKey || setCacheMutation.isPending}
+                >
+                  <Save className="mr-2 h-4 w-4" />
+                  Сохранить
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+          
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Результат запроса</CardTitle>
+              <CardDescription>
+                Результат последнего запроса к кешу
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <pre className="bg-secondary p-4 rounded-md overflow-auto max-h-96">
+                {getCacheQuery.isLoading ? (
+                  <span className="text-muted-foreground">Загрузка...</span>
+                ) : getCacheQuery.isError ? (
+                  <span className="text-destructive">Ошибка: {String(getCacheQuery.error)}</span>
+                ) : (
+                  <code>{JSON.stringify(getCacheQuery.data, null, 2)}</code>
+                )}
               </pre>
-            ) : (
-              <p className="text-gray-500">Выполните операцию, чтобы увидеть результат</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="info">
+          <Card>
+            <CardHeader>
+              <CardTitle>Информация о системе кеширования</CardTitle>
+              <CardDescription>
+                Общие сведения о механизме кеширования в приложении
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-medium">Доступные кеш-хранилища</h3>
+                  <Separator className="my-2" />
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                    {[
+                      { name: 'courses', description: 'Кеш курсов', ttl: '1 час' },
+                      { name: 'users', description: 'Кеш пользователей', ttl: '24 часа' },
+                      { name: 'media', description: 'Кеш медиафайлов', ttl: '6 часов' },
+                      { name: 'analytics', description: 'Кеш аналитики', ttl: '10 минут' },
+                      { name: 'assessments', description: 'Кеш оценок', ttl: '30 минут' },
+                    ].map((cache) => (
+                      <Card key={cache.name} className="p-4 hover:bg-secondary/50 cursor-pointer transition-colors" 
+                        onClick={() => {
+                          setCachePrefix(cache.name);
+                          queryClient.invalidateQueries({ queryKey: ['/api/cache/get']});
+                        }}
+                      >
+                        <h4 className="font-semibold">{cache.name}</h4>
+                        <p className="text-sm text-muted-foreground">{cache.description}</p>
+                        <p className="text-xs mt-2">TTL по умолчанию: {cache.ttl}</p>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium">Операции с кешем</h3>
+                  <Separator className="my-2" />
+                  <ul className="list-disc list-inside space-y-2 mt-2">
+                    <li><strong>get(key)</strong> - получение данных из кеша</li>
+                    <li><strong>set(key, value, ttl)</strong> - запись данных в кеш с опциональным временем жизни</li>
+                    <li><strong>delete(key)</strong> - удаление данных из кеша по ключу</li>
+                    <li><strong>clear()</strong> - полная очистка кеша</li>
+                  </ul>
+                </div>
+                
+                <div>
+                  <h3 className="text-lg font-medium">Действия</h3>
+                  <Separator className="my-2" />
+                  <div className="flex flex-wrap gap-2 mt-2">
+                    <Button variant="outline" onClick={() => handleClearCache()}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Очистить выбранный кеш
+                    </Button>
+                    <Button variant="destructive" onClick={() => clearCacheMutation.mutate({ prefix: 'all' })}>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Очистить все кеши
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
-}
+};
+
+export default CacheTestPage;
