@@ -247,10 +247,9 @@ export default function MyLearning() {
                       image={course.image}
                       progress={course.progress}
                       completed={course.completed}
-                      onClick={() => toast({
-                        title: "Переход к курсу",
-                        description: `Открыт курс: ${course.title}`,
-                      })}
+                      onClick={() => {
+                        setLocation(`/course-details/${course.id}`);
+                      }}
                     />
                   ))}
                 </div>
@@ -288,10 +287,9 @@ export default function MyLearning() {
                       image={course.image}
                       progress={course.progress}
                       completed={course.completed}
-                      onClick={() => toast({
-                        title: "Просмотр курса",
-                        description: `Открыт курс: ${course.title}`,
-                      })}
+                      onClick={() => {
+                        setLocation(`/course-details/${course.id}`);
+                      }}
                     />
                   ))}
                 </div>
