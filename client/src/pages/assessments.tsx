@@ -176,7 +176,12 @@ export default function Assessments() {
                 <Card key={assessment.id} className="flex flex-col">
                   <CardContent className="p-6 flex-grow">
                     <div className="flex justify-between items-start mb-2">
-                      <h3 className="font-medium text-lg">{assessment.title}</h3>
+                      <h3 
+                        className="font-medium text-lg hover:text-primary hover:underline cursor-pointer"
+                        onClick={() => navigate(`/assessment-details/${assessment.id}`)}
+                      >
+                        {assessment.title}
+                      </h3>
                       <Badge variant={getStatusColor(assessment.status) as "default" | "destructive" | "outline" | "secondary" | "success" | null | undefined}>
                         {formatStatus(assessment.status)}
                       </Badge>
@@ -213,15 +218,7 @@ export default function Assessments() {
                     </div>
                   </CardContent>
 
-                  <CardFooter className="px-6 py-4 border-t flex justify-between">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => navigate(`/assessment-details/${assessment.id}`)}
-                    >
-                      Подробнее
-                    </Button>
-
+                  <CardFooter className="px-6 py-4 border-t flex justify-end">
                     <Button
                       size="sm"
                       onClick={() => handleStartAssessment(assessment.id)}
