@@ -2525,16 +2525,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/assessment-sessions", async (req, res) => {
     try {
       console.log("Creating assessment session with data:", req.body);
-      console.log("Session user:", req.user);
-
-      // Проверяем, что пользователь авторизован
-      if (!req.isAuthenticated()) {
-        return res.status(401).json({ message: "User not authenticated" });
+      
+      // Получаем ID пользователя либо из запроса, либо из req.user
+      let userId = req.body.userId;
+      
+      // Если userId не указан в теле запроса, но пользователь авторизован,
+      // используем ID авторизованного пользователя
+      if (!userId && req.isAuthenticated() && req.user) {
+        userId = req.user.id;
+      }
+      
+      // Проверяем, что userId существует
+      if (!userId) {
+        return res.status(400).json({ message: "User ID is required" });
       }
 
       // Создаем объект данных для сессии
       const sessionData = {
-        userId: req.user.id, // Используем ID авторизованного пользователя
+        userId: parseInt(userId),
         assessmentId: parseInt(req.body.assessmentId),
         status: req.body.status || "created"
       };
