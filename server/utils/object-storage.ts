@@ -3,45 +3,188 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 
-// Инициализируем клиент Replit Object Storage
+// Создаем директорию для локального хранения, если используем файловую систему
+const LOCAL_STORAGE_DIR = './uploads/storage';
+if (!fs.existsSync(LOCAL_STORAGE_DIR)) {
+  fs.mkdirSync(LOCAL_STORAGE_DIR, { recursive: true });
+}
+if (!fs.existsSync(`${LOCAL_STORAGE_DIR}/media`)) {
+  fs.mkdirSync(`${LOCAL_STORAGE_DIR}/media`, { recursive: true });
+}
+if (!fs.existsSync(`${LOCAL_STORAGE_DIR}/thumbnails`)) {
+  fs.mkdirSync(`${LOCAL_STORAGE_DIR}/thumbnails`, { recursive: true });
+}
+
+// Проверка наличия Replit Object Storage
+let useObjectStorage = false;
 const client = new Client();
 
-// Обертка для методов Object Storage, которые мы будем использовать
-// Так как типы в @replit/object-storage могут не полностью соответствовать реальному API
+// Инициализируем клиент и проверяем, доступно ли Object Storage
+(async () => {
+  try {
+    // Пробуем получить список объектов - если работает, значит Object Storage настроен
+    try {
+      const result = await client.list();
+      useObjectStorage = true;
+      console.log('Replit Object Storage доступен и будет использоваться');
+    } catch (e) {
+      console.warn('Не удалось подключиться к Replit Object Storage:', e);
+      console.warn('Используется локальная файловая система для хранения файлов');
+    }
+  } catch (error) {
+    console.warn('Ошибка при подключении к Replit Object Storage:', error);
+    console.warn('Используется локальная файловая система для хранения файлов');
+  }
+})();
+
+// Обертка для методов Object Storage
 async function putObject(key: string, value: Buffer): Promise<void> {
-  // @ts-ignore - игнорируем ошибки типизации
-  await client.put(key, value);
+  try {
+    if (useObjectStorage) {
+      // Используем Replit Object Storage
+      try {
+        await client.uploadFromBytes(key, value);
+      } catch (error) {
+        console.error(`Ошибка при загрузке в Object Storage: ${error}`);
+        throw error;
+      }
+    } else {
+      // Используем файловую систему
+      const localPath = path.join(LOCAL_STORAGE_DIR, key);
+      const dir = path.dirname(localPath);
+      
+      // Создаем директорию, если ее нет
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      
+      fs.writeFileSync(localPath, value);
+    }
+  } catch (error) {
+    console.error('Ошибка при загрузке файла:', error);
+    
+    // Как запасной вариант, всегда сохраняем в файловую систему
+    const localPath = path.join(LOCAL_STORAGE_DIR, key);
+    const dir = path.dirname(localPath);
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
+    }
+    fs.writeFileSync(localPath, value);
+    
+    console.log('Файл сохранен в локальное хранилище как запасной вариант');
+  }
 }
 
 async function getObject(key: string): Promise<Buffer | null> {
   try {
-    // @ts-ignore - игнорируем ошибки типизации
-    return await client.get(key);
+    if (useObjectStorage) {
+      // Попытка получить из Object Storage
+      try {
+        const data = await client.downloadAsBytes(key);
+        // Если data не Buffer, то преобразуем
+        if (data instanceof Buffer) {
+          return data;
+        } else if (Array.isArray(data) && data.length > 0 && data[0] instanceof Buffer) {
+          return data[0];
+        } else {
+          console.warn(`Неожиданный формат данных из Object Storage:`, typeof data);
+        }
+      } catch (error) {
+        console.warn(`Ошибка при получении из Object Storage: ${error}`);
+      }
+    }
+    
+    // Если не удалось получить из Object Storage или оно не используется,
+    // пробуем получить из файловой системы
+    const localPath = path.join(LOCAL_STORAGE_DIR, key);
+    if (fs.existsSync(localPath)) {
+      return fs.readFileSync(localPath);
+    }
+    
+    return null;
   } catch (error) {
-    console.error(`Error getting object with key ${key}:`, error);
+    console.error(`Ошибка при получении объекта с ключом ${key}:`, error);
+    
+    // Проверяем локальное хранилище как запасной вариант
+    try {
+      const localPath = path.join(LOCAL_STORAGE_DIR, key);
+      if (fs.existsSync(localPath)) {
+        return fs.readFileSync(localPath);
+      }
+    } catch (fsError) {
+      console.error('Также не удалось получить из локального хранилища:', fsError);
+    }
+    
     return null;
   }
 }
 
 async function objectExists(key: string): Promise<boolean> {
   try {
-    // @ts-ignore - игнорируем ошибки типизации
-    return await client.exists(key);
+    if (useObjectStorage) {
+      // Проверяем в Object Storage
+      try {
+        // Пытаемся просто скачать файл - если он есть, то вернётся результат
+        const data = await client.downloadAsBytes(key);
+        if (data) {
+          return true;
+        }
+      } catch (error) {
+        // Если файл не найден, это нормально - просто возвращаем false
+        if (error instanceof Error && error.message.includes('not found')) {
+          return false;
+        }
+        console.warn(`Ошибка при проверке в Object Storage: ${error}`);
+      }
+    }
+    
+    // Проверяем в файловой системе
+    const localPath = path.join(LOCAL_STORAGE_DIR, key);
+    return fs.existsSync(localPath);
   } catch (error) {
-    console.error(`Error checking if object with key ${key} exists:`, error);
-    return false;
+    console.error(`Ошибка при проверке существования объекта с ключом ${key}:`, error);
+    
+    // Проверяем локальное хранилище как запасной вариант
+    try {
+      const localPath = path.join(LOCAL_STORAGE_DIR, key);
+      return fs.existsSync(localPath);
+    } catch (fsError) {
+      console.error('Также произошла ошибка при проверке локального хранилища:', fsError);
+      return false;
+    }
   }
 }
 
 async function deleteObject(key: string): Promise<boolean> {
-  try {
-    // @ts-ignore - игнорируем ошибки типизации
-    await client.delete(key);
-    return true;
-  } catch (error) {
-    console.error(`Error deleting object with key ${key}:`, error);
-    return false;
+  let success = false;
+  
+  if (useObjectStorage) {
+    try {
+      // Пытаемся удалить из Object Storage
+      try {
+        await client.delete(key);
+        success = true;
+      } catch (error) {
+        console.warn(`Ошибка при удалении из Object Storage: ${error}`);
+      }
+    } catch (error) {
+      console.error(`Ошибка при удалении из Object Storage с ключом ${key}:`, error);
+    }
   }
+  
+  try {
+    // Всегда пытаемся удалить из файловой системы тоже
+    const localPath = path.join(LOCAL_STORAGE_DIR, key);
+    if (fs.existsSync(localPath)) {
+      fs.unlinkSync(localPath);
+      success = true;
+    }
+  } catch (fsError) {
+    console.error('Ошибка при удалении из локального хранилища:', fsError);
+    // Если удалось удалить из Object Storage, считаем операцию успешной
+  }
+  
+  return success;
 }
 
 // Префикс для медиафайлов
