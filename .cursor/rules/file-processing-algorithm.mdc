@@ -1,31 +1,37 @@
 ---
-description: Documentation for handling batched file processing with error recovery and group management
-globs: *.batch,*/processing/*.log,*/groups/*.config
+description: Handles batch file processing with error handling for grouped file sets
+globs: **/*.files,**/processing/*.log,**/groups/*.batch
 alwaysApply: false
 ---
 
 
 # file-processing-algorithm
 
-## Core Processing Logic
-A multi-stage batch file processor that organizes files into logical groups for processing. The system encountered a critical error while attempting to process 35 files in group 0.
+The file processing system implements batch handling for grouped files with specific error detection capabilities.
 
-## Group Management 
-Files are organized into numbered groups (starting with group 0) to enable parallel processing and error isolation. Each group represents a distinct processing unit.
+## Groups Processing
+Files are organized into numbered groups for batch processing, with Group 0 being a critical processing unit. The system has specific error detection and handling for batch sizes of 35 files per group.
 
-## Error Handling
-The processor implements group-level error detection and reporting. When errors occur, the system:
-1. Identifies the affected group number
-2. Tracks the number of impacted files
-3. Maintains processing state for error recovery
+## Error States
+Processing errors are tracked at the group level. Current implementation identifies and flags processing failures for:
+- Group 0 batch errors
+- 35-file batch size violations
 
-## Group Processing States
-Groups can exist in the following states:
-- Active: Currently being processed
-- Error: Processing halted due to failures
-- Complete: All files successfully processed
+## Critical Components
+- Group Processing Controller (Importance: 85)
+  Manages batch file grouping and processing coordination
 
-Importance Score: 85
-Primary business importance due to batch organization and error management capabilities.
+- Error Detection Service (Importance: 75)
+  Validates group processing completion and identifies batch failures
+
+- File Group Validator (Importance: 70)
+  Ensures proper file count and group assignment
+
+## Processing Flow
+1. Files are assigned to numbered groups
+2. Group 0 receives priority processing
+3. System validates 35-file batch integrity
+4. Error detection runs per group completion
+5. Failed groups are flagged for reprocessing
 
 $END$

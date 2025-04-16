@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useParams, useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -11,6 +11,14 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { AlertCircle, Award, CheckCircle, XCircle, BookOpen, BarChart3 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Assessment,
+  AssessmentSession,
+  AssessmentQuestion,
+  AssessmentAnswer,
+  AssessmentReport
+} from "@/types/assessment";
+import { formatLevel } from "@/utils/assessment-utils";
 
 export default function AssessmentResults() {
   const { id } = useParams<{ id: string }>();
@@ -19,69 +27,69 @@ export default function AssessmentResults() {
   const sessionId = parseInt(id);
 
   // Получаем данные о сессии
-  const { data: session, isLoading: isLoadingSession } = useQuery({
+  const { data: session, isLoading: isLoadingSession } = useQuery<AssessmentSession>({
     queryKey: [`/api/assessment-sessions/${sessionId}`],
     enabled: !!sessionId && !isNaN(sessionId),
   });
 
   // Получаем данные об ассесменте
-  const { data: assessment, isLoading: isLoadingAssessment } = useQuery({
+  const { data: assessment, isLoading: isLoadingAssessment } = useQuery<Assessment>({
     queryKey: [`/api/assessments/${session?.assessmentId}`],
     enabled: !!session?.assessmentId,
   });
 
   // Получаем данные о пользователе
-  const { data: user, isLoading: isLoadingUser } = useQuery({
+  const { data: user, isLoading: isLoadingUser } = useQuery<any>({
     queryKey: [`/api/users/${session?.userId}`],
     enabled: !!session?.userId,
   });
 
   // Получаем вопросы для ассесмента
-  const { data: questions = [], isLoading: isLoadingQuestions } = useQuery({
+  const { data: questions = [], isLoading: isLoadingQuestions } = useQuery<AssessmentQuestion[]>({
     queryKey: [`/api/assessment-questions?assessmentId=${session?.assessmentId}`],
     enabled: !!session?.assessmentId,
   });
 
   // Получаем ответы пользователя
-  const { data: answers = [], isLoading: isLoadingAnswers } = useQuery({
+  const { data: answers = [], isLoading: isLoadingAnswers } = useQuery<AssessmentAnswer[]>({
     queryKey: [`/api/assessment-answers?sessionId=${sessionId}`],
     enabled: !!sessionId && !isNaN(sessionId),
   });
 
   // Получаем отчет по ассесменту
-  const { data: report, isLoading: isLoadingReport } = useQuery({
+  const { data: report, isLoading: isLoadingReport } = useQuery<AssessmentReport>({
     queryKey: [`/api/assessment-sessions/${sessionId}/report`],
     enabled: !!sessionId && !isNaN(sessionId) && session?.status === "completed",
   });
 
   // Вычисляем статистику
-  const calculateStats = () => {
+  const stats = useMemo(() => {
     if (!answers.length || !questions.length) return null;
-    
+
     const totalQuestions = questions.length;
     const answeredQuestions = answers.length;
-    const correctAnswers = answers.filter((a: any) => a.isCorrect).length;
+    const correctAnswers = answers.filter((a) => a.isCorrect).length;
     const scorePercentage = Math.round((correctAnswers / totalQuestions) * 100);
-    
+
     // Группируем вопросы по компетенциям
     const competencyStats: Record<number, { total: number; correct: number; name: string }> = {};
-    
-    questions.forEach((q: any) => {
+
+    questions.forEach((q) => {
       if (!competencyStats[q.competencyId]) {
         const competency = q.competency || { name: "Неизвестная компетенция" };
         competencyStats[q.competencyId] = { total: 0, correct: 0, name: competency.name };
       }
       competencyStats[q.competencyId].total++;
     });
-    
+
     // Подсчитываем правильные ответы по компетенциям
-    answers.forEach((a: any) => {
-      const question = questions.find((q: any) => q.id === a.questionId);
+    answers.forEach((a) => {
+      const question = questions.find((q) => q.id === a.questionId);
       if (question && a.isCorrect) {
         competencyStats[question.competencyId].correct++;
       }
     });
-    
+
     // Преобразуем в массив и вычисляем проценты
     const competencyResults = Object.entries(competencyStats).map(([id, stats]) => ({
       id: parseInt(id),
@@ -90,10 +98,10 @@ export default function AssessmentResults() {
       correct: stats.correct,
       percentage: Math.round((stats.correct / stats.total) * 100)
     }));
-    
+
     // Сортируем по проценту выполнения (от высшего к низшему)
     competencyResults.sort((a, b) => b.percentage - a.percentage);
-    
+
     return {
       totalQuestions,
       answeredQuestions,
@@ -102,29 +110,13 @@ export default function AssessmentResults() {
       competencyResults,
       isPassed: scorePercentage >= (assessment?.passingScore || 70)
     };
-  };
-
-  const stats = calculateStats();
+  }, [answers, questions, assessment]);
 
   // Определяем уровень на основе результата
   const determineLevel = (score: number) => {
     if (score >= 90) return "senior";
     if (score >= 70) return "middle";
     return "junior";
-  };
-
-  // Форматируем уровень для отображения
-  const formatLevel = (level: string) => {
-    switch (level) {
-      case "junior":
-        return "Junior";
-      case "middle":
-        return "Middle";
-      case "senior":
-        return "Senior";
-      default:
-        return level;
-    }
   };
 
   if (isLoadingSession || isLoadingAssessment || isLoadingUser || isLoadingQuestions || isLoadingAnswers) {
@@ -245,7 +237,7 @@ export default function AssessmentResults() {
                 <div className="flex justify-between">
                   <span>Дата завершения:</span>
                   <span className="font-medium">
-                    {new Date(session.completedAt).toLocaleDateString()}
+                    {session.completedAt ? new Date(session.completedAt).toLocaleDateString() : "-"}
                   </span>
                 </div>
               </div>
@@ -400,8 +392,8 @@ export default function AssessmentResults() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
-                  {questions.map((question: any, index: number) => {
-                    const answer = answers.find((a: any) => a.questionId === question.id);
+                  {questions.map((question, index) => {
+                    const answer = answers.find((a) => a.questionId === question.id);
                     
                     return (
                       <div key={question.id} className="border rounded-md p-4">

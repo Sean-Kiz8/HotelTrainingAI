@@ -36,6 +36,8 @@ import {
 } from "lucide-react";
 import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/context/auth-context";
+import { Assessment, Role, Competency, AssessmentQuestion } from "@/types/assessment";
+import { formatStatus, getStatusColor, BadgeVariant } from "@/utils/assessment-utils";
 
 export default function AssessmentDetails() {
   const { id } = useParams<{ id: string }>();
@@ -50,24 +52,24 @@ export default function AssessmentDetails() {
   const { user } = useAuth();
 
   // Получаем данные об ассесменте
-  const { data: assessment, isLoading: isLoadingAssessment } = useQuery({
+  const { data: assessment, isLoading: isLoadingAssessment } = useQuery<Assessment>({
     queryKey: [`/api/assessments/${assessmentId}`],
     enabled: !!assessmentId && !isNaN(assessmentId),
   });
 
   // Получаем вопросы для ассесмента
-  const { data: questions = [], isLoading: isLoadingQuestions } = useQuery({
+  const { data: questions = [], isLoading: isLoadingQuestions } = useQuery<AssessmentQuestion[]>({
     queryKey: [`/api/assessment-questions?assessmentId=${assessmentId}`],
     enabled: !!assessmentId && !isNaN(assessmentId),
   });
 
   // Получаем список ролей
-  const { data: roles = [], isLoading: isLoadingRoles } = useQuery({
+  const { data: roles = [], isLoading: isLoadingRoles } = useQuery<Role[]>({
     queryKey: ["/api/employee-roles"],
   });
 
   // Получаем список компетенций
-  const { data: competencies = [], isLoading: isLoadingCompetencies } = useQuery({
+  const { data: competencies = [], isLoading: isLoadingCompetencies } = useQuery<Competency[]>({
     queryKey: ["/api/competencies"],
   });
 
@@ -103,18 +105,13 @@ export default function AssessmentDetails() {
       if (!user || !user.id) {
         throw new Error("Пользователь не авторизован");
       }
-
-      console.log("Creating session for assessment ID:", assessmentId);
-
       const response = await apiRequest("POST", "/api/assessment-sessions", {
         assessmentId: assessmentId,
         status: "created"
       });
-
       return await response.json();
     },
-    onSuccess: (data) => {
-      // Перенаправляем на страницу сессии
+    onSuccess: (data: { id: number }) => {
       navigate(`/assessment-session/${data.id}`);
       setIsStartingSession(false);
     },
@@ -143,53 +140,23 @@ export default function AssessmentDetails() {
   // Функция для получения названия роли по ID
   const getRoleName = (roleId: number) => {
     if (!roles || roles.length === 0) return "Загрузка...";
-    const role = roles.find((r: any) => r.id === roleId);
+    const role = roles.find((r) => r.id === roleId);
     return role ? role.title : "Неизвестная роль";
   };
 
   // Функция для получения отдела по ID роли
   const getRoleDepartment = (roleId: number) => {
     if (!roles || roles.length === 0) return "Загрузка...";
-    const role = roles.find((r: any) => r.id === roleId);
+    const role = roles.find((r) => r.id === roleId);
     return role ? role.department : "Неизвестный отдел";
-  };
-
-  // Функция для форматирования статуса
-  const formatStatus = (status: string) => {
-    switch (status) {
-      case "created":
-        return "Создан";
-      case "in_progress":
-        return "В процессе";
-      case "completed":
-        return "Завершен";
-      default:
-        return status;
-    }
-  };
-
-  // Функция для определения цвета статуса
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "created":
-        return "secondary";
-      case "in_progress":
-        return "warning";
-      case "completed":
-        return "success";
-      default:
-        return "default";
-    }
   };
 
   // Функция для получения названия компетенции по ID
   const getCompetencyName = (competencyId: any) => {
     if (!competencies || competencies.length === 0) return "Загрузка...";
     if (competencyId === null || competencyId === undefined) return "Неизвестная компетенция";
-
-    // Обрабатываем случай, когда competencyId может быть объектом или числом
     const id = typeof competencyId === 'object' && competencyId !== null ? competencyId.id : competencyId;
-    const competency = competencies.find((c: any) => c.id === id);
+    const competency = competencies.find((c) => c.id === id);
     return competency ? competency.name : "Неизвестная компетенция";
   };
 
@@ -207,13 +174,13 @@ export default function AssessmentDetails() {
     }
   };
 
-  // Функция для определения цвета сложности
-  const getDifficultyColor = (difficulty: string) => {
+  // Функция для определения цвета сложности (используем только допустимые варианты для Badge)
+  const getDifficultyColor = (difficulty: string): BadgeVariant => {
     switch (difficulty) {
       case "easy":
         return "success";
       case "medium":
-        return "warning";
+        return "secondary";
       case "hard":
         return "destructive";
       default:
@@ -274,7 +241,7 @@ export default function AssessmentDetails() {
     <div className="p-4 md:p-6 pb-24 md:pb-6">
       <div className="max-w-4xl mx-auto">
         <div className="flex items-center mb-6">
-          <Button variant="ghost" size="sm" className="mr-4" onClick={() => navigate("/assessments")}>
+          <Button variant="ghost" size="sm" className="mr-4" onClick={() => navigate("/assessments")}> 
             <ArrowLeft className="h-4 w-4 mr-2" />
             Назад
           </Button>
@@ -375,7 +342,6 @@ export default function AssessmentDetails() {
                     <h3 className="text-sm font-medium text-neutral-500 mb-2">Оцениваемые компетенции</h3>
                     <div className="flex flex-wrap gap-2">
                       {assessment.targetCompetencies.map((competencyId: any, index: number) => {
-                        // Обрабатываем случай, когда competencyId может быть объектом или числом
                         const id = typeof competencyId === 'object' && competencyId !== null ? competencyId.id : competencyId;
                         return (
                           <Badge key={`competency-${id}-${index}`} variant="outline">
@@ -465,7 +431,7 @@ export default function AssessmentDetails() {
                   </div>
                 ) : questions.length > 0 ? (
                   <div className="space-y-4">
-                    {questions.map((question: any, index: number) => (
+                    {questions.map((question, index) => (
                       <div key={question.id} className="border rounded-md p-4">
                         <div className="flex justify-between items-start mb-2">
                           <h3 className="font-medium">Вопрос {index + 1}</h3>

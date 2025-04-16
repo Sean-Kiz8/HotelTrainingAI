@@ -6,54 +6,48 @@ import { PageHeader } from '@/components/layout/page-header';
 import { useAuth } from '@/context/auth-context';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from "lucide-react";
-
-interface LearningPath {
-  id: number;
-  userId: number;
-  createdById: number;
-  position: string;
-  level: string;
-  targetSkills: string;
-  status: string;
-  createdAt: string;
-  updatedAt: string;
-  courses?: {
-    id: number;
-    courseId: number;
-    order: number;
-    priority: string;
-    course: {
-      id: number;
-      title: string;
-      description: string;
-    }
-  }[];
-}
+import { LearningPath } from '@/types/learning-path';
+import { getLevelColor, getStatusColor } from '@/utils/learning-path-utils';
 
 export default function LearningPaths() {
   const [isLoading, setIsLoading] = useState(true);
   const [learningPaths, setLearningPaths] = useState<LearningPath[]>([]);
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  const [error, setError] = useState<any>(null);
   const { user } = useAuth();
   const { toast } = useToast();
 
   useEffect(() => {
     const fetchLearningPaths = async () => {
-      if (!user?.id) return;
+      if (!user?.id) {
+        setDebugInfo({ error: 'user.id is undefined', user });
+        setIsLoading(false);
+        return;
+      }
 
       try {
         setIsLoading(true);
-        const response = await fetch(`/api/learning-paths?userId=${user.id}`, {
+        setError(null);
+        const url = `/api/learning-paths?userId=${user.id}`;
+        const response = await fetch(url, {
           credentials: 'include'
         });
-
+        const status = response.status;
+        let data = null;
+        let error = null;
+        try {
+          data = await response.json();
+        } catch (e) {
+          error = e;
+        }
+        setDebugInfo({ userId: user.id, url, status, data, error });
         if (!response.ok) {
           throw new Error(`Error: ${response.status}`);
         }
-
-        const data = await response.json();
         setLearningPaths(Array.isArray(data) ? data : []);
       } catch (error) {
         console.error('Error fetching learning paths:', error);
+        setError(error);
         toast({
           title: 'Ошибка загрузки',
           description: 'Не удалось загрузить учебные планы.',
@@ -63,35 +57,8 @@ export default function LearningPaths() {
         setIsLoading(false);
       }
     };
-
     fetchLearningPaths();
-  }, [user, toast]);
-
-  const getLevelColor = (level: string) => {
-    switch (level.toLowerCase()) {
-      case 'junior':
-        return 'green';
-      case 'middle':
-        return 'blue';
-      case 'senior':
-        return 'purple';
-      default:
-        return 'gray';
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case 'active':
-        return 'green';
-      case 'completed':
-        return 'blue';
-      case 'pending':
-        return 'yellow';
-      default:
-        return 'gray';
-    }
-  };
+  }, [user?.id]);
 
   return (
     <div className="container py-6">
@@ -107,6 +74,27 @@ export default function LearningPaths() {
         }
       />
 
+      {/* Debug info */}
+      {debugInfo && (
+        <div className="bg-yellow-50 border border-yellow-300 rounded p-4 mb-4 text-xs text-yellow-900">
+          <b>Debug info:</b>
+          <pre className="overflow-x-auto whitespace-pre-wrap">{JSON.stringify(debugInfo, null, 2)}</pre>
+          <b>learningPaths:</b>
+          <pre className="overflow-x-auto whitespace-pre-wrap">{JSON.stringify(learningPaths, null, 2)}</pre>
+        </div>
+      )}
+      {error && (
+        <div className="bg-red-50 border border-red-300 rounded p-4 mb-4 text-xs text-red-900">
+          <b>Ошибка:</b>
+          <pre className="overflow-x-auto whitespace-pre-wrap">{String(error)}</pre>
+        </div>
+      )}
+      {/* Временный вывод всех учебных планов для диагностики */}
+      <div className="bg-blue-50 border border-blue-300 rounded p-4 mb-4 text-xs text-blue-900">
+        <b>All learningPaths (raw):</b>
+        <pre className="overflow-x-auto whitespace-pre-wrap">{JSON.stringify(learningPaths, null, 2)}</pre>
+      </div>
+
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-10">
           <Loader2 className="h-10 w-10 animate-spin" />
@@ -119,6 +107,9 @@ export default function LearningPaths() {
             Создайте свой первый персонализированный учебный план с помощью ИИ,
             указав свою должность, уровень и желаемые навыки для развития.
           </p>
+          <div className="mb-4 text-xs text-neutral-500">
+            <b>userId:</b> {user?.id ? user.id : 'undefined'}
+          </div>
           <Button
             onClick={() => window.location.href = '/learning-path-generator'}
           >
@@ -150,7 +141,8 @@ export default function LearningPaths() {
                       {path.targetSkills}
                     </p>
                   </div>
-                  {path.courses && (
+                  {/* Блок курсов показываем только если есть поле courses */}
+                  {Array.isArray(path.courses) && (
                     <div>
                       <h4 className="text-sm font-semibold">
                         Курсы ({path.courses.length})

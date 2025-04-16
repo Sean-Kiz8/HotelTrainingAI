@@ -332,42 +332,37 @@ export default function CourseDetailsPage() {
 
   return (
     <div className="p-4 md:p-6">
-      <div className="flex justify-between items-center mb-4">
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setLocation('/courses')}
-          >
-            <ChevronLeft className="mr-2 h-4 w-4" />
-            Назад к курсам
-          </Button>
-
-          <Button 
-            variant="destructive"
-            size="sm"
-            onClick={handleDeleteCourse}
-          >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Удалить курс
-          </Button>
+      {/* Новый layout для заголовка, кнопок, бейджа и описания */}
+      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
+        <div className="flex flex-col gap-3 md:max-w-xl">
+          <div className="flex gap-2 items-center flex-wrap">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setLocation('/courses')}
+            >
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Назад к курсам
+            </Button>
+            <Button 
+              variant="destructive"
+              size="sm"
+              onClick={handleDeleteCourse}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Удалить курс
+            </Button>
+            <Badge variant="outline" className={`${bg} ${text} border-0 px-2 py-1 rounded-full text-xs font-medium`}>
+              {course.department}
+            </Badge>
+          </div>
+          <h1 className="text-3xl font-bold leading-tight break-words">{course.title}</h1>
         </div>
-
-        <ShareWidget 
-          courseId={course.id} 
-          courseTitle={course.title} 
-        />
+        <div className="md:ml-8 text-gray-500 text-base md:max-w-md mt-2 md:mt-0">
+          {course.description}
+        </div>
       </div>
-
-      <PageHeader className="mb-6">
-        <div className="flex items-center gap-2 mb-2">
-          <Badge variant="outline" className={`${bg} ${text} border-0 px-2 py-1 rounded-full`}>
-            {course.department}
-          </Badge>
-        </div>
-        <PageHeaderHeading>{course.title}</PageHeaderHeading>
-        <PageHeaderDescription>{course.description}</PageHeaderDescription>
-      </PageHeader>
+      {/* Конец нового layout */}
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <Card>

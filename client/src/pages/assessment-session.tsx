@@ -14,6 +14,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useAuth } from "@/context/auth-context";
 import { AlertCircle, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import type { Assessment, AssessmentSession as AssessmentSessionType } from "@/types/assessment";
 
 export default function AssessmentSession() {
   const { id } = useParams<{ id: string }>();
@@ -31,27 +32,28 @@ export default function AssessmentSession() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showExplanation, setShowExplanation] = useState(false);
   const [isSessionCompleted, setIsSessionCompleted] = useState(false);
+  const [autoCreatingSession, setAutoCreatingSession] = useState(false);
 
   // Получаем данные о сессии
-  const { data: session, isLoading: isLoadingSession } = useQuery({
+  const { data: session, isLoading: isLoadingSession } = useQuery<AssessmentSessionType | undefined>({
     queryKey: [`/api/assessment-sessions/${sessionId}`],
     enabled: !!sessionId && !isNaN(sessionId),
   });
 
   // Получаем данные об ассесменте
-  const { data: assessment, isLoading: isLoadingAssessment } = useQuery({
-    queryKey: [`/api/assessments/${session?.assessmentId}`],
-    enabled: !!session?.assessmentId,
+  const { data: assessment, isLoading: isLoadingAssessment } = useQuery<Assessment | undefined>({
+    queryKey: [`/api/assessments/${session?.assessmentId || sessionId}`],
+    enabled: !!session?.assessmentId || !!sessionId,
   });
 
   // Получаем вопросы для ассесмента
-  const { data: questions = [], isLoading: isLoadingQuestions } = useQuery({
+  const { data: questions = [], isLoading: isLoadingQuestions } = useQuery<any[]>({
     queryKey: [`/api/assessment-questions?assessmentId=${session?.assessmentId}`],
     enabled: !!session?.assessmentId,
   });
 
   // Получаем ответы пользователя
-  const { data: answers = [], isLoading: isLoadingAnswers } = useQuery({
+  const { data: answers = [], isLoading: isLoadingAnswers } = useQuery<any[]>({
     queryKey: [`/api/assessment-answers?sessionId=${sessionId}`],
     enabled: !!sessionId && !isNaN(sessionId),
   });
@@ -122,9 +124,43 @@ export default function AssessmentSession() {
     },
   });
 
+  // Мутация для создания сессии ассесмента
+  const createSessionMutation = useMutation({
+    mutationFn: async () => {
+      if (!user || !user.id || !assessment) {
+        throw new Error("Пользователь не авторизован или ассесмент не найден");
+      }
+      const response = await apiRequest("POST", "/api/assessment-sessions", {
+        assessmentId: assessment.id,
+        status: "created"
+      });
+      return await response.json();
+    },
+    onSuccess: (data: { id: number }) => {
+      setAutoCreatingSession(false);
+      navigate(`/assessment-session/${data.id}`);
+    },
+    onError: (error: Error) => {
+      setAutoCreatingSession(false);
+      toast({
+        title: "Ошибка",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Автоматическое создание сессии, если сессия не найдена, но пользователь — автор ассесмента
+  useEffect(() => {
+    if (!isLoadingSession && !session && assessment && user && assessment.createdById === user.id && !autoCreatingSession) {
+      setAutoCreatingSession(true);
+      createSessionMutation.mutate();
+    }
+  }, [isLoadingSession, session, assessment, user, autoCreatingSession, createSessionMutation]);
+
   // Инициализируем таймер, если есть ограничение по времени
   useEffect(() => {
-    if (assessment?.timeLimit && session?.status === "in_progress") {
+    if (assessment?.timeLimit && session?.status === "in_progress" && session?.startedAt) {
       const startTime = new Date(session.startedAt).getTime();
       const timeLimit = assessment.timeLimit * 60 * 1000; // в миллисекундах
       const endTime = startTime + timeLimit;
@@ -418,7 +454,7 @@ export default function AssessmentSession() {
                     onValueChange={setSelectedAnswer}
                     className="space-y-3"
                   >
-                    {currentQuestion.options?.map((option, index) => (
+                    {currentQuestion.options?.map((option: string, index: number) => (
                       <div key={index} className="flex items-center space-x-2">
                         <RadioGroupItem value={option} id={`option-${index}`} />
                         <Label htmlFor={`option-${index}`}>{option}</Label>

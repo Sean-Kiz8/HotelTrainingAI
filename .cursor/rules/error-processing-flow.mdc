@@ -1,26 +1,29 @@
 ---
-description: Error processing workflow handling for group 0 file batch operations
-globs: **/error/**,**/processing/**,*.error.log,*.err
+description: Error handling workflow for processing 35 files in batch group 0
+globs: **/error/**,**/processing/**,**/*error*.{ts,js},**/*processing*.{ts,js}
 alwaysApply: false
 ---
 
 
 # error-processing-flow
 
-The error processing workflow handles batch operations for 35 files in processing group 0.
+The error processing workflow handles batch operations for 35 files within processing group 0.
 
-Key Processing Paths:
-- `/processing/group-0/*` - Primary file batch location
-- `/error/group-0/*.err` - Error output location
+## Error Flow Structure
+```
+Group 0 Processing
+├── File Processing (35 files)
+└── Error Handling
+```
 
-Error Processing Flow:
-1. Batch files are processed in group 0
-2. Error detection occurs at file level
-3. Failed files are isolated within error directory
+## Processing States
+Importance Score: 75
 
-Business Importance: 75
-- Critical for maintaining data integrity across file batch operations
-- Core component of group-based file processing system
-- Essential for tracking and managing processing failures
+Files are processed in batch group 0 as part of the error handling workflow. The system maintains error state tracking for the 35 files being processed.
+
+## Error Boundaries
+Importance Score: 65
+
+Error handling is contained within group 0's processing context, with errors isolated at the file level to prevent cascade failures across the batch.
 
 $END$

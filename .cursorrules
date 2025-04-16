@@ -1,8 +1,8 @@
 
 START SPECIFICATION:
 ---
-description: Overview for error processing system handling failures across file groups
-globs: *.error,*.processing,group*.log
+description: Overview documentation for error processing system handling 35 files in group 0
+globs: *.log,*.err,*.proc
 alwaysApply: false
 ---
 
@@ -18,21 +18,17 @@ alwaysApply: false
 - Explain your OBSERVATIONS clearly, then provide REASONING to identify the exact issue. Add console logs when needed to gather more information.
 
 
-The system implements error handling for batch file processing operations, specifically focused on error management for 35 files within group 0.
+## Error Processing System
 
-Core Processing Structure:
-- File batch processing at group level
-- Error detection and aggregation
-- Group-based error reporting
+Basic runtime environment designed to handle batch error processing operations across file groups, specifically focused on Group 0 containing 35 files.
 
-Critical Components:
-Group Processing Subsystem
-- Manages file batches in discrete groups
-- Handles errors at both file and group level
+Key Functionality:
+- Group-based file error analysis
+- Batch processing for error files
+- File grouping and categorization
 
-Error States:
-- Processing failure identified for specific group (group 0)
-- File count validation (35 files affected)
+Importance Score: 45
+Limited information indicates this is a supporting error handling system with moderate business impact.
 
 $END$
 END SPECIFICATION
