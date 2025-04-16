@@ -30,6 +30,7 @@ import Assessments from "./pages/assessments";
 import AssessmentSession from "./pages/assessment-session";
 import AssessmentResults from "./pages/assessment-results";
 import AssessmentDetails from "./pages/assessment-details";
+import StorageTestPage from "./pages/storage-test";
 import { useEffect } from "react";
 import { ProtectedRoute } from "./lib/protected-route";
 // Используем единую систему авторизации

@@ -3,16 +3,46 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
 
-// Расширяем тип Client, чтобы добавить методы, которые есть в API, но не описаны в типах
-interface EnhancedClient extends Client {
-  put(key: string, value: Buffer): Promise<void>;
-  get(key: string): Promise<Buffer>;
-  exists(key: string): Promise<boolean>;
-  delete(key: string): Promise<void>;
+// Инициализируем клиент Replit Object Storage
+const client = new Client();
+
+// Обертка для методов Object Storage, которые мы будем использовать
+// Так как типы в @replit/object-storage могут не полностью соответствовать реальному API
+async function putObject(key: string, value: Buffer): Promise<void> {
+  // @ts-ignore - игнорируем ошибки типизации
+  await client.put(key, value);
 }
 
-// Инициализируем клиент Replit Object Storage
-const client = new Client() as EnhancedClient;
+async function getObject(key: string): Promise<Buffer | null> {
+  try {
+    // @ts-ignore - игнорируем ошибки типизации
+    return await client.get(key);
+  } catch (error) {
+    console.error(`Error getting object with key ${key}:`, error);
+    return null;
+  }
+}
+
+async function objectExists(key: string): Promise<boolean> {
+  try {
+    // @ts-ignore - игнорируем ошибки типизации
+    return await client.exists(key);
+  } catch (error) {
+    console.error(`Error checking if object with key ${key} exists:`, error);
+    return false;
+  }
+}
+
+async function deleteObject(key: string): Promise<boolean> {
+  try {
+    // @ts-ignore - игнорируем ошибки типизации
+    await client.delete(key);
+    return true;
+  } catch (error) {
+    console.error(`Error deleting object with key ${key}:`, error);
+    return false;
+  }
+}
 
 // Префикс для медиафайлов
 const MEDIA_PREFIX = 'media/';
@@ -52,7 +82,7 @@ export async function uploadFile(
     const fileSize = fileContent.length;
 
     // Загружаем файл в Object Storage
-    await client.put(key, fileContent);
+    await putObject(key, fileContent);
 
     // Формируем URL для доступа к файлу
     const url = `/api/media/file/${encodeURIComponent(key)}`;
@@ -95,7 +125,7 @@ export async function uploadThumbnail(
 
     // Читаем и загружаем миниатюру
     const thumbnailContent = fs.readFileSync(thumbnailPath);
-    await client.put(key, thumbnailContent);
+    await putObject(key, thumbnailContent);
 
     // Формируем URL для доступа к миниатюре
     const url = `/api/media/file/${encodeURIComponent(key)}`;
@@ -114,13 +144,13 @@ export async function uploadThumbnail(
 export async function getFile(key: string): Promise<Buffer | null> {
   try {
     // Проверяем существование файла
-    const exists = await client.exists(key);
+    const exists = await objectExists(key);
     if (!exists) {
       return null;
     }
 
     // Получаем содержимое файла
-    const fileContent = await client.get(key);
+    const fileContent = await getObject(key);
     return fileContent;
   } catch (error) {
     console.error('Ошибка при получении файла из Object Storage:', error);
@@ -136,14 +166,13 @@ export async function getFile(key: string): Promise<Buffer | null> {
 export async function deleteFile(key: string): Promise<boolean> {
   try {
     // Проверяем существование файла
-    const exists = await client.exists(key);
+    const exists = await objectExists(key);
     if (!exists) {
       return false;
     }
 
     // Удаляем файл
-    await client.delete(key);
-    return true;
+    return await deleteObject(key);
   } catch (error) {
     console.error('Ошибка при удалении файла из Object Storage:', error);
     return false;

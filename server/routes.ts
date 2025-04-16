@@ -1550,19 +1550,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Media file not found" });
       }
 
-      // Delete the file from the filesystem
-      if (mediaFile.url) {
-        const filePath = path.join(".", mediaFile.url);
-        if (fs.existsSync(filePath)) {
-          fs.unlinkSync(filePath);
+      // Проверяем, хранится ли файл в Object Storage или в файловой системе
+      if (mediaFile.path && mediaFile.path.startsWith('media/')) {
+        // Файл в Object Storage
+        const { deleteFile } = await import('./utils/object-storage');
+        
+        // Удаляем основной файл
+        await deleteFile(mediaFile.path);
+        
+        // Удаляем миниатюру, если она существует
+        if (mediaFile.thumbnail && mediaFile.thumbnail.includes('/api/media/file/')) {
+          // Извлекаем ключ из URL
+          const thumbnailKey = decodeURIComponent(mediaFile.thumbnail.split('/api/media/file/')[1]);
+          if (thumbnailKey) {
+            await deleteFile(thumbnailKey);
+          }
         }
-      }
+      } else {
+        // Используем старый подход - удаление из файловой системы
+        // Delete the file from the filesystem
+        if (mediaFile.url) {
+          const filePath = path.join(".", mediaFile.url);
+          if (fs.existsSync(filePath)) {
+            fs.unlinkSync(filePath);
+          }
+        }
 
-      // Delete the thumbnail if it exists
-      if (mediaFile.thumbnail) {
-        const thumbnailPath = path.join(".", mediaFile.thumbnail);
-        if (fs.existsSync(thumbnailPath)) {
-          fs.unlinkSync(thumbnailPath);
+        // Delete the thumbnail if it exists
+        if (mediaFile.thumbnail) {
+          const thumbnailPath = path.join(".", mediaFile.thumbnail);
+          if (fs.existsSync(thumbnailPath)) {
+            fs.unlinkSync(thumbnailPath);
+          }
         }
       }
 
