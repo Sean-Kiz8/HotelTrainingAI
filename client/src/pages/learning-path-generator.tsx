@@ -32,7 +32,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function LearningPathGenerator() {
   const { toast } = useToast();
-  const { user, refreshUser } = useAuth();
+  const { user } = useAuth();
   const [, navigate] = useLocation();
   const [isGenerating, setIsGenerating] = useState(false);
 
@@ -54,12 +54,6 @@ export default function LearningPathGenerator() {
       targetSkills: "",
     },
   });
-
-  // В режиме разработки пропускаем проверку авторизации
-  useEffect(() => {
-    // Обновляем данные пользователя с сервера (в режиме разработки это мок-пользователь)
-    refreshUser();
-  }, [refreshUser]);
 
   // Мутация для генерации учебного плана
   const generateMutation = useMutation({

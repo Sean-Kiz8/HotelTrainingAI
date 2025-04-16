@@ -252,7 +252,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // API для генерации курса с использованием ИИ
   app.post("/api/courses/generate", async (req, res) => {
     try {
-      const { files, settings } = req.body;
+      const { files, settings, useAI } = req.body;
 
       // Проверяем обязательные поля
       if (!settings || !settings.title || !settings.description) {
@@ -268,6 +268,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
             mediaFiles.push(mediaFile);
           }
         }
+      }
+
+      // Если выбран режим ИИ-генерации
+      if (useAI) {
+        // Формируем краткое summary файлов (название и тип)
+        let filesSummary = '';
+        if (mediaFiles.length > 0) {
+          filesSummary = mediaFiles.map(f => `- ${f.filename || f.originalFilename || 'Файл'} (${f.mediaType || f.mimeType || 'тип не определён'})`).join('\n');
+        }
+        // Импортируем функцию генерации через OpenAI
+        const { generateCourseWithAI } = require("./utils/openai");
+        const aiCourse = await generateCourseWithAI(settings, filesSummary);
+
+        // Сохраняем курс и модули/уроки в БД
+        const newCourse = await storage.createCourse({
+          title: aiCourse.title,
+          description: aiCourse.description,
+          createdById: req.user?.id || req.body.createdById || 1,
+          department: "training",
+          image: null,
+          content: null,
+          active: true
+        });
+        const modules = [];
+        for (let i = 0; i < aiCourse.modules.length; i++) {
+          const m = aiCourse.modules[i];
+          const newModule = await storage.createModule({
+            courseId: newCourse.id,
+            title: m.title,
+            description: m.description,
+            order: i
+          });
+          const lessons = [];
+          for (let j = 0; j < m.lessons.length; j++) {
+            const l = m.lessons[j];
+            const newLesson = await storage.createLesson({
+              moduleId: newModule.id,
+              title: l.title,
+              content: l.content,
+              order: j,
+              duration: l.duration ? String(l.duration) : '15',
+              type: l.type || 'text'
+            });
+            lessons.push({
+              id: newLesson.id,
+              title: newLesson.title,
+              content: newLesson.content,
+              duration: newLesson.duration,
+              type: newLesson.type
+            });
+          }
+          modules.push({
+            id: newModule.id,
+            title: newModule.title,
+            description: newModule.description,
+            lessons: lessons
+          });
+        }
+        await storage.createActivity({
+          userId: req.user?.id || req.body.userId || 1,
+          courseId: newCourse.id,
+          type: "created_course"
+        });
+        return res.status(201).json({
+          id: newCourse.id,
+          title: newCourse.title,
+          description: newCourse.description,
+          modules: modules
+        });
       }
 
       // Функции для генерации заголовков и содержимого уроков
@@ -2667,9 +2736,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const assessment = await storage.getAssessment(session.assessmentId);
       const questions = await storage.listAssessmentQuestions(session.assessmentId);
       const answers = await storage.listAssessmentAnswersBySession(id);
-
       // Получаем роль сотрудника
-      const role = user && user.role ? await storage.getEmployeeRole(user.role) : null;
+      const role = user && user.role ? await storage.getEmployeeRole(Number(user.role)) : null;
 
       if (!user || !assessment || !role) {
         return res.status(404).json({ message: "Required data for report generation not found" });
@@ -2803,9 +2871,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/micro-learning", async (req, res) => {
     try {
       const contentData = req.body;
-
       // Проверяем, что пользователь имеет право создавать контент
-      if (req.session.user && (req.session.user.role === "admin" || req.session.user.role === "trainer")) {
+      if (req.session && req.session.user && (req.session.user.role === "admin" || req.session.user.role === "trainer")) {
         // Назначаем создателя
         contentData.created_by_id = req.session.user.id;
       } else {
@@ -3181,6 +3248,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error getting competency micro-learning statistics:", error);
       res.status(500).json({ error: "Ошибка при получении статистики по компетенции" });
+    }
+  });
+
+  // Генерация описания курса с помощью ИИ
+  app.post("/api/courses/describe", async (req, res) => {
+    try {
+      const { title, department, targetAudience } = req.body;
+      if (!title) {
+        return res.status(400).json({ error: "Не указано название курса" });
+      }
+      const { generateCourseDescriptionAI } = require("./utils/openai");
+      const description = await generateCourseDescriptionAI(title, department, targetAudience);
+      res.json({ description });
+    } catch (error) {
+      console.error("Ошибка генерации описания курса:", error);
+      res.status(500).json({ error: "Не удалось сгенерировать описание курса" });
     }
   });
 

@@ -474,7 +474,7 @@ export async function generateAdaptiveQuestion(
     const askedCompetencyIds = previousQuestions.map(q => q.competencyId);
 
     // Подсчитываем, сколько раз каждая компетенция была проверена
-    const competencyCount = {};
+    const competencyCount: Record<number, number> = {};
     askedCompetencyIds.forEach(id => {
       competencyCount[id] = (competencyCount[id] || 0) + 1;
     });
@@ -587,7 +587,14 @@ export async function generateAssessmentReport(
 }> {
   try {
     // Подготавливаем данные о результатах по компетенциям
-    const competencyResults = {};
+    const competencyResults: Record<number, {
+      id: number;
+      name: string;
+      category: string;
+      totalPoints: number;
+      earnedPoints: number;
+      questions: number;
+    }> = {};
 
     // Инициализируем результаты для каждой компетенции
     competencies.forEach(comp => {
@@ -693,6 +700,140 @@ export async function generateAssessmentReport(
   } catch (error) {
     console.error("Ошибка при генерации отчета по ассесменту:", error);
     throw new Error("Не удалось сгенерировать отчет по ассесменту");
+  }
+}
+
+// Генерация курса с помощью OpenAI
+export async function generateCourseWithAI(
+  settings: {
+    title: string;
+    description: string;
+    targetAudience: string[];
+    difficultyLevel: 'beginner' | 'intermediate' | 'advanced';
+    format: ('text' | 'video' | 'interactive')[];
+    estimatedDuration: number;
+    includeTests: boolean;
+    includeQuizzes: boolean;
+    includeSimulations: boolean;
+    modulesCount: number;
+  },
+  filesSummary?: string // Краткое описание/список загруженных файлов (опционально)
+): Promise<{
+  title: string;
+  description: string;
+  modules: {
+    title: string;
+    description: string;
+    lessons: {
+      title: string;
+      content: string;
+      duration: string;
+      type: string;
+    }[];
+  }[];
+}> {
+  try {
+    const prompt = `
+Ты — эксперт по обучению персонала отеля. На основе предоставленных данных сгенерируй подробный учебный курс для сотрудников.
+
+Информация о курсе:
+- Название: ${settings.title}
+- Описание: ${settings.description}
+- Целевая аудитория: ${settings.targetAudience.join(", ") || 'Не указана'}
+- Уровень сложности: ${settings.difficultyLevel}
+- Формат: ${settings.format.join(", ")}
+- Ожидаемая длительность: ${settings.estimatedDuration} минут
+- Включать тесты: ${settings.includeTests ? 'да' : 'нет'}
+- Включать квизы: ${settings.includeQuizzes ? 'да' : 'нет'}
+- Включать симуляции: ${settings.includeSimulations ? 'да' : 'нет'}
+- Количество модулей: ${settings.modulesCount}
+${filesSummary ? `\nМатериалы пользователя:\n${filesSummary}` : ''}
+
+Требования к структуре:
+1. Раздели курс на ${settings.modulesCount} логически связанных модулей.
+2. В каждом модуле должно быть 2-4 урока (темы), соответствующих теме модуля.
+3. Для каждого урока укажи:
+   - title: краткое название
+   - content: подробное содержимое (1-2 страницы текста, с примерами, списками, подзаголовками)
+   - duration: примерная длительность в минутах (10-30)
+   - type: один из ["text", "video", "interactive"] (ориентируйся на формат курса)
+4. Если includeTests или includeQuizzes — добавь отдельный урок с тестом/квизом в конце соответствующего модуля.
+5. Если includeSimulations — добавь отдельный урок-симуляцию в последнем модуле.
+6. Все тексты должны быть на русском языке, профессионально и понятно.
+7. Не используй "Lorem ipsum" или шаблонные фразы — делай содержательно по теме курса.
+
+Ответ верни в формате JSON:
+{
+  "title": "...",
+  "description": "...",
+  "modules": [
+    {
+      "title": "...",
+      "description": "...",
+      "lessons": [
+        { "title": "...", "content": "...", "duration": "...", "type": "..." },
+        ...
+      ]
+    },
+    ...
+  ]
+}
+`;
+
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "Ты — AI-ассистент для системы обучения персонала отеля HotelLearn. Отвечай только валидным JSON." },
+        { role: "user", content: prompt }
+      ],
+      response_format: { type: "json_object" }
+    });
+
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("Не удалось получить ответ от OpenAI");
+    }
+    return JSON.parse(content);
+  } catch (error) {
+    console.error("Ошибка при генерации курса через OpenAI:", error);
+    throw new Error("Не удалось сгенерировать курс с помощью ИИ");
+  }
+}
+
+// Генерация описания курса с помощью OpenAI
+export async function generateCourseDescriptionAI(
+  title: string,
+  department?: string,
+  targetAudience?: string[]
+): Promise<string> {
+  try {
+    const prompt = `
+Ты — эксперт по обучению персонала отеля. На основе данных сгенерируй подробное, профессиональное и мотивирующее описание учебного курса для сотрудников.
+
+Информация о курсе:
+- Название: ${title}
+${department ? `- Отдел: ${department}` : ''}
+${targetAudience && targetAudience.length > 0 ? `- Целевая аудитория: ${targetAudience.join(", ")}` : ''}
+
+Требования:
+1. Описание должно быть на русском языке, 4-6 предложений.
+2. Укажи, чему научатся сотрудники, какие навыки и пользу они получат.
+3. Сделай текст привлекательным и понятным для персонала отеля.
+4. Не используй шаблонные фразы и "Lorem ipsum".
+`;
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        { role: "system", content: "Ты — AI-ассистент для системы обучения персонала отеля HotelLearn. Отвечай только текстом описания." },
+        { role: "user", content: prompt }
+      ]
+    });
+    const content = response.choices[0].message.content;
+    if (!content) throw new Error("Не удалось получить ответ от OpenAI");
+    return content.trim();
+  } catch (error) {
+    console.error("Ошибка при генерации описания курса через OpenAI:", error);
+    throw new Error("Не удалось сгенерировать описание курса с помощью ИИ");
   }
 }
 

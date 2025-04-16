@@ -8,6 +8,7 @@ import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { insertCourseSchema, MediaFile as DBMediaFile } from "@shared/schema";
 import { Button } from "@/components/ui/button";
+import { DescriptionWithAI } from "@/components/DescriptionWithAI";
 
 // Пользовательский тип для работы с медиа-файлами
 interface MediaFile extends DBMediaFile {
@@ -40,6 +41,9 @@ const formSchema = insertCourseSchema.extend({
   }),
   department: z.string().min(1, {
     message: "Выберите отдел.",
+  }),
+  targetAudience: z.string().min(1, {
+    message: "Выберите целевую аудиторию.",
   }),
 });
 
@@ -171,11 +175,15 @@ export function CourseForm({
             <FormItem>
               <FormLabel>Описание</FormLabel>
               <FormControl>
-                <Textarea
-                  placeholder="Введите описание курса"
-                  className="min-h-32"
-                  {...field}
-                />
+                <div>
+                  <DescriptionWithAI
+                    value={field.value}
+                    onChange={field.onChange}
+                    courseTitle={form.watch('title')}
+                    department={form.watch('department')}
+                    targetAudience={form.watch('targetAudience')}
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>

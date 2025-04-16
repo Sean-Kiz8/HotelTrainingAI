@@ -9,6 +9,7 @@ import { Step4CourseGeneration } from "./step4-course-generation";
 import { Separator } from "@/components/ui/separator";
 import { AlertCircle, ArrowLeft, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export interface UploadedFile {
   id: string;
@@ -70,6 +71,7 @@ export function SmartCourseCreator() {
   const [generatedCourse, setGeneratedCourse] = useState<GeneratedCourse | null>(null);
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
+  const [useAI, setUseAI] = useState<boolean>(true);
 
   // Функция для загрузки файлов с сервера
   const fetchFilesFromServer = async () => {
@@ -142,7 +144,8 @@ export function SmartCourseCreator() {
         },
         body: JSON.stringify({
           files: files.map(f => f.id),
-          settings: courseSettings
+          settings: courseSettings,
+          useAI: useAI
         }),
       });
       
@@ -156,6 +159,35 @@ export function SmartCourseCreator() {
       setCurrentStep(4);
     } catch (err) {
       console.error('Error generating course:', err);
+      setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Генерация содержания курса через AI
+  const handleGenerateContent = async () => {
+    setIsGenerating(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/ai/generate-course-content', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          files: files.map(f => f.id),
+          settings: courseSettings,
+          useAI: useAI
+        }),
+      });
+      if (!response.ok) {
+        throw new Error('Ошибка при генерации содержания');
+      }
+      const data = await response.json();
+      setGeneratedCourse(data);
+      // Можно обновить предпросмотр или перейти на следующий шаг
+    } catch (err) {
       setError(err instanceof Error ? err.message : 'Неизвестная ошибка');
     } finally {
       setIsGenerating(false);
@@ -209,6 +241,12 @@ export function SmartCourseCreator() {
           </TabsContent>
           
           <TabsContent value="2">
+            <div className="mb-4 flex items-center gap-3">
+              <Checkbox id="use-ai" checked={useAI} onCheckedChange={v => setUseAI(!!v)} />
+              <label htmlFor="use-ai" className="text-sm select-none cursor-pointer">
+                Использовать ИИ для генерации структуры курса
+              </label>
+            </div>
             <Step2CourseSettings 
               settings={courseSettings} 
               onSettingsChange={handleSettingsChange} 
@@ -223,6 +261,7 @@ export function SmartCourseCreator() {
               onGenerateCourse={handleGenerateCourse}
               fetchFilesFromServer={fetchFilesFromServer}
               onRemoveFile={handleRemoveFile}
+              onGenerateContent={handleGenerateContent}
             />
           </TabsContent>
           
@@ -258,7 +297,8 @@ export function SmartCourseCreator() {
             </Button>
           )}
           
-          {currentStep === 3 && (
+          {/* Кнопка "Создать курс" только здесь, на предпросмотре она теперь не нужна */}
+          {currentStep === 3 && false && (
             <Button 
               onClick={handleGenerateCourse} 
               disabled={isGenerating}

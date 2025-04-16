@@ -74,26 +74,12 @@ export default function LearningPaths() {
         }
       />
 
-      {/* Debug info */}
-      {debugInfo && (
-        <div className="bg-yellow-50 border border-yellow-300 rounded p-4 mb-4 text-xs text-yellow-900">
-          <b>Debug info:</b>
-          <pre className="overflow-x-auto whitespace-pre-wrap">{JSON.stringify(debugInfo, null, 2)}</pre>
-          <b>learningPaths:</b>
-          <pre className="overflow-x-auto whitespace-pre-wrap">{JSON.stringify(learningPaths, null, 2)}</pre>
-        </div>
-      )}
       {error && (
         <div className="bg-red-50 border border-red-300 rounded p-4 mb-4 text-xs text-red-900">
           <b>Ошибка:</b>
           <pre className="overflow-x-auto whitespace-pre-wrap">{String(error)}</pre>
         </div>
       )}
-      {/* Временный вывод всех учебных планов для диагностики */}
-      <div className="bg-blue-50 border border-blue-300 rounded p-4 mb-4 text-xs text-blue-900">
-        <b>All learningPaths (raw):</b>
-        <pre className="overflow-x-auto whitespace-pre-wrap">{JSON.stringify(learningPaths, null, 2)}</pre>
-      </div>
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-10">
@@ -107,9 +93,6 @@ export default function LearningPaths() {
             Создайте свой первый персонализированный учебный план с помощью ИИ,
             указав свою должность, уровень и желаемые навыки для развития.
           </p>
-          <div className="mb-4 text-xs text-neutral-500">
-            <b>userId:</b> {user?.id ? user.id : 'undefined'}
-          </div>
           <Button
             onClick={() => window.location.href = '/learning-path-generator'}
           >

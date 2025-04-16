@@ -26,6 +26,7 @@ interface Step3CoursePreviewProps {
   onGenerateCourse: () => void;
   fetchFilesFromServer?: () => Promise<void>;
   onRemoveFile?: (fileId: string) => void;
+  onGenerateContent?: () => void;
 }
 
 export function Step3CoursePreview({ 
@@ -34,7 +35,8 @@ export function Step3CoursePreview({
   isGenerating,
   onGenerateCourse,
   fetchFilesFromServer,
-  onRemoveFile
+  onRemoveFile,
+  onGenerateContent
 }: Step3CoursePreviewProps) {
   // Получаем подходящую иконку для формата курса
   const getFormatIcon = (format: string) => {
@@ -324,20 +326,31 @@ export function Step3CoursePreview({
             </AlertDescription>
           </Alert>
           
-          {/* Кнопка создания */}
-          <Button 
-            className="w-full" 
-            size="lg"
-            onClick={onGenerateCourse}
-            disabled={isGenerating || (!settings.title || !settings.description)}
-          >
-            {isGenerating ? "Генерация курса..." : "Создать курс"}
-          </Button>
-          
-          <p className="text-sm text-muted-foreground">
-            Процесс генерации может занять до нескольких минут в зависимости от 
-            сложности курса и объема загруженных материалов. Пожалуйста, дождитесь завершения обработки.
-          </p>
+          <div className="flex flex-col gap-3 mt-6">
+            <div className="flex gap-3">
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={onGenerateContent}
+                variant="secondary"
+                disabled={isGenerating}
+              >
+                Сгенерировать содержание
+              </Button>
+              <Button 
+                className="w-full" 
+                size="lg"
+                onClick={onGenerateCourse}
+                disabled={isGenerating || (!settings.title || !settings.description)}
+              >
+                {isGenerating ? "Генерация курса..." : "Создать курс"}
+              </Button>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Процесс генерации может занять до нескольких минут в зависимости от 
+              сложности курса и объема загруженных материалов. Пожалуйста, дождитесь завершения обработки.
+            </p>
+          </div>
         </div>
       </div>
     </div>

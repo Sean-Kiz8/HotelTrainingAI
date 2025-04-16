@@ -1,37 +1,30 @@
 ---
-description: Handles batch file processing with error handling for grouped file sets
-globs: **/*.files,**/processing/*.log,**/groups/*.batch
+description: Documents file batch processing logic and error handling for grouped file operations
+globs: /src/processing/**/*.{ts,js},/lib/batch/*.{ts,js},/services/files/*.{ts,js}
 alwaysApply: false
 ---
 
 
 # file-processing-algorithm
 
-The file processing system implements batch handling for grouped files with specific error detection capabilities.
+Primary batch processing workflow for handling file groups in batch operations.
 
-## Groups Processing
-Files are organized into numbered groups for batch processing, with Group 0 being a critical processing unit. The system has specific error detection and handling for batch sizes of 35 files per group.
+## Core File Processing Architecture
+IMPORTANCE: 85
 
-## Error States
-Processing errors are tracked at the group level. Current implementation identifies and flags processing failures for:
-- Group 0 batch errors
-- 35-file batch size violations
+The system processes files in grouped batches:
+- Files are organized into numbered groups (e.g. group 0)
+- Processing occurs at the group level
+- Error handling tracks failures per group
+- Each group can contain up to 35 distinct files
 
-## Critical Components
-- Group Processing Controller (Importance: 85)
-  Manages batch file grouping and processing coordination
+## Error Handling
+IMPORTANCE: 90 
 
-- Error Detection Service (Importance: 75)
-  Validates group processing completion and identifies batch failures
-
-- File Group Validator (Importance: 70)
-  Ensures proper file count and group assignment
-
-## Processing Flow
-1. Files are assigned to numbered groups
-2. Group 0 receives priority processing
-3. System validates 35-file batch integrity
-4. Error detection runs per group completion
-5. Failed groups are flagged for reprocessing
+The system implements group-level error tracking:
+- Errors are captured and associated with specific group IDs
+- Critical errors trigger group-wide processing termination
+- Error details indicate number of affected files within the group
+- Processing errors are tracked for entire group batches (e.g. "Processing error for 35 files in group 0")
 
 $END$

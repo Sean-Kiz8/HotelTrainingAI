@@ -1,29 +1,39 @@
 ---
-description: Error handling workflow for processing 35 files in batch group 0
-globs: **/error/**,**/processing/**,**/*error*.{ts,js},**/*processing*.{ts,js}
+description: Error handling workflow for processing 35 files in group 0
+globs: **/error-processing/**,**/errors/**,**/error-handlers/**,**/error-flow/**
 alwaysApply: false
 ---
 
 
 # error-processing-flow
 
-The error processing workflow handles batch operations for 35 files within processing group 0.
+## Flow Architecture
 
-## Error Flow Structure
-```
-Group 0 Processing
-├── File Processing (35 files)
-└── Error Handling
-```
+The error processing workflow handles a batch of 35 files in processing group 0. 
 
-## Processing States
 Importance Score: 75
 
-Files are processed in batch group 0 as part of the error handling workflow. The system maintains error state tracking for the 35 files being processed.
+## Core Components
 
-## Error Boundaries
-Importance Score: 65
+Error processing pipeline for batch file operations:
 
-Error handling is contained within group 0's processing context, with errors isolated at the file level to prevent cascade failures across the batch.
+1. Group-level error handling
+   - Processes files in group 0 
+   - Handles errors at batch level for 35 files
+
+2. File-level error management
+   - Individual file error tracking
+   - Batch continuation on single file failures
+
+Importance Score: 85
+
+## Error States
+
+The system processes errors for:
+- Batch processing errors (group 0)
+- Individual file failures
+- Multi-file error aggregation
+
+Importance Score: 70
 
 $END$

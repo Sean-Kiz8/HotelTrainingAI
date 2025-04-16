@@ -75,6 +75,7 @@ const formSchema = z.object({
 export function Step2CourseSettings({ settings, onSettingsChange }: Step2CourseSettingsProps) {
   const [audience, setAudience] = useState<string[]>(settings.targetAudience || []);
   const [formats, setFormats] = useState<string[]>(settings.format || []);
+  const [loading, setLoading] = useState(false);
   
   // Инициализация формы с текущими настройками
   const form = useForm<z.infer<typeof formSchema>>({
@@ -164,6 +165,32 @@ export function Step2CourseSettings({ settings, onSettingsChange }: Step2CourseS
     onSettingsChange({ [field]: value });
   };
 
+  // Генерация описания через AI
+  const handleGenerateDescription = async () => {
+    setLoading(true);
+    try {
+      const response = await fetch("/api/ai/generate-course-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.getValues("title"),
+          targetAudience: form.getValues("targetAudience"),
+          difficultyLevel: form.getValues("difficultyLevel"),
+          format: form.getValues("format"),
+          modulesCount: form.getValues("modulesCount"),
+        }),
+      });
+      if (!response.ok) throw new Error("Ошибка генерации описания");
+      const data = await response.json();
+      form.setValue("description", data.description, { shouldValidate: true });
+      onSettingsChange({ description: data.description });
+    } catch (e) {
+      // Можно добавить обработку ошибок
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
@@ -200,17 +227,27 @@ export function Step2CourseSettings({ settings, onSettingsChange }: Step2CourseS
             render={({ field }) => (
               <FormItem className="md:col-span-2">
                 <FormLabel>Описание курса</FormLabel>
-                <FormControl>
-                  <Textarea
-                    placeholder="Введите описание курса"
-                    className="min-h-[120px]"
-                    {...field}
-                    onChange={(e) => {
-                      field.onChange(e);
-                      handleFieldChange("description", e.target.value);
-                    }}
-                  />
-                </FormControl>
+                <div className="flex gap-2 items-start">
+                  <FormControl>
+                    <Textarea
+                      placeholder="Введите описание курса"
+                      className="min-h-[120px]"
+                      {...field}
+                      onChange={(e) => {
+                        field.onChange(e);
+                        handleFieldChange("description", e.target.value);
+                      }}
+                    />
+                  </FormControl>
+                  <button
+                    type="button"
+                    className="btn btn-secondary h-10 px-4 mt-1"
+                    onClick={handleGenerateDescription}
+                    disabled={loading}
+                  >
+                    {loading ? "Генерируем..." : "Сгенерировать описание"}
+                  </button>
+                </div>
                 <FormDescription>
                   Подробное описание курса, его целей и ожидаемых результатов
                 </FormDescription>
