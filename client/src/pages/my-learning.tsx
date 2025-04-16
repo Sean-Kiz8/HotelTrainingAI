@@ -62,7 +62,12 @@ function CourseCard({
             {completed ? "Завершено" : "В процессе"}
           </Badge>
         </div>
-        <h4 className="font-sans font-medium text-lg mb-1">{title}</h4>
+        <h4 
+          className="font-sans font-medium text-lg mb-1 hover:text-primary hover:underline cursor-pointer"
+          onClick={onClick}
+        >
+          {title}
+        </h4>
         <p className="text-neutral-600 text-sm mb-3">{description}</p>
 
         <div className="space-y-2 mb-3">
