@@ -8,6 +8,28 @@ import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from "lucide-react";
 import { LearningPath } from '@/types/learning-path';
 import { getLevelColor, getStatusColor } from '@/utils/learning-path-utils';
+import { CardSpotlight } from "@/components/ui/card-spotlight";
+
+// Компонент иконки галочки
+const CheckIcon = () => {
+  return (
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      width="24"
+      height="24"
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      className="h-4 w-4 text-blue-500 mt-1 flex-shrink-0"
+    >
+      <path stroke="none" d="M0 0h24v24H0z" fill="none" />
+      <path
+        d="M12 2c-.218 0 -.432 .002 -.642 .005l-.616 .017l-.299 .013l-.579 .034l-.553 .046c-4.785 .464 -6.732 2.411 -7.196 7.196l-.046 .553l-.034 .579c-.005 .098 -.01 .198 -.013 .299l-.017 .616l-.004 .318l-.001 .324c0 .218 .002 .432 .005 .642l.017 .616l.013 .299l.034 .579l.046 .553c.464 4.785 2.411 6.732 7.196 7.196l.553 .046l.579 .034c.098 .005 .198 .01 .299 .013l.616 .017l.642 .005l.642 -.005l.616 -.017l.299 -.013l.579 -.034l.553 -.046c4.785 -.464 6.732 -2.411 7.196 -7.196l.046 -.553l.034 -.579c.005 -.098 .01 -.198 .013 -.299l.017 -.616l.005 -.642l-.005 -.642l-.017 -.616l-.013 -.299l-.034 -.579l-.046 -.553c-.464 -4.785 -2.411 -6.732 -7.196 -7.196l-.553 -.046l-.579 -.034a28.058 28.058 0 0 0 -.299 -.013l-.616 -.017l-.318 -.004l-.324 -.001zm0 4a1 1 0 0 1 .993 .883l.007 .117v4h4a1 1 0 0 1 .117 1.993l-.117 .007h-5a1 1 0 0 1 -.993 -.883l-.007 -.117v-5a1 1 0 0 1 1 -1z"
+        fill="currentColor"
+        strokeWidth="0"
+      />
+    </svg>
+  );
+};
 
 export default function LearningPaths() {
   const [isLoading, setIsLoading] = useState(true);
@@ -102,59 +124,60 @@ export default function LearningPaths() {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 my-6">
           {learningPaths.map((path) => (
-            <Card key={path.id}>
-              <CardHeader>
-                <CardTitle>{path.position}</CardTitle>
-                <div className="mt-2 flex gap-2">
-                  <Badge variant={getLevelColor(path.level) === 'green' ? 'success' : 'default'}>
-                    {path.level}
-                  </Badge>
-                  <Badge variant={getStatusColor(path.status) === 'green' ? 'success' : 'default'}>
-                    {path.status}
-                  </Badge>
+            <CardSpotlight key={path.id} className="h-full">
+              <div className="relative z-10">
+                <div className="mb-4">
+                  <h3 className="text-xl font-bold text-white mb-2">{path.position}</h3>
+                  <div className="flex gap-2">
+                    <Badge variant={getLevelColor(path.level) === 'green' ? 'success' : 'default'}>
+                      {path.level}
+                    </Badge>
+                    <Badge variant={getStatusColor(path.status) === 'green' ? 'success' : 'default'}>
+                      {path.status}
+                    </Badge>
+                  </div>
                 </div>
-              </CardHeader>
-              <CardContent>
                 <div className="space-y-4">
                   <div>
-                    <h4 className="text-sm font-semibold">
+                    <h4 className="text-sm font-semibold text-white">
                       Целевые навыки
                     </h4>
-                    <p className="pt-2 text-sm text-muted-foreground">
+                    <p className="pt-2 text-sm text-neutral-300">
                       {path.targetSkills}
                     </p>
                   </div>
                   {/* Блок курсов показываем только если есть поле courses */}
                   {Array.isArray(path.courses) && (
                     <div>
-                      <h4 className="text-sm font-semibold">
+                      <h4 className="text-sm font-semibold text-white">
                         Курсы ({path.courses.length})
                       </h4>
                       <div className="space-y-2 mt-2">
                         {path.courses.slice(0, 3).map((course) => (
-                          <p key={course.id} className="text-sm text-muted-foreground">
-                            {course.course.title}
+                          <p key={course.id} className="text-sm text-neutral-400 flex items-start gap-2">
+                            <CheckIcon />
+                            <span>{course.course.title}</span>
                           </p>
                         ))}
                         {path.courses.length > 3 && (
-                          <p className="text-sm text-muted-foreground">
+                          <p className="text-sm text-neutral-400">
                             И ещё {path.courses.length - 3} курсов...
                           </p>
                         )}
                       </div>
                     </div>
                   )}
-                  <div className="pt-2">
+                  <div className="pt-4">
                     <Button
-                      className="w-full"
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white"
                       onClick={() => window.location.href = `/learning-path/${path.id}`}
                     >
                       Подробнее
                     </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </CardSpotlight>
           ))}
         </div>
       )}
