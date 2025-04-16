@@ -1253,28 +1253,59 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Media routes
   // Специфичные маршруты должны быть объявлены до общих маршрутов с параметрами
-  // Маршрут для получения файла по ID
-  app.get("/api/media/file/:id", async (req, res) => {
+  // Маршрут для получения файла из Object Storage
+  app.get("/api/media/file/:key", async (req, res) => {
     try {
-      const fileId = parseInt(req.params.id);
-      if (isNaN(fileId)) {
-        return res.status(400).json({ error: "Неверный ID файла" });
+      const key = decodeURIComponent(req.params.key);
+      
+      // Проверяем, является ли ключ числом (старый формат ID)
+      if (!isNaN(parseInt(key))) {
+        // Совместимость со старым API - если передан числовой ID
+        const fileId = parseInt(key);
+        const file = await storage.getMediaFile(fileId);
+        
+        if (!file) {
+          return res.status(404).json({ error: "Файл не найден" });
+        }
+        
+        // Формируем путь к файлу
+        const filePath = file.path || (file.filename ? `uploads/media/${file.filename}` : null);
+        
+        if (!filePath) {
+          return res.status(404).json({ error: "Путь к файлу не найден" });
+        }
+        
+        // Отправляем файл клиенту
+        return res.sendFile(filePath, { root: '.' });
       }
       
-      const file = await storage.getMediaFile(fileId);
-      if (!file) {
+      // Новый формат - ключ из Object Storage
+      const { getFile } = await import('./utils/object-storage');
+      const fileContent = await getFile(key);
+      
+      if (!fileContent) {
         return res.status(404).json({ error: "Файл не найден" });
       }
       
-      // Формируем путь к файлу
-      const filePath = file.path || (file.filename ? `uploads/media/${file.filename}` : null);
+      // Определяем тип контента на основе расширения файла
+      const ext = path.extname(key).toLowerCase();
+      let contentType = 'application/octet-stream'; // По умолчанию
       
-      if (!filePath) {
-        return res.status(404).json({ error: "Путь к файлу не найден" });
-      }
+      // Устанавливаем правильный Content-Type для распространенных типов файлов
+      if (ext === '.pdf') contentType = 'application/pdf';
+      else if (ext === '.jpg' || ext === '.jpeg') contentType = 'image/jpeg';
+      else if (ext === '.png') contentType = 'image/png';
+      else if (ext === '.gif') contentType = 'image/gif';
+      else if (ext === '.mp4') contentType = 'video/mp4';
+      else if (ext === '.webm') contentType = 'video/webm';
+      else if (ext === '.doc' || ext === '.docx') contentType = 'application/msword';
+      else if (ext === '.xls' || ext === '.xlsx') contentType = 'application/vnd.ms-excel';
+      else if (ext === '.ppt' || ext === '.pptx') contentType = 'application/vnd.ms-powerpoint';
       
-      // Отправляем файл клиенту
-      res.sendFile(filePath, { root: '.' });
+      // Устанавливаем заголовки и отправляем файл
+      res.setHeader('Content-Type', contentType);
+      res.setHeader('Content-Length', fileContent.length);
+      res.send(fileContent);
       
     } catch (error) {
       console.error("Ошибка при получении файла:", error);
@@ -1390,11 +1421,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { uploadedById } = req.body;
       const userId = parseInt(uploadedById);
 
-      // Generate file paths
-      const filePath = req.file.path;
-      const relativePath = `./uploads/media/${req.file.filename}`;
-      const fileUrl = `/uploads/media/${req.file.filename}`;
-
       // Determine media type from mime type
       const mediaType = getMediaTypeFromMimeType(req.file.mimetype);
 
@@ -1403,43 +1429,112 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const thumbnailName = `thumb_${req.file.filename}`;
       const thumbnailPath = path.join(thumbnailsDir, thumbnailName);
 
-      const thumbnailResult = await generateThumbnail(filePath, mediaType, thumbnailPath);
-      if (thumbnailResult) {
-        thumbnail = `/uploads/thumbnails/${thumbnailName}`;
+      const thumbnailResult = await generateThumbnail(req.file.path, mediaType, thumbnailPath);
+      
+      // Загрузка файла в Object Storage
+      const { uploadFile, uploadThumbnail } = await import('./utils/object-storage');
+      
+      try {
+        // Загружаем основной файл
+        const objectStorageResult = await uploadFile(
+          req.file.path,
+          req.file.originalname,
+          mediaType,
+          req.file.mimetype
+        );
+        
+        // Если была создана миниатюра, загружаем и её
+        if (thumbnailResult) {
+          thumbnail = await uploadThumbnail(thumbnailPath, req.file.originalname);
+        }
+        
+        // Приведение mediaType к правильному типу данных согласно схеме
+        const mediaTypeEnum = ["image", "video", "audio", "document", "presentation"] as const;
+        let validMediaType = mediaType as "image" | "video" | "audio" | "document" | "presentation";
+
+        // Проверяем, что mediaType является допустимым значением
+        if (!mediaTypeEnum.includes(validMediaType as any)) {
+          validMediaType = "document"; // Значение по умолчанию, если неизвестный тип
+        }
+        
+        // Создаем запись о файле в БД
+        const mediaFileData = {
+          filename: objectStorageResult.key.split('/').pop() || req.file.filename,
+          originalFilename: req.file.originalname,
+          path: objectStorageResult.key,
+          url: objectStorageResult.url,
+          mediaType: validMediaType,
+          thumbnail,
+          fileSize: objectStorageResult.fileSize,
+          mimeType: req.file.mimetype,
+          uploadedById: userId,
+          metadata: req.body.metadata ? JSON.parse(req.body.metadata) : null
+        };
+
+        const mediaFile = await storage.createMediaFile(mediaFileData);
+
+        // Добавляем виртуальное поле name для совместимости с клиентским кодом
+        const mediaFileWithName = {
+          ...mediaFile,
+          name: mediaFile.originalFilename
+        };
+
+        // Удаляем локальный файл, так как он уже загружен в Object Storage
+        try {
+          fs.unlinkSync(req.file.path);
+          if (thumbnailResult) {
+            fs.unlinkSync(thumbnailPath);
+          }
+        } catch (unlinkError) {
+          console.warn("Ошибка при удалении временных файлов:", unlinkError);
+        }
+
+        res.status(201).json(mediaFileWithName);
+      } catch (objectStorageError) {
+        console.error("Ошибка при загрузке в Object Storage:", objectStorageError);
+        
+        // Запасной вариант - используем файловую систему
+        console.warn("Используем файловую систему вместо Object Storage");
+        
+        const relativePath = `./uploads/media/${req.file.filename}`;
+        const fileUrl = `/uploads/media/${req.file.filename}`;
+        
+        // Приведение mediaType к правильному типу данных согласно схеме
+        const mediaTypeEnum = ["image", "video", "audio", "document", "presentation"] as const;
+        let validMediaType = mediaType as "image" | "video" | "audio" | "document" | "presentation";
+
+        // Проверяем, что mediaType является допустимым значением
+        if (!mediaTypeEnum.includes(validMediaType as any)) {
+          validMediaType = "document"; // Значение по умолчанию, если неизвестный тип
+        }
+        
+        if (thumbnailResult) {
+          thumbnail = `/uploads/thumbnails/${thumbnailName}`;
+        }
+
+        const mediaFileData = {
+          filename: req.file.filename,
+          originalFilename: req.file.originalname,
+          path: relativePath,
+          url: fileUrl,
+          mediaType: validMediaType,
+          thumbnail,
+          fileSize: req.file.size,
+          mimeType: req.file.mimetype,
+          uploadedById: userId,
+          metadata: req.body.metadata ? JSON.parse(req.body.metadata) : null
+        };
+
+        const mediaFile = await storage.createMediaFile(mediaFileData);
+
+        // Добавляем виртуальное поле name для совместимости с клиентским кодом
+        const mediaFileWithName = {
+          ...mediaFile,
+          name: mediaFile.originalFilename
+        };
+
+        res.status(201).json(mediaFileWithName);
       }
-
-      // Create the media file record in the database
-      // Приведение mediaType к правильному типу данных согласно схеме
-      const mediaTypeEnum = ["image", "video", "audio", "document", "presentation"] as const;
-      let validMediaType = mediaType as "image" | "video" | "audio" | "document" | "presentation";
-
-      // Проверяем, что mediaType является допустимым значением
-      if (!mediaTypeEnum.includes(validMediaType as any)) {
-        validMediaType = "document"; // Значение по умолчанию, если неизвестный тип
-      }
-
-      const mediaFileData = {
-        filename: req.file.filename,
-        originalFilename: req.file.originalname,
-        path: relativePath,
-        url: fileUrl,
-        mediaType: validMediaType,
-        thumbnail,
-        fileSize: req.file.size,
-        mimeType: req.file.mimetype,
-        uploadedById: userId,
-        metadata: req.body.metadata ? JSON.parse(req.body.metadata) : null
-      };
-
-      const mediaFile = await storage.createMediaFile(mediaFileData);
-
-      // Добавляем виртуальное поле name для совместимости с клиентским кодом
-      const mediaFileWithName = {
-        ...mediaFile,
-        name: mediaFile.originalFilename
-      };
-
-      res.status(201).json(mediaFileWithName);
     } catch (error) {
       console.error("Error uploading file:", error);
       res.status(500).json({ message: "Failed to upload file" });

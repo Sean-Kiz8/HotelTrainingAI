@@ -53,3 +53,6 @@ waitForPort = 5000
 
 [rules.formatter.fileExtensions.".tsx"]
 id = "module:web/languageServer:typescript-language-server"
+
+[objectStorage]
+defaultBucketID = "replit-objstore-ef33176d-af06-4d06-a3ab-24697e313f41"

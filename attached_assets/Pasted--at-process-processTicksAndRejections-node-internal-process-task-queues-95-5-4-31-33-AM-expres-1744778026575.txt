@@ -1,0 +1,23 @@
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+4:31:33 AM [express] POST /api/courses/describe 500 in 200ms :: {"error":"Не удалось сгенерировать о…
+4:31:50 AM [express] GET /api/media 304 in 471ms :: [{"id":42,"filename":"1744777234449-947709042.pd…
+4:32:19 AM [express] POST /api/media/upload 201 in 1527ms :: {"id":43,"filename":"1744777938703-1696…
+4:32:29 AM [express] POST /api/ai/generate-course-description 200 in 208ms
+4:32:50 AM [express] POST /api/ai/generate-course-description 200 in 406ms
+4:33:07 AM [express] POST /api/ai/generate-course-content 200 in 9527ms :: {"title":"Маркетинг","des…
+Failed to generate course: ReferenceError: require is not defined
+    at <anonymous> (/home/runner/workspace/server/routes.ts:281:42)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at next (/home/runner/workspace/node_modules/express/lib/router/route.js:149:13)
+    at Route.dispatch (/home/runner/workspace/node_modules/express/lib/router/route.js:119:3)
+    at Layer.handle [as handle_request] (/home/runner/workspace/node_modules/express/lib/router/layer.js:95:5)
+    at /home/runner/workspace/node_modules/express/lib/router/index.js:284:15
+    at Function.process_params (/home/runner/workspace/node_modules/express/lib/router/index.js:346:12)
+    at next (/home/runner/workspace/node_modules/express/lib/router/index.js:280:10)
+    at strategy.pass (/home/runner/workspace/node_modules/passport/lib/middleware/authenticate.js:355:9)
+    at /home/runner/workspace/node_modules/passport/lib/strategies/session.js:120:12
+    at pass (/home/runner/workspace/node_modules/passport/lib/authenticator.js:352:31)
+    at deserialized (/home/runner/workspace/node_modules/passport/lib/authenticator.js:364:7)
+    at <anonymous> (/home/runner/workspace/server/auth.ts:74:7)
+    at process.processTicksAndRejections (node:internal/process/task_queues:95:5)
+4:33:15 AM [express] POST /api/courses/generate 500 in 197ms :: {"error":"Ошибка при генерации курса…
