@@ -3,6 +3,11 @@ import OpenAI from "openai";
 // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
 const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
+// Проверка доступности API ключа
+const isOpenAIKeyAvailable = () => {
+  return !!process.env.OPENAI_API_KEY;
+};
+
 // Функция для генерации персонализированного учебного плана
 export async function generateLearningPath(
   userRole: string,
@@ -834,6 +839,201 @@ ${targetAudience && targetAudience.length > 0 ? `- Целевая аудитор
   } catch (error) {
     console.error("Ошибка при генерации описания курса через OpenAI:", error);
     throw new Error("Не удалось сгенерировать описание курса с помощью ИИ");
+  }
+}
+
+// Функция для генерации содержания курса на основе загруженных файлов
+export async function generateCourseContent(
+  title: string,
+  description: string,
+  settings: {
+    targetAudience: string[];
+    difficultyLevel: string;
+    modulesCount: number;
+    format: string[];
+    includeTests: boolean;
+    includeQuizzes: boolean;
+  },
+  files: {
+    id: string;
+    name: string;
+    type: string;
+    url?: string;
+  }[]
+): Promise<{
+  title: string;
+  description: string;
+  modules: {
+    id: number;
+    title: string;
+    description: string;
+    lessons: {
+      id: number;
+      title: string;
+      content: string;
+      duration: number; // в минутах
+      type: string;
+    }[];
+  }[];
+}> {
+  try {
+    // Проверяем наличие API ключа
+    if (!isOpenAIKeyAvailable()) {
+      console.warn("OpenAI API ключ не установлен, возвращаем заготовку контента");
+      
+      // Если API ключ не доступен, возвращаем заготовку
+      return {
+        title,
+        description,
+        modules: Array.from({ length: settings.modulesCount }, (_, i) => ({
+          id: i + 1,
+          title: `Модуль ${i + 1}`,
+          description: `Описание модуля ${i + 1}`,
+          lessons: Array.from({ length: 3 }, (_, j) => ({
+            id: j + 1,
+            title: `Урок ${j + 1}`,
+            content: `Содержание урока ${j + 1}`,
+            duration: 30, // 30 минут
+            type: settings.format[0] || 'text'
+          }))
+        }))
+      };
+    }
+    
+    // Формируем информацию о файлах
+    const filesInfo = files.map(file => 
+      `- Название: "${file.name}", Тип: ${file.type}`
+    ).join('\n');
+
+    // Формируем информацию о целевой аудитории
+    const audienceMap: Record<string, string> = {
+      "administrators": "Администраторы",
+      "receptionists": "Администраторы ресепшн",
+      "housekeeping": "Горничные",
+      "security": "Служба безопасности",
+      "kitchen": "Кухонный персонал",
+      "waiters": "Официанты",
+      "bartenders": "Бармены",
+      "concierge": "Консьержи",
+      "maintenance": "Технический персонал"
+    };
+    
+    const audience = settings.targetAudience
+      .map(a => audienceMap[a] || a)
+      .join(", ");
+      
+    // Формируем информацию о форматах
+    const formatMap: Record<string, string> = {
+      "text": "Текстовый материал",
+      "video": "Видеоматериал",
+      "interactive": "Интерактивные элементы"
+    };
+    
+    const formats = settings.format
+      .map(f => formatMap[f] || f)
+      .join(", ");
+
+    // Структура запроса к GPT
+    const prompt = `
+    Разработай детальную структуру курса обучения для персонала отеля на основе следующей информации:
+    
+    Название курса: "${title}"
+    
+    Описание курса: "${description}"
+    
+    Параметры курса:
+    - Целевая аудитория: ${audience}
+    - Уровень сложности: ${settings.difficultyLevel}
+    - Количество модулей: ${settings.modulesCount}
+    - Форматы обучения: ${formats}
+    - Включает тесты: ${settings.includeTests ? 'Да' : 'Нет'}
+    - Включает опросы: ${settings.includeQuizzes ? 'Да' : 'Нет'}
+    
+    ${filesInfo ? `Доступные материалы:\n${filesInfo}` : 'Дополнительные материалы отсутствуют.'}
+    
+    Структурируй курс таким образом, чтобы:
+    1. Каждый модуль имел четкую тему и цель обучения
+    2. Каждый модуль содержал 3 урока
+    3. Каждый урок имел заголовок, краткое содержание и примерную продолжительность в минутах
+    4. Формат уроков соответствовал указанным форматам обучения
+    5. Содержание соответствовало уровню сложности и целевой аудитории
+    
+    Предоставь результат в формате JSON:
+    {
+      "title": "Название курса",
+      "description": "Описание курса",
+      "modules": [
+        {
+          "id": 1,
+          "title": "Название модуля",
+          "description": "Описание модуля",
+          "lessons": [
+            {
+              "id": 1,
+              "title": "Название урока",
+              "content": "Краткое содержание урока",
+              "duration": продолжительность_в_минутах,
+              "type": "text|video|interactive"
+            }
+          ]
+        }
+      ]
+    }
+    
+    Важно:
+    1. Все названия и описания должны быть на русском языке
+    2. Указывай реалистичную продолжительность уроков в минутах
+    3. Каждый модуль должен логически следовать за предыдущим
+    4. Тип урока должен быть одним из: "text", "video", "interactive"
+    5. Содержание должно быть конкретным и полезным для сотрудников отеля
+    6. Краткое содержание каждого урока должно состоять из 2-3 предложений
+    7. Модули должны охватывать разные аспекты темы курса
+    8. Общая структура курса должна быть логичной и последовательной
+    `;
+    
+    // Отправляем запрос к OpenAI
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "Ты - эксперт по разработке образовательных программ для индустрии гостеприимства."
+        },
+        {
+          role: "user",
+          content: prompt
+        }
+      ],
+      response_format: { type: "json_object" }
+    });
+    
+    const content = response.choices[0].message.content;
+    if (!content) {
+      throw new Error("Не удалось получить ответ от OpenAI");
+    }
+    
+    // Парсим JSON из ответа
+    const courseContent = JSON.parse(content);
+    
+    // Приводим типы данных в соответствие с ожидаемыми
+    const formattedContent = {
+      ...courseContent,
+      modules: courseContent.modules.map((module: any, moduleIndex: number) => ({
+        ...module,
+        id: moduleIndex + 1, // Убедимся, что ID модулей последовательны
+        lessons: module.lessons.map((lesson: any, lessonIndex: number) => ({
+          ...lesson,
+          id: lessonIndex + 1, // Убедимся, что ID уроков последовательны
+          duration: typeof lesson.duration === 'number' ? lesson.duration : parseInt(lesson.duration, 10) || 30
+        }))
+      }))
+    };
+    
+    return formattedContent;
+    
+  } catch (error) {
+    console.error("Ошибка при генерации содержания курса:", error);
+    throw new Error("Не удалось сгенерировать содержание курса");
   }
 }
 
